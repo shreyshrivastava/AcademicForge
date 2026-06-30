@@ -69,7 +69,7 @@ More detail: [docs/architecture.md](docs/architecture.md)
 - **Keyword retrieval:** in-memory BM25
 - **Dense retrieval:** `sentence-transformers` with `BAAI/bge-small-en-v1.5` when available
 - **Rank fusion:** reciprocal rank fusion
-- **Local LLM runtime:** MLX via `mlx-lm`
+- **Local LLM runtime:** MLX via `mlx-lm`; optional Transformers backend for NVIDIA CUDA or AMD ROCm
 - **Default local model:** `mlx-community/Qwen3-4B-4bit`
 - **Caching:** local JSON cache under `.academicforge_cache/`
 
@@ -101,7 +101,7 @@ AcademicForge/
 Recommended: Python 3.11+ on macOS with Apple Silicon for MLX.
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/shreyshrivastava/AcademicForge.git
 cd AcademicForge
 python3 -m venv venv
 source venv/bin/activate
@@ -116,6 +116,50 @@ pip install sentence-transformers
 ```
 
 Full setup guide: [docs/setup.md](docs/setup.md)
+
+## Optional NVIDIA CUDA or AMD ROCm Setup
+
+AcademicForge defaults to MLX because this repository was developed on Apple Silicon. If you want to run the local LLM on an NVIDIA or AMD machine, use the Transformers backend instead.
+
+Install the base dependencies first:
+
+```bash
+pip install -r requirements.txt
+pip install transformers accelerate sentencepiece safetensors
+```
+
+Then install the correct PyTorch build for your hardware.
+
+NVIDIA CUDA example:
+
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+AMD ROCm example:
+
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.3
+```
+
+Then configure a Hugging Face causal language model:
+
+```bash
+export LOCAL_LLM_PROVIDER=transformers
+export LOCAL_LLM_MODEL=Qwen/Qwen2.5-3B-Instruct
+export LOCAL_LLM_SUMMARY_MODEL=Qwen/Qwen2.5-3B-Instruct
+export LOCAL_LLM_ROADMAP_MODEL=Qwen/Qwen2.5-3B-Instruct
+```
+
+For AMD ROCm you can also use:
+
+```bash
+export LOCAL_LLM_PROVIDER=rocm
+```
+
+`rocm` currently routes through the same Transformers code path as `transformers`; the difference is the PyTorch build and GPU driver/runtime installed on the machine.
+
+Use the official PyTorch install selector for the latest CUDA/ROCm wheel command: [pytorch.org/get-started/locally](https://pytorch.org/get-started/locally/). AMD also publishes ROCm PyTorch installation notes: [ROCm PyTorch install guide](https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/install/installrad/native_linux/install-pytorch.html).
 
 ## Configuration
 

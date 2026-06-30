@@ -40,7 +40,7 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 - Add collaborative research boards.
 - Add code-generation mode using a task-specific coder model.
 - Add evaluation harness for search relevance and roadmap quality.
-- Add AMD/ROCm runtime path behind the existing provider interface.
+- Validate and benchmark the AMD/ROCm Transformers runtime on real AMD hardware.
 
 ## Known Limitations
 

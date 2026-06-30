@@ -47,9 +47,11 @@ RRF is used because BM25 and dense search produce different score distributions.
 
 `backend/llm.py` wraps local generation.
 
-Current provider:
+Supported providers:
 
 - `mlx`
+- `transformers`
+- `rocm`
 
 Current default model:
 
@@ -62,6 +64,12 @@ Task-specific model routing:
 - `LOCAL_LLM_ROADMAP_MODEL`
 
 This lets the project use communicator/instruct models for summaries and roadmaps while reserving coder models for future code-generation workflows.
+
+Provider notes:
+
+- `mlx` is intended for Apple Silicon and uses `mlx-lm`.
+- `transformers` is intended for Hugging Face causal language models running on CPU or NVIDIA CUDA through PyTorch.
+- `rocm` is an alias for the Transformers backend and is intended for AMD machines with a ROCm-enabled PyTorch installation.
 
 ## Caching
 
