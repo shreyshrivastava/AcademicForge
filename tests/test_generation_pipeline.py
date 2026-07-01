@@ -6,6 +6,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import backend.cache as cache
 from backend.roadmap_generator import build_roadmap_context, generate_roadmap
+from backend.roadmap_generator import generate_paper_roadmap
+from backend.roadmap_generator import paper_roadmap_cache_key
+from backend.roadmap_generator import paper_roadmap_cache_status
 from backend.roadmap_generator import roadmap_cache_status
 from backend.roadmap_generator import stream_roadmap
 import backend.roadmap_generator as roadmap_generator
@@ -76,6 +79,67 @@ def test_generate_roadmap_uses_compact_context():
     assert "Selected paper comparison" in captured["user_prompt"]
     assert "Recommended direction" in captured["user_prompt"]
     assert " ".join(["long-abstract"] * 50) not in captured["user_prompt"]
+
+
+def test_generate_paper_roadmap_uses_paper_specific_prompt():
+    captured = {}
+    original_generate_text = roadmap_generator.generate_text
+    original_cache_dir = cache.CACHE_DIR
+    roadmap_generator.PAPER_ROADMAP_CACHE.clear()
+
+    def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
+        captured["system_prompt"] = system_prompt
+        captured["user_prompt"] = user_prompt
+        captured["token_budget"] = token_budget
+        captured["task"] = task
+        return "paper roadmap"
+
+    roadmap_generator.generate_text = fake_generate_text
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache.CACHE_DIR = Path(tmpdir)
+        result = generate_paper_roadmap(PAPER)
+        cache.CACHE_DIR = original_cache_dir
+        roadmap_generator.generate_text = original_generate_text
+        roadmap_generator.PAPER_ROADMAP_CACHE.clear()
+
+    assert result == "paper roadmap"
+    assert captured["token_budget"] == 1100
+    assert captured["task"] == "roadmap"
+    assert "What this paper is about" in captured["user_prompt"]
+    assert "Step-by-step reading plan" in captured["user_prompt"]
+    assert "How to use this in a project" in captured["user_prompt"]
+
+
+def test_paper_roadmap_cache_reuses_disk_cache_and_invalidates_on_content_change():
+    calls = {"count": 0}
+    original_generate_text = roadmap_generator.generate_text
+    original_cache_dir = cache.CACHE_DIR
+    roadmap_generator.PAPER_ROADMAP_CACHE.clear()
+
+    def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
+        calls["count"] += 1
+        return "disk cached paper roadmap"
+
+    changed_paper = dict(PAPER)
+    changed_paper["abstract"] = "A changed abstract should produce a different cache key."
+
+    roadmap_generator.generate_text = fake_generate_text
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache.CACHE_DIR = Path(tmpdir)
+        first = generate_paper_roadmap(PAPER)
+        roadmap_generator.PAPER_ROADMAP_CACHE.clear()
+        second = generate_paper_roadmap(PAPER)
+        assert first == "disk cached paper roadmap"
+        assert second == "disk cached paper roadmap"
+        assert calls["count"] == 1
+        assert paper_roadmap_cache_status(PAPER) == {
+            "cached": True,
+            "cache": "memory",
+        }
+        assert paper_roadmap_cache_key(PAPER) != paper_roadmap_cache_key(changed_paper)
+        cache.CACHE_DIR = original_cache_dir
+        roadmap_generator.generate_text = original_generate_text
+        roadmap_generator.PAPER_ROADMAP_CACHE.clear()
 
 
 def test_summary_cache_reuses_existing_summary():
@@ -209,6 +273,8 @@ def test_stream_roadmap_yields_chunks_and_caches_result():
 if __name__ == "__main__":
     test_roadmap_context_is_compact_and_structured()
     test_generate_roadmap_uses_compact_context()
+    test_generate_paper_roadmap_uses_paper_specific_prompt()
+    test_paper_roadmap_cache_reuses_disk_cache_and_invalidates_on_content_change()
     test_summary_cache_reuses_existing_summary()
     test_summary_disk_cache_reuses_existing_summary_after_memory_clear()
     test_roadmap_disk_cache_reuses_existing_roadmap_after_memory_clear()

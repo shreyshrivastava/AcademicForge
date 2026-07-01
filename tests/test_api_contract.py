@@ -43,6 +43,49 @@ def test_roadmap_cache_status_endpoint_returns_status():
     assert payload["cache"] in {"memory", "disk", "miss"}
 
 
+def test_paper_roadmap_endpoint_returns_roadmap():
+    original_generate = backend_app.generate_ai_paper_roadmap
+
+    def fake_generate(paper):
+        return f"roadmap for {paper['title']}"
+
+    backend_app.generate_ai_paper_roadmap = fake_generate
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/roadmap/paper",
+            json={
+                "title": "Paper",
+                "authors": [],
+                "abstract": "Abstract",
+                "link": "https://example.com",
+                "date": "2026-06-30",
+            },
+        )
+        assert response.status_code == 200
+        assert response.json() == {"roadmap": "roadmap for Paper"}
+    finally:
+        backend_app.generate_ai_paper_roadmap = original_generate
+
+
+def test_paper_roadmap_cache_status_endpoint_returns_status():
+    client = TestClient(app)
+    response = client.post(
+        "/roadmap/paper/cache-status",
+        json={
+            "title": "Paper",
+            "authors": [],
+            "abstract": "Abstract",
+            "link": "https://example.com",
+            "date": "2026-06-30",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert "cached" in payload
+    assert payload["cache"] in {"memory", "disk", "miss"}
+
+
 def test_roadmap_stream_endpoint_streams_text():
     original_stream = backend_app.stream_ai_roadmap
 
@@ -78,5 +121,7 @@ def test_roadmap_stream_endpoint_streams_text():
 if __name__ == "__main__":
     test_config_endpoint_returns_model_info()
     test_roadmap_cache_status_endpoint_returns_status()
+    test_paper_roadmap_endpoint_returns_roadmap()
+    test_paper_roadmap_cache_status_endpoint_returns_status()
     test_roadmap_stream_endpoint_streams_text()
     print("api contract tests passed")

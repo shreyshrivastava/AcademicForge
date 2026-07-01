@@ -28,6 +28,10 @@ def summarize_paper(paper):
     return post_json("/summarize", paper).get("summary", "")
 
 
+def generate_paper_roadmap(paper):
+    return post_json("/roadmap/paper", paper).get("roadmap", "")
+
+
 def stream_roadmap(papers, summaries):
     response = requests.post(
         f"{BACKEND_URL}/roadmap/stream",
@@ -43,6 +47,14 @@ def stream_roadmap(papers, summaries):
 
 def roadmap_cache_status(papers, summaries):
     return post_json("/roadmap/cache-status", {"papers": papers, "summaries": summaries})
+
+
+def paper_roadmap_cache_status(paper):
+    return post_json("/roadmap/paper/cache-status", paper)
+
+
+def paper_cache_id(paper):
+    return paper.get("paper_id") or paper.get("url") or paper.get("link") or paper["title"]
 
 
 def paper_label(index, paper):
@@ -70,10 +82,11 @@ def render_results_table(papers):
     )
 
 
-def render_paper_details(papers, summaries=None):
+def render_paper_details(papers, summaries=None, show_roadmap_controls=False, scope="results"):
     summaries = summaries or []
     for index, paper in enumerate(papers):
         summary = summaries[index] if index < len(summaries) else None
+        cache_id = paper_cache_id(paper)
         with st.expander(f"{index + 1}. {paper['title']}", expanded=expand_all_results or index == 0):
             st.write(f"**Source:** {paper.get('source', 'arxiv')}")
             st.write(f"**Authors:** {', '.join(paper.get('authors', []))}")
@@ -91,6 +104,24 @@ def render_paper_details(papers, summaries=None):
                 st.json(paper.get("metadata", {}))
             if summary:
                 st.write(f"**Summary:** {summary}")
+            if show_roadmap_controls:
+                if st.button("Roadmap", key=f"paper-roadmap-button-{scope}-{cache_id}"):
+                    try:
+                        status = paper_roadmap_cache_status(paper)
+                        if status.get("cached"):
+                            st.session_state.paper_roadmaps[cache_id] = generate_paper_roadmap(paper)
+                        else:
+                            with st.spinner("Generating paper roadmap..."):
+                                st.session_state.paper_roadmaps[cache_id] = generate_paper_roadmap(paper)
+                    except requests.ConnectionError:
+                        st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
+                    except requests.HTTPError as exc:
+                        st.error(f"The backend returned an error: {exc.response.text}")
+                    except requests.RequestException as exc:
+                        st.error(f"Could not reach the backend: {exc}")
+                if cache_id in st.session_state.paper_roadmaps:
+                    st.markdown("**Paper roadmap**")
+                    st.markdown(st.session_state.paper_roadmaps[cache_id])
 
 
 st.set_page_config(page_title="AcademicForge", page_icon="AF", layout="wide")
@@ -124,6 +155,8 @@ if "roadmap_elapsed" not in st.session_state:
     st.session_state.roadmap_elapsed = None
 if "generated_labels" not in st.session_state:
     st.session_state.generated_labels = []
+if "paper_roadmaps" not in st.session_state:
+    st.session_state.paper_roadmaps = {}
 
 default_query = st.query_params.get("query", "")
 debug_mode = st.checkbox("Debug retrieval", value=False)
@@ -154,6 +187,7 @@ if should_search:
             st.session_state.roadmap = ""
             st.session_state.roadmap_elapsed = None
             st.session_state.generated_labels = []
+            st.session_state.paper_roadmaps = {}
             labels = [
                 paper_label(index, paper)
                 for index, paper in enumerate(st.session_state.papers, start=1)
@@ -170,9 +204,11 @@ papers = st.session_state.papers
 if papers:
     st.subheader("Search results")
     render_results_table(papers)
-    render_paper_details(papers)
+    render_paper_details(papers, show_roadmap_controls=True)
 
     labels = [paper_label(index, paper) for index, paper in enumerate(papers, start=1)]
+    if st.button("Select all visible papers"):
+        st.session_state.selected_labels = labels
     valid_defaults = [label for label in st.session_state.selected_labels if label in labels]
     selected_labels = st.multiselect(
         "Choose papers for summarization and roadmap",
@@ -218,7 +254,7 @@ if papers:
             with st.spinner("Summarizing selected papers..."):
                 st.session_state.summaries = [summarize_paper(paper) for paper in selected_papers]
 
-            with st.spinner("Generating roadmap..."):
+            with st.spinner("Generating mixed roadmap..."):
                 roadmap_started = time.perf_counter()
                 roadmap_placeholder = st.empty()
                 roadmap_chunks = []
@@ -244,10 +280,10 @@ if papers:
 
     if can_show_generated_output:
         st.subheader("Selected paper summaries")
-        render_paper_details(selected_papers, st.session_state.summaries)
+        render_paper_details(selected_papers, st.session_state.summaries, scope="selected")
 
     if can_show_generated_output:
-        st.subheader("Implementation roadmap")
+        st.subheader("Mixed roadmap")
         if st.session_state.roadmap_elapsed is not None:
             elapsed = st.session_state.roadmap_elapsed
             if elapsed < 1:
