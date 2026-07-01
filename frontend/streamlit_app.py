@@ -28,10 +28,6 @@ def summarize_paper(paper):
     return post_json("/summarize", paper).get("summary", "")
 
 
-def generate_roadmap(papers, summaries):
-    return post_json("/roadmap", {"papers": papers, "summaries": summaries}).get("roadmap", "")
-
-
 def stream_roadmap(papers, summaries):
     response = requests.post(
         f"{BACKEND_URL}/roadmap/stream",

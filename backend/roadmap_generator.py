@@ -75,11 +75,8 @@ def generate_roadmap(papers, summaries=None):
     """Generate an implementation roadmap from paper metadata and summaries."""
     paper_context = build_roadmap_context(papers, summaries)
     cache_key = roadmap_cache_key(papers, summaries, paper_context)
-    if cache_key in ROADMAP_CACHE:
-        return ROADMAP_CACHE[cache_key]
-    cached_roadmap = cache_get("roadmaps", cache_key)
+    cached_roadmap = _get_cached_roadmap(cache_key)
     if cached_roadmap:
-        ROADMAP_CACHE[cache_key] = cached_roadmap
         return cached_roadmap
 
     system_prompt, user_prompt = build_roadmap_prompt(paper_context)
@@ -93,13 +90,8 @@ def stream_roadmap(papers, summaries=None):
     """Yield roadmap text chunks while generating, then persist the completed roadmap."""
     paper_context = build_roadmap_context(papers, summaries)
     cache_key = roadmap_cache_key(papers, summaries, paper_context)
-    if cache_key in ROADMAP_CACHE:
-        yield ROADMAP_CACHE[cache_key]
-        return
-
-    cached_roadmap = cache_get("roadmaps", cache_key)
+    cached_roadmap = _get_cached_roadmap(cache_key)
     if cached_roadmap:
-        ROADMAP_CACHE[cache_key] = cached_roadmap
         yield cached_roadmap
         return
 
@@ -118,6 +110,16 @@ def stream_roadmap(papers, summaries=None):
     roadmap = "".join(chunks).strip()
     ROADMAP_CACHE[cache_key] = roadmap
     cache_set("roadmaps", cache_key, roadmap)
+
+
+def _get_cached_roadmap(cache_key):
+    if cache_key in ROADMAP_CACHE:
+        return ROADMAP_CACHE[cache_key]
+
+    cached_roadmap = cache_get("roadmaps", cache_key)
+    if cached_roadmap:
+        ROADMAP_CACHE[cache_key] = cached_roadmap
+    return cached_roadmap
 
 
 def _clean_streamed_markdown(chunks):
@@ -154,8 +156,8 @@ def build_roadmap_prompt(paper_context):
         "You are AcademicForge, a senior research engineer. Create practical "
         "implementation roadmaps from academic papers. Synthesize across all "
         "selected papers instead of anchoring on the first paper. Prefer small, "
-        "portable models and designs that can run across Apple MLX now and "
-        "AMD/ROCm later. Be concrete and engineering-focused."
+        "portable models and designs that run well on local MLX. Be concrete "
+        "and engineering-focused."
     )
     user_prompt = f"""
 Use the papers below to create an implementation plan.

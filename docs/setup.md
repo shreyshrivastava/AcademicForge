@@ -39,48 +39,9 @@ export LOCAL_LLM_SUMMARY_MODEL=mlx-community/Qwen3-4B-4bit
 export LOCAL_LLM_ROADMAP_MODEL=mlx-community/Qwen3-4B-4bit
 ```
 
-## Optional GPU Setup: NVIDIA CUDA or AMD ROCm
+## Future GPU Backends
 
-MLX is the recommended default for Apple Silicon. On NVIDIA CUDA or AMD ROCm machines, use the Transformers backend.
-
-Install additional Python packages:
-
-```bash
-pip install transformers accelerate sentencepiece safetensors
-```
-
-Install the correct PyTorch build for your platform. Use the official PyTorch selector for the latest command: <https://pytorch.org/get-started/locally/>.
-
-NVIDIA CUDA example:
-
-```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-```
-
-AMD ROCm example:
-
-```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.3
-```
-
-AMD maintains ROCm-specific PyTorch setup notes here: <https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/install/installrad/native_linux/install-pytorch.html>.
-
-Configure AcademicForge for Transformers:
-
-```bash
-export LOCAL_LLM_PROVIDER=transformers
-export LOCAL_LLM_MODEL=Qwen/Qwen2.5-3B-Instruct
-export LOCAL_LLM_SUMMARY_MODEL=Qwen/Qwen2.5-3B-Instruct
-export LOCAL_LLM_ROADMAP_MODEL=Qwen/Qwen2.5-3B-Instruct
-```
-
-For AMD ROCm, this alias is also supported:
-
-```bash
-export LOCAL_LLM_PROVIDER=rocm
-```
-
-Both `transformers` and `rocm` use `backend/llm.py` with Hugging Face Transformers. The actual GPU support comes from the installed PyTorch CUDA or ROCm wheel.
+AcademicForge currently supports MLX as the active local LLM runtime. CUDA and ROCm are future migration targets, but they are not wired into the application yet.
 
 ## 3. Start Backend
 
