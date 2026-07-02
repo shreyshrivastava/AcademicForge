@@ -6,9 +6,23 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import backend.cache as cache
+import backend.config as config
 import backend.llm as llm
 import backend.roadmap_generator as roadmap_generator
 import backend.summarizer as summarizer
+
+
+def test_provider_aliases_normalize_gpu_backends():
+    old_provider = os.environ.get("LOCAL_LLM_PROVIDER")
+    old_backend = os.environ.get("LLM_BACKEND")
+    os.environ["LOCAL_LLM_PROVIDER"] = "roc"
+    os.environ.pop("LLM_BACKEND", None)
+    try:
+        assert config.get_config().llm_provider == "transformers"
+        assert llm.provider_name() == "transformers"
+    finally:
+        _restore_env("LOCAL_LLM_PROVIDER", old_provider)
+        _restore_env("LLM_BACKEND", old_backend)
 
 
 def test_task_model_config_uses_task_overrides():
@@ -101,6 +115,7 @@ def _restore_env(name, value):
 
 
 if __name__ == "__main__":
+    test_provider_aliases_normalize_gpu_backends()
     test_task_model_config_uses_task_overrides()
     test_summary_uses_summary_task()
     test_roadmap_uses_roadmap_task()

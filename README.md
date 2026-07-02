@@ -119,7 +119,14 @@ Full setup guide: [docs/setup.md](docs/setup.md)
 
 ## Future GPU Backends
 
-AcademicForge currently supports MLX as the active local LLM runtime. CUDA and ROCm are future migration targets, but they are not wired into the application yet. Keeping the active path MLX-only makes the current demo easier to run and easier to judge.
+AcademicForge uses a provider-aware LLM service in `backend/llm.py`. MLX is the default and tested local runtime. `cuda`, `rocm`, `roc`, `torch`, and `transformers` are accepted as provider aliases for the Transformers backend, so the same app surface can run in future GPU-capable environments without changing the API or frontend.
+
+On this Mac, keep using MLX. In an AMD/ROCm environment, install a compatible PyTorch/Transformers stack and set:
+
+```bash
+export LOCAL_LLM_PROVIDER=rocm
+export LOCAL_LLM_MODEL=<a-compatible-hugging-face-causal-lm>
+```
 
 ## Configuration
 
@@ -136,12 +143,16 @@ Useful environment variables:
 
 ```bash
 LOCAL_LLM_PROVIDER=mlx
+# LLM_BACKEND is also accepted as a compatibility alias.
+# Accepted provider values: mlx, transformers, torch, cuda, rocm, roc
 LOCAL_LLM_MODEL=mlx-community/Qwen3-4B-4bit
 LOCAL_LLM_SUMMARY_MODEL=mlx-community/Qwen3-4B-4bit
 LOCAL_LLM_ROADMAP_MODEL=mlx-community/Qwen3-4B-4bit
 LOCAL_LLM_MAX_TOKENS=900
 LOCAL_LLM_TEMPERATURE=0.2
 ACADEMICFORGE_CACHE_DIR=.academicforge_cache
+ACADEMICFORGE_CACHE_TTL_SECONDS=604800
+ACADEMICFORGE_CACHE_MAX_FILES=500
 ACADEMICFORGE_BACKEND_URL=http://localhost:8000
 ```
 

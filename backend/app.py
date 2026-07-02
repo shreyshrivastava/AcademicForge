@@ -3,13 +3,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict
 from dotenv import load_dotenv
-from urllib.parse import urlparse
-import arxiv
 import logging
-import re
 
-from backend.retrieval import hybrid_search, rerank_results
-from backend.retrieval.models import result_to_paper
+from backend.config import get_config as get_app_config
+from backend.data_pipeline import extract_arxiv_id, retrieve_and_rank_papers
 from backend.llm import provider_name, task_model_config
 from backend.roadmap_generator import generate_roadmap as generate_ai_roadmap
 from backend.roadmap_generator import generate_paper_roadmap as generate_ai_paper_roadmap
@@ -51,25 +48,10 @@ class PapersRequest(BaseModel):
 @app.get("/config")
 async def get_config():
     """Return the active local model configuration for display/debugging."""
-    return {
-        "llm_provider": provider_name(),
-        "llm_models": task_model_config(),
-    }
-
-def extract_arxiv_id(query: str) -> str | None:
-    """Return an arXiv ID from a raw ID or arxiv.org URL."""
-    value = query.strip()
-    parsed = urlparse(value)
-    if parsed.netloc.endswith("arxiv.org"):
-        path_parts = [part for part in parsed.path.split("/") if part]
-        if len(path_parts) >= 2 and path_parts[0] in {"abs", "pdf"}:
-            return path_parts[1].removesuffix(".pdf")
-
-    match = re.fullmatch(r"([a-z-]+/)?\d{7}|\d{4}\.\d{4,5}(v\d+)?", value)
-    if match:
-        return value.removesuffix(".pdf")
-
-    return None
+    payload = get_app_config().as_public_dict()
+    payload["llm_provider"] = provider_name()
+    payload["llm_models"] = task_model_config()
+    return payload
 
 @app.post("/search")
 async def search_papers(request: SearchRequest):
@@ -77,35 +59,7 @@ async def search_papers(request: SearchRequest):
     try:
         logger.info("Search requested query_preview=%r", request.query[:80])
         arxiv_id = extract_arxiv_id(request.query)
-        if arxiv_id:
-            search = arxiv.Search(id_list=[arxiv_id], max_results=1)
-        else:
-            search = arxiv.Search(query=request.query, max_results=50)
-
-        papers = []
-        client = arxiv.Client()
-        for result in client.results(search):
-            paper_url = result.pdf_url or result.entry_id
-            papers.append({
-                "paper_id": result.entry_id,
-                "title": result.title,
-                "authors": [author.name for author in result.authors],
-                "abstract": result.summary,
-                "source": "arxiv",
-                "url": paper_url,
-                "link": paper_url,
-                "published": result.published.date().isoformat(),
-                "date": result.published.date().isoformat(),
-                "metadata": {
-                    "categories": list(result.categories or []),
-                    "primary_category": result.primary_category,
-                },
-            })
-
-        if not arxiv_id:
-            retrieved = hybrid_search(request.query, papers, top_k=20)
-            papers = [result_to_paper(result) for result in rerank_results(request.query, retrieved, top_k=5)]
-
+        papers = retrieve_and_rank_papers(request.query)
         logger.info("Search completed arxiv_id=%s result_count=%d", bool(arxiv_id), len(papers))
         return {"papers": papers}
     except Exception as e:

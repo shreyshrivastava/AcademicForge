@@ -1,61 +1,36 @@
-import os
 import re
 from functools import lru_cache
 
-
-SUPPORTED_PROVIDER = "mlx"
-DEFAULT_MODEL = "mlx-community/Qwen3-4B-4bit"
-DEFAULT_MAX_TOKENS = 700
-DEFAULT_TEMPERATURE = 0.2
-MODEL_ENV = "LOCAL_LLM_MODEL"
-MAX_TOKENS_ENV = "LOCAL_LLM_MAX_TOKENS"
-TEMPERATURE_ENV = "LOCAL_LLM_TEMPERATURE"
+from backend.config import get_config
 
 
 class LocalLLMError(RuntimeError):
     pass
 
 
-def _env_int(name, default):
-    try:
-        return int(os.getenv(name, str(default)))
-    except ValueError:
-        return default
-
-
-def _env_float(name, default):
-    try:
-        return float(os.getenv(name, str(default)))
-    except ValueError:
-        return default
-
-
 def provider_name():
-    return os.getenv("LOCAL_LLM_PROVIDER", SUPPORTED_PROVIDER).strip().lower()
+    return get_config().llm_provider
 
 
 def model_name(task=None):
-    if task:
-        task_model = os.getenv(f"LOCAL_LLM_{task.upper()}_MODEL")
-        if task_model:
-            return task_model.strip()
-    return os.getenv(MODEL_ENV, DEFAULT_MODEL).strip()
+    return get_config().model_for_task(task)
 
 
 def task_model_config():
+    config = get_config()
     return {
-        "default": model_name(),
-        "summary": model_name("summary"),
-        "roadmap": model_name("roadmap"),
+        "default": config.llm_model,
+        "summary": config.llm_summary_model,
+        "roadmap": config.llm_roadmap_model,
     }
 
 
-def max_tokens(default=DEFAULT_MAX_TOKENS):
-    return _env_int(MAX_TOKENS_ENV, default)
+def max_tokens(default=None):
+    return default or get_config().llm_max_tokens
 
 
 def temperature():
-    return _env_float(TEMPERATURE_ENV, DEFAULT_TEMPERATURE)
+    return get_config().llm_temperature
 
 
 @lru_cache(maxsize=4)
@@ -68,6 +43,26 @@ def _load_mlx_model(selected_model):
         ) from exc
 
     return load(selected_model)
+
+
+@lru_cache(maxsize=2)
+def _load_transformers_model(selected_model):
+    try:
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+    except ImportError as exc:
+        raise LocalLLMError(
+            "Transformers backend is not installed. Install torch and transformers "
+            "in a ROCm/CUDA-capable environment before using this provider."
+        ) from exc
+
+    tokenizer = AutoTokenizer.from_pretrained(selected_model)
+    model = AutoModelForCausalLM.from_pretrained(
+        selected_model,
+        torch_dtype="auto",
+        device_map="auto",
+    )
+    return model, tokenizer, torch
 
 
 def _chat_prompt(tokenizer, system_prompt, user_prompt):
@@ -93,33 +88,52 @@ def _chat_prompt(tokenizer, system_prompt, user_prompt):
     )
 
 
-def generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
-    provider = provider_name()
-    selected_model = model or model_name(task)
-    if provider == SUPPORTED_PROVIDER:
-        return _clean_response(
-            _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
+class LLMService:
+    """Provider-aware LLM facade.
+
+    MLX is the supported default. ROCm/CUDA map to the Transformers backend so the
+    rest of the app can switch providers by environment variable when it runs in
+    an AMD/NVIDIA-capable environment.
+    """
+
+    def __init__(self, provider=None):
+        self.provider = provider or provider_name()
+
+    def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
+        selected_model = model or model_name(task)
+        if self.provider == "mlx":
+            return _clean_response(
+                _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
+            )
+        if self.provider == "transformers":
+            return _clean_response(
+                _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
+            )
+        raise LocalLLMError(
+            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. "
+            "Use 'mlx', 'transformers', 'cuda', or 'rocm'."
         )
 
-    # Future CUDA/ROCm support should be added as a separate backend path here.
-    raise LocalLLMError(
-        f"Unknown LOCAL_LLM_PROVIDER={provider!r}. "
-        f"AcademicForge currently supports {SUPPORTED_PROVIDER!r}."
-    )
+    def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
+        selected_model = model or model_name(task)
+        if self.provider == "mlx":
+            yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
+            return
+        if self.provider == "transformers":
+            yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
+            return
+        raise LocalLLMError(
+            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. "
+            "Use 'mlx', 'transformers', 'cuda', or 'rocm'."
+        )
+
+
+def generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
+    return LLMService().generate(system_prompt, user_prompt, token_budget, task, model)
 
 
 def generate_text_stream(system_prompt, user_prompt, token_budget=None, task=None, model=None):
-    provider = provider_name()
-    selected_model = model or model_name(task)
-    if provider == SUPPORTED_PROVIDER:
-        yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
-        return
-
-    # Future CUDA/ROCm streaming should be added as a separate backend path here.
-    raise LocalLLMError(
-        f"Unknown LOCAL_LLM_PROVIDER={provider!r}. "
-        f"AcademicForge currently supports {SUPPORTED_PROVIDER!r}."
-    )
+    yield from LLMService().stream(system_prompt, user_prompt, token_budget, task, model)
 
 
 def _clean_response(text):
@@ -166,3 +180,19 @@ def _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_mode
     ):
         if response.text:
             yield response.text
+
+
+def _generate_transformers(system_prompt, user_prompt, token_budget, selected_model):
+    model, tokenizer, torch = _load_transformers_model(selected_model)
+    prompt = _chat_prompt(tokenizer, system_prompt, user_prompt)
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+    with torch.no_grad():
+        output_ids = model.generate(
+            **inputs,
+            max_new_tokens=token_budget or max_tokens(),
+            temperature=temperature(),
+            do_sample=temperature() > 0,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+    new_tokens = output_ids[0][inputs["input_ids"].shape[-1]:]
+    return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()

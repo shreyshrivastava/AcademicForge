@@ -1,11 +1,12 @@
 import hashlib
 import json
-import os
+import time
 from pathlib import Path
 from typing import Any
 
+from backend.config import get_config
 
-CACHE_DIR = Path(os.getenv("ACADEMICFORGE_CACHE_DIR", ".academicforge_cache"))
+CACHE_DIR = get_config().cache_dir
 
 
 def make_cache_key(*parts: Any) -> str:
@@ -16,6 +17,13 @@ def make_cache_key(*parts: Any) -> str:
 def cache_get(namespace: str, key: str):
     path = _cache_path(namespace, key)
     if not path.exists():
+        return None
+
+    if _is_expired(path):
+        try:
+            path.unlink()
+        except OSError:
+            pass
         return None
 
     try:
@@ -33,6 +41,7 @@ def cache_set(namespace: str, key: str, value):
         encoding="utf-8",
     )
     tmp_path.replace(path)
+    _prune_namespace(path.parent)
 
 
 def _cache_path(namespace: str, key: str) -> Path:
@@ -41,3 +50,32 @@ def _cache_path(namespace: str, key: str) -> Path:
         for char in namespace
     )
     return CACHE_DIR / safe_namespace / f"{key}.json"
+
+
+def _is_expired(path: Path) -> bool:
+    ttl_seconds = get_config().cache_ttl_seconds
+    if ttl_seconds <= 0:
+        return False
+    try:
+        return time.time() - path.stat().st_mtime > ttl_seconds
+    except OSError:
+        return True
+
+
+def _prune_namespace(namespace_dir: Path) -> None:
+    max_files = get_config().cache_max_files
+    if max_files <= 0:
+        return
+    try:
+        files = sorted(
+            namespace_dir.glob("*.json"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return
+    for old_file in files[max_files:]:
+        try:
+            old_file.unlink()
+        except OSError:
+            pass
