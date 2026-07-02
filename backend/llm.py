@@ -139,7 +139,19 @@ def generate_text_stream(system_prompt, user_prompt, token_budget=None, task=Non
 def _clean_response(text):
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
     text = re.sub(r"^<think>.*", "", text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.split(r"<end_of_turn>|<eos>|</s>", text, maxsplit=1, flags=re.IGNORECASE)[0]
     text = text.strip()
+    text = re.sub(
+        r"^(okay|sure),?\s+here(?:['\u2019]s|\s+is)\s+(a|an|the)?\s*",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    heading_match = re.search(r"(\*\*[^*\n]+:\*\*|##\s+)", text)
+    if heading_match and heading_match.start() < 280:
+        preface = text[:heading_match.start()].lower()
+        if any(marker in preface for marker in ("summary", "roadmap", "formatted", "requested", "provided")):
+            text = text[heading_match.start():].lstrip()
     fence_match = re.fullmatch(r"```(?:markdown|md)?\s*(.*?)\s*```", text, re.DOTALL)
     if fence_match:
         text = fence_match.group(1)

@@ -1,8 +1,112 @@
 # AcademicForge
 
-AcademicForge is a local-first AI research discovery platform for finding, comparing, and turning academic papers into implementation roadmaps.
+AcademicForge is an AI research-to-build workbench for finding, comparing, summarizing, and turning academic papers into implementation roadmaps.
 
-Instead of returning only keyword matches, AcademicForge combines arXiv search, BM25 keyword retrieval, dense semantic retrieval, reciprocal rank fusion, local LLM summarization, and streamed roadmap generation to help builders move from "what should I read?" to "what should I build next?"
+Instead of returning only keyword matches, AcademicForge combines arXiv search, BM25 keyword retrieval, dense semantic retrieval, reciprocal rank fusion, local and cloud-ready LLM summarization, and streamed roadmap generation to help builders move from:
+
+```text
+What should I read?
+```
+
+to:
+
+```text
+What should I build next, and how?
+```
+
+## AMD Developer Challenge Positioning
+
+AcademicForge is being built for the AMD Developer Challenge as a product-oriented AI application that connects research discovery with practical implementation planning.
+
+The current project is intentionally split into two layers:
+
+- **Product layer:** a usable research assistant that turns papers into summaries and build roadmaps.
+- **Inference layer:** a provider-aware backend that can run locally with MLX today and move to AMD Cloud, ROCm, vLLM, Fireworks, or Gemma-hosted inference later.
+
+This matters because MLX is excellent for fast local iteration on Apple Silicon, but AMD hardware is the natural path for a hosted, scalable, hackathon-ready deployment.
+
+Current model strategy:
+
+| Role | Current choice | Reason |
+| --- | --- | --- |
+| Best local default | `mlx-community/Qwen3-4B-4bit` | Best speed/quality balance in local tests. |
+| Lightweight sponsor-aligned baseline | `mlx-community/gemma-3-1b-it-4bit` | Easy local smoke tests and routing experiments. |
+| Gemma 4 local experiment | `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | Works locally and gives clearer Gemma 4 output, but slower than Qwen on this Mac. |
+| Future hosted model | Gemma 4 on Fireworks or AMD Cloud | Stronger sponsor/AMD story and better deployment fit. |
+
+The product direction is not "one model wins forever." The stronger architecture is:
+
+```text
+Local development: MLX + Qwen for quality and fast iteration
+Hackathon deployment: AMD Cloud / Fireworks + Gemma 4
+Future optimization: router chooses the cheapest model that preserves answer quality
+```
+
+## What We Tested
+
+Local tests were run on the AcademicForge summary and roadmap workflow, not generic chatbot prompts. The benchmark uses `scripts/benchmark_llm.py` and measures tiny generation, paper summaries, roadmap generation, output length, latency, and simple quality flags.
+
+| Model | Local runtime | Total benchmark time | Tiny generation | Summary behavior | Roadmap behavior | Current verdict |
+| --- | --- | ---: | ---: | --- | --- | --- |
+| `mlx-community/gemma-3-1b-it-4bit` | MLX / `mlx-lm` | `26.399s` | `3.846s` | More verbose; sometimes invented details in earlier tests. | Usable but more generic. | Useful as a small router/smoke-test model, not the main demo model. |
+| `mlx-community/Qwen3-4B-4bit` | MLX / `mlx-lm` | `23.870s` to `35.890s` | `1.595s` to `1.787s` | Concise, cleaner, more faithful to abstracts. | Best speed/quality balance for AcademicForge today. | Default local model. |
+| `mlx-community/gemma-4-e2b-it-4bit` | MLX / `mlx-lm` and `mlx-vlm` | Did not complete | n/a | Failed local load with a Gemma 4 weight mismatch. | n/a | Not used. |
+| `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | MLX / `mlx-lm` | `49.140s` | `4.607s` | Good and clear; more detailed than Gemma 3. | Stronger than Gemma 3 but slower and more verbose than Qwen. | Keep as Gemma 4 compatibility proof and future AMD/Fireworks candidate. |
+
+Benchmark command:
+
+```bash
+python scripts/benchmark_llm.py \
+  --model mlx-community/gemma-4-e2b-it-OptiQ-4bit,mlx-community/Qwen3-4B-4bit \
+  --json-out benchmark-results.json \
+  --markdown-out benchmark-results.md
+```
+
+Key local conclusion:
+
+```text
+Qwen is the best local default for the current user experience.
+Gemma 4 is strategically important for AMD/Gemma deployment and sponsor alignment.
+```
+
+## AMD Hardware Advantage
+
+The local Mac tests are useful for development, but they are not the final deployment target. AMD hardware can make AcademicForge a stronger product in three ways:
+
+1. **Hosted inference:** run a larger Gemma or Qwen model on AMD Cloud instead of relying on local MLX.
+2. **Benchmark credibility:** compare latency, throughput, and output quality between local MLX and AMD-hosted inference.
+3. **Router/fine-tuning path:** train or tune a routing/evaluation layer that decides when a small model is enough and when a larger hosted model is worth the cost.
+
+Planned AMD comparison:
+
+| Experiment | Local baseline | AMD Cloud / Fireworks target | What we measure |
+| --- | --- | --- | --- |
+| Paper summary | Qwen3 4B MLX | Gemma 4 or Qwen on ROCm/vLLM | Latency, faithfulness, concision. |
+| Roadmap generation | Qwen3 4B MLX | Gemma 4 on AMD/Fireworks | Completeness, implementation usefulness, hallucination rate. |
+| Router decision | Gemma 3 1B MLX | Hosted larger model fallback | Token cost saved without quality loss. |
+| Batch benchmarking | Local single-user run | AMD GPU endpoint | Throughput and scalability. |
+
+## Fine-Tuning And Routing Roadmap
+
+Fine-tuning is not required for the current MVP, but it is an important next step for making AcademicForge feel more specialized than a generic chatbot.
+
+Near-term tuning plan:
+
+1. Collect AcademicForge examples: paper abstract, expected summary, expected roadmap, and quality labels.
+2. Create a small evaluation set for summary faithfulness and roadmap usefulness.
+3. Fine-tune or prompt-tune a small router/evaluator model to decide:
+   - summarize locally
+   - roadmap locally
+   - call hosted Gemma 4 / AMD model
+   - ask the user for a narrower goal
+4. Compare prompt-only routing vs fine-tuned routing using the same benchmark harness.
+
+The intended advantage is not just better generation. It is token-efficient routing:
+
+```text
+Use the cheapest model that can solve the task well.
+Escalate only when the task requires stronger reasoning.
+```
 
 ## Problem
 
@@ -88,6 +192,7 @@ AcademicForge/
     streamlit_app.py        # Streamlit UI
   scripts/
     benchmark_llm.py        # local model benchmark utility
+    run_local.py            # one-command backend/frontend runner
   tests/
     test_*.py               # lightweight script-style tests
   docs/
@@ -128,6 +233,8 @@ export LOCAL_LLM_PROVIDER=rocm
 export LOCAL_LLM_MODEL=<a-compatible-hugging-face-causal-lm>
 ```
 
+For a hosted hackathon demo, the preferred path is to run the UI/API as the product surface and connect the generation layer to an AMD Cloud or Fireworks-hosted model endpoint. Local MLX remains the development baseline; AMD Cloud becomes the shipping and benchmarking target.
+
 ## Configuration
 
 The app is local-first. By default it uses MLX and Qwen:
@@ -158,6 +265,21 @@ ACADEMICFORGE_BACKEND_URL=http://localhost:8000
 
 ## Running Locally
 
+The easiest local runner starts both FastAPI and Streamlit with the selected model:
+
+```bash
+source venv/bin/activate
+python scripts/run_local.py --model mlx-community/Qwen3-4B-4bit --reload
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8501
+```
+
+Manual backend/frontend startup is also supported.
+
 Start the backend:
 
 ```bash
@@ -170,12 +292,6 @@ Start the frontend in another terminal:
 ```bash
 source venv/bin/activate
 streamlit run frontend/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
-```
-
-Open:
-
-```text
-http://127.0.0.1:8501
 ```
 
 ## Usage
@@ -236,25 +352,64 @@ python tests/test_retrieval.py
 
 ## Local Model Benchmarking
 
+Run the app with a specific local model:
+
+```bash
+python scripts/run_local.py --model mlx-community/Qwen3-4B-4bit --reload
+```
+
+Run only the backend, useful when Streamlit is already open:
+
+```bash
+python scripts/run_local.py --backend-only --model mlx-community/Qwen3-4B-4bit --reload
+```
+
 Benchmark the current local MLX setup:
 
 ```bash
 python scripts/benchmark_llm.py --skip-summary
 ```
 
-Benchmark another MLX model:
+Benchmark Gemma 4 against Qwen:
 
 ```bash
-python scripts/benchmark_llm.py --model mlx-community/Llama-3.2-3B-Instruct-4bit --skip-summary
+python scripts/benchmark_llm.py \
+  --model mlx-community/gemma-4-e2b-it-OptiQ-4bit,mlx-community/Qwen3-4B-4bit
 ```
 
-Recent local benchmark notes:
+Benchmark multiple models and write reports:
+
+```bash
+python scripts/benchmark_llm.py \
+  --model mlx-community/gemma-3-1b-it-4bit,mlx-community/Qwen3-4B-4bit \
+  --runs 2 \
+  --skip-summary \
+  --json-out benchmark-results.json \
+  --markdown-out benchmark-results.md
+```
+
+For timing comparisons, the benchmark isolates its cache by default. Add
+`--use-cache` when you want to measure warm-cache app behavior.
+
+Earlier local benchmark notes:
 
 | Model | Tiny generation | Roadmap generation | Notes |
 | --- | ---: | ---: | --- |
 | `mlx-community/Qwen3-4B-4bit` | 3.41s | 13.11s | Best current balance of speed and instruction following. |
 | `mlx-community/Llama-3.2-3B-Instruct-4bit` | 4.12s | 10.67s | Faster roadmap generation, but less precise on implementation/runtime details. |
 | `mlx-community/Qwen3-4B-Instruct-2507-4bit` | 3.36s | 30.92s | Stronger writing and scope control, but too slow for current UX. |
+
+Gemma 4 local note:
+
+```bash
+pip install -U mlx-vlm
+```
+
+The standard `mlx-community/gemma-4-e2b-it-4bit` conversion failed locally with a weight-loading mismatch. The OptiQ text-generation build worked:
+
+```bash
+python scripts/run_local.py --model mlx-community/gemma-4-e2b-it-OptiQ-4bit --reload
+```
 
 ## Limitations
 

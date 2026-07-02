@@ -6,3 +6,4 @@ venv/
 .DS_Store
 .streamlit/
 .academicforge_cache/
+benchmark-results.*

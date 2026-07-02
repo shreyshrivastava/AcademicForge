@@ -46,7 +46,8 @@ Domain transfer and ambiguous evidence remain open problems.
 def test_roadmap_context_is_compact_and_structured():
     context = build_roadmap_context([PAPER], [SUMMARY])
     assert "Paper 1: Reducing Hallucination" in context
-    assert "Retrieval: BM25=1, dense=2" in context
+    assert "Retrieval:" not in context
+    assert "RRF" not in context
     assert "Implementation relevance:" in context
     assert "long-abstract long-abstract long-abstract" not in context
     assert len(context) < 1200

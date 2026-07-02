@@ -25,6 +25,11 @@ def _extract_summary_sections(summary):
         "why it matters",
         "implementation notes",
         "limitations or unknowns",
+        "one-sentence takeaway",
+        "what problem it solves",
+        "how it works",
+        "why a builder should care",
+        "what to verify in the full paper",
     }
     sections = {}
     current_section = None
@@ -64,11 +69,10 @@ Paper {index}: {paper["title"]}
 Authors: {authors}
 Date: {paper.get("date") or paper.get("published") or "unknown"}
 URL: {paper.get("url") or paper.get("link") or ""}
-Retrieval: BM25={paper.get("bm25_rank")}, dense={paper.get("dense_rank")}, RRF={paper.get("rrf_score", 0.0):.5f}
-Core idea: {_truncate(sections.get("core idea") or paper.get("abstract", ""), 500)}
-Method: {_truncate(sections.get("method"), 450)}
-Implementation relevance: {_truncate(sections.get("implementation notes") or sections.get("why it matters"), 450)}
-Limitations: {_truncate(sections.get("limitations or unknowns"), 300)}
+Core idea: {_truncate(sections.get("core idea") or sections.get("one-sentence takeaway") or sections.get("what problem it solves") or paper.get("abstract", ""), 500)}
+Method: {_truncate(sections.get("method") or sections.get("how it works"), 450)}
+Implementation relevance: {_truncate(sections.get("implementation notes") or sections.get("why it matters") or sections.get("why a builder should care"), 450)}
+Limitations: {_truncate(sections.get("limitations or unknowns") or sections.get("what to verify in the full paper"), 300)}
 """.strip()
         )
 
@@ -203,7 +207,8 @@ def build_roadmap_prompt(paper_context):
         "mixed implementation roadmaps from selected academic papers. Synthesize "
         "across all selected papers instead of producing separate roadmaps. "
         "Prefer small, portable models and designs that run well on local MLX. "
-        "Be concrete and engineering-focused."
+        "Be concrete and engineering-focused. Do not include conversational "
+        "prefaces."
     )
     user_prompt = f"""
 Use the papers below to create an implementation plan.
@@ -250,7 +255,8 @@ def build_paper_roadmap_prompt(paper):
         "You are AcademicForge, a senior research mentor. Create practical, "
         "paper-specific learning and implementation roadmaps. Be concrete, "
         "honest about unknowns, and avoid inventing details not supported by "
-        "the title, abstract, and metadata."
+        "the title, abstract, and metadata. Do not include conversational "
+        "prefaces. Prefer plain builder language over abstract-like prose."
     )
     user_prompt = f"""
 Paper title: {paper.get("title", "")}
@@ -259,7 +265,6 @@ Date: {paper.get("date") or paper.get("published") or "unknown"}
 Source: {paper.get("source", "arxiv")}
 URL: {paper.get("url") or paper.get("link") or ""}
 Categories: {categories}
-Retrieval: BM25={paper.get("bm25_rank")}, dense={paper.get("dense_rank")}, RRF={paper.get("rrf_score", 0.0):.5f}
 
 Abstract:
 {_truncate(paper.get("abstract", ""), 2500)}
@@ -279,6 +284,13 @@ Return concise Markdown with these exact sections:
 Make the roadmap practical for a builder deciding whether to implement or use
 this paper. If an implementation detail is not present in the abstract, say what
 to verify in the full paper instead of guessing.
+
+Rules:
+- In section 1, use 2-3 plain-English bullets, not a rewritten abstract.
+- Only name benchmarks, datasets, models, algorithms, or libraries if they appear in the title, abstract, or metadata.
+- Do not invent training steps, fine-tuning requirements, reward model designs, or evaluation names.
+- For missing implementation details, write "Verify in the full paper:" followed by the specific thing to check.
+- Keep each section short enough to scan in a demo.
 """.strip()
     return system_prompt, user_prompt
 
@@ -286,7 +298,7 @@ to verify in the full paper instead of guessing.
 def roadmap_cache_key(papers, summaries=None, paper_context=None):
     paper_context = paper_context or build_roadmap_context(papers, summaries)
     return make_cache_key(
-        "roadmap-v2",
+        "roadmap-v4",
         model_name("roadmap"),
         [
             paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title")
@@ -300,7 +312,7 @@ def roadmap_cache_key(papers, summaries=None, paper_context=None):
 def paper_roadmap_cache_key(paper):
     metadata = paper.get("metadata", {}) or {}
     return make_cache_key(
-        "paper-roadmap-v1",
+        "paper-roadmap-v5",
         model_name("roadmap"),
         paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title"),
         paper.get("title"),

@@ -21,7 +21,21 @@ def test_sample_papers_have_required_fields():
         assert paper["date"]
 
 
+def test_parse_models_accepts_repeated_and_comma_values():
+    models = benchmark_llm._parse_models(["a,b", "c"])
+    assert models == ["a", "b", "c"]
+
+
+def test_quality_flags_catch_common_small_model_artifacts():
+    flags = benchmark_llm.quality_flags("Okay, here's a result <end_of_turn> RRF")
+    assert flags["chatty_preface"]
+    assert flags["contains_end_of_turn"]
+    assert flags["mentions_internal_retrieval"]
+
+
 if __name__ == "__main__":
     test_preview_truncates_long_text()
     test_sample_papers_have_required_fields()
+    test_parse_models_accepts_repeated_and_comma_values()
+    test_quality_flags_catch_common_small_model_artifacts()
     print("benchmark script tests passed")
