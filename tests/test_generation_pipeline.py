@@ -77,10 +77,15 @@ def test_generate_roadmap_uses_compact_context():
     assert result == "roadmap"
     assert captured["token_budget"] == 1900
     assert captured["task"] == "roadmap"
+    assert "Research-to-Prototype Advisor" in captured["system_prompt"]
     assert "User Goal Analysis" in captured["user_prompt"]
-    assert "Paper Relevance Analysis" in captured["user_prompt"]
-    assert "Research Synthesis" in captured["user_prompt"]
-    assert "Recommended Direction" in captured["user_prompt"]
+    assert "Research Insights" in captured["user_prompt"]
+    assert "Consensus" in captured["user_prompt"]
+    assert "Research Gaps" in captured["user_prompt"]
+    assert "Recommended Build" in captured["user_prompt"]
+    assert "Evidence Used" in captured["user_prompt"]
+    assert "Paper Relevance Analysis" not in captured["user_prompt"]
+    assert "Implementation Roadmap" not in captured["user_prompt"]
     assert "build a RAG hallucination detector" in captured["user_prompt"]
     assert "1. What this paper is about" not in captured["user_prompt"]
     assert "4. Step-by-step reading plan" not in captured["user_prompt"]

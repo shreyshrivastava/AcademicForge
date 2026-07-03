@@ -18,6 +18,38 @@ def test_config_endpoint_returns_model_info():
     assert payload["llm_models"]["default"]
     assert payload["llm_models"]["summary"]
     assert payload["llm_models"]["roadmap"]
+    assert payload["generation_modes"]["fast"]["model"]
+    assert payload["generation_modes"]["deep"]["model"]
+
+
+def test_search_endpoint_passes_research_focus():
+    original_retrieve = backend_app.retrieve_and_rank_papers
+
+    def fake_retrieve(query, categories=None):
+        assert query == "rag implementation"
+        assert categories == ["Implementation Focused"]
+        return [
+            {
+                "title": "Paper",
+                "authors": [],
+                "abstract": "Abstract",
+                "link": "https://example.com",
+                "date": "2026-06-30",
+                "metadata": {"academicforge_category": "Implementation Focused"},
+            }
+        ]
+
+    backend_app.retrieve_and_rank_papers = fake_retrieve
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/search",
+            json={"query": "rag implementation", "categories": ["Implementation Focused"]},
+        )
+        assert response.status_code == 200
+        assert response.json()["papers"][0]["metadata"]["academicforge_category"] == "Implementation Focused"
+    finally:
+        backend_app.retrieve_and_rank_papers = original_retrieve
 
 
 def test_roadmap_cache_status_endpoint_returns_status():
@@ -47,7 +79,8 @@ def test_roadmap_cache_status_endpoint_returns_status():
 def test_paper_roadmap_endpoint_returns_roadmap():
     original_generate = backend_app.generate_ai_paper_roadmap
 
-    def fake_generate(paper):
+    def fake_generate(paper, model=None):
+        assert model == backend_app.DEEP_MODE_MODEL
         return f"roadmap for {paper['title']}"
 
     backend_app.generate_ai_paper_roadmap = fake_generate
@@ -61,6 +94,7 @@ def test_paper_roadmap_endpoint_returns_roadmap():
                 "abstract": "Abstract",
                 "link": "https://example.com",
                 "date": "2026-06-30",
+                "generation_mode": "deep",
             },
         )
         assert response.status_code == 200
@@ -90,8 +124,9 @@ def test_paper_roadmap_cache_status_endpoint_returns_status():
 def test_roadmap_stream_endpoint_streams_text():
     original_stream = backend_app.stream_ai_roadmap
 
-    def fake_stream(papers, summaries=None, query=""):
+    def fake_stream(papers, summaries=None, query="", model=None):
         assert query == "build a prototype"
+        assert model == backend_app.DEEP_MODE_MODEL
         yield "hello "
         yield "roadmap"
 
@@ -113,6 +148,7 @@ def test_roadmap_stream_endpoint_streams_text():
                 ],
                 "summaries": ["Core idea\nA test."],
                 "query": "build a prototype",
+                "generation_mode": "deep",
             },
         ) as response:
             assert response.status_code == 200
@@ -123,6 +159,7 @@ def test_roadmap_stream_endpoint_streams_text():
 
 if __name__ == "__main__":
     test_config_endpoint_returns_model_info()
+    test_search_endpoint_passes_research_focus()
     test_roadmap_cache_status_endpoint_returns_status()
     test_paper_roadmap_endpoint_returns_roadmap()
     test_paper_roadmap_cache_status_endpoint_returns_status()

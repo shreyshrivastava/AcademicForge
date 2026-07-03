@@ -79,43 +79,43 @@ Limitations or verification needs: {_truncate(sections.get("limitations or unkno
     return "\n\n".join(paper_blocks)
 
 
-def generate_roadmap(papers, summaries=None, query=""):
+def generate_roadmap(papers, summaries=None, query="", model=None):
     """Generate an implementation roadmap from paper metadata and summaries."""
     paper_context = build_roadmap_context(papers, summaries)
-    cache_key = roadmap_cache_key(papers, summaries, paper_context, query)
+    cache_key = roadmap_cache_key(papers, summaries, paper_context, query, model=model)
     cached_roadmap = _get_cached_roadmap(cache_key)
     if cached_roadmap:
         return cached_roadmap
 
     logger.info("Mixed roadmap generation started paper_count=%d", len(papers))
     system_prompt, user_prompt = build_roadmap_prompt(paper_context, query)
-    roadmap = generate_text(system_prompt, user_prompt, token_budget=1900, task="roadmap")
+    roadmap = generate_text(system_prompt, user_prompt, token_budget=1900, task="roadmap", model=model)
     ROADMAP_CACHE[cache_key] = roadmap
     cache_set("roadmaps", cache_key, roadmap)
     logger.info("Mixed roadmap generation completed paper_count=%d", len(papers))
     return roadmap
 
 
-def generate_paper_roadmap(paper):
+def generate_paper_roadmap(paper, model=None):
     """Generate a practical roadmap for understanding and applying one paper."""
-    cache_key = paper_roadmap_cache_key(paper)
+    cache_key = paper_roadmap_cache_key(paper, model=model)
     cached_roadmap = _get_cached_paper_roadmap(cache_key)
     if cached_roadmap:
         return cached_roadmap
 
     logger.info("Paper roadmap generation started paper_id=%r", _paper_identity(paper))
     system_prompt, user_prompt = build_paper_roadmap_prompt(paper)
-    roadmap = generate_text(system_prompt, user_prompt, token_budget=1100, task="roadmap")
+    roadmap = generate_text(system_prompt, user_prompt, token_budget=1100, task="roadmap", model=model)
     PAPER_ROADMAP_CACHE[cache_key] = roadmap
     cache_set("paper_roadmaps", cache_key, roadmap)
     logger.info("Paper roadmap generation completed paper_id=%r", _paper_identity(paper))
     return roadmap
 
 
-def stream_roadmap(papers, summaries=None, query=""):
+def stream_roadmap(papers, summaries=None, query="", model=None):
     """Yield roadmap text chunks while generating, then persist the completed roadmap."""
     paper_context = build_roadmap_context(papers, summaries)
-    cache_key = roadmap_cache_key(papers, summaries, paper_context, query)
+    cache_key = roadmap_cache_key(papers, summaries, paper_context, query, model=model)
     cached_roadmap = _get_cached_roadmap(cache_key)
     if cached_roadmap:
         yield cached_roadmap
@@ -129,6 +129,7 @@ def stream_roadmap(papers, summaries=None, query=""):
         user_prompt,
         token_budget=1900,
         task="roadmap",
+        model=model,
     )
     for chunk in _clean_streamed_markdown(raw_chunks):
         chunks.append(chunk)
@@ -203,98 +204,100 @@ def _clean_streamed_markdown(chunks):
 
 def build_roadmap_prompt(paper_context, query=""):
     system_prompt = (
-        "You are AcademicForge. Your job is not to summarize papers. Your job "
-        "is to help the user solve their research problem by synthesizing "
-        "insights across multiple papers and converting research into actionable "
-        "implementation guidance. The user question is the primary objective; "
-        "the papers are evidence. Do not explain each paper in isolation. Do "
-        "not include conversational prefaces."
+        "You are AcademicForge's Research-to-Prototype Advisor. Your mission "
+        "is not to summarize papers. Your mission is to help the user decide "
+        "what to build based on the available academic evidence. Analyze all "
+        "papers collectively, prioritize actionable recommendations over "
+        "academic discussion, ground conclusions in the provided papers, and "
+        "never invent evidence not present in the literature. Do not include "
+        "conversational prefaces."
     )
     user_prompt = f"""
-User question:
+USER GOAL:
 {query or "No explicit question was provided. Infer the goal from the selected papers."}
 
-Retrieved evidence:
+RETRIEVED PAPERS:
 
 {paper_context}
 
-Create one synthesis for solving the user's problem. Use only retrieved evidence.
-Add citations like [1], [2], [3] for every major claim. Citation numbers must
-match the Evidence numbers above. If the evidence does not support a claim, say
-what needs to be verified instead of guessing.
+INSTRUCTIONS:
 
-Return concise Markdown with these exact sections:
-1. User Goal Analysis
-2. Paper Relevance Analysis
-3. Research Synthesis
-4. Most Useful Insights
-5. Recommended Direction
-6. Implementation Roadmap
-7. Builder Guidance
-8. Evidence Grounding
-9. References
+1. First determine what the user is actually trying to achieve.
+2. Analyze all papers collectively rather than individually.
+3. Identify:
+   - Consensus across papers
+   - Disagreements
+   - Limitations
+   - Research gaps
+4. Determine the approach that has the strongest evidence support.
+5. Recommend a practical implementation that a builder, engineer, researcher,
+   student, or startup founder could realistically create.
+6. Prioritize actionable recommendations over academic discussion.
+7. Ground all conclusions in the provided papers.
+8. Never invent evidence not present in the literature.
+9. Add citations like [1], [2], [3] for major recommendations and claims.
+   Citation numbers must match the Evidence numbers above.
+10. If the evidence does not support a recommendation, say what needs to be
+    verified instead of guessing.
 
-Section requirements:
+OUTPUT FORMAT:
 
-1. User Goal Analysis
-- Identify what the user is actually trying to achieve.
-- Explain the likely end goal in 2-3 sentences.
+# User Goal Analysis
 
-2. Paper Relevance Analysis
-- For each evidence item, explain why it was retrieved and how it contributes
-  to solving the user's problem.
-- Assign exactly one category for each item: Foundational, Survey, State of the Art,
-  Implementation Focused, Evaluation Focused, Alternative Approach, Contrarian View.
-- Do not summarize the whole paper.
+Brief explanation of what the user is trying to achieve.
 
-3. Research Synthesis
-- Include these subsections exactly:
-  - What the papers agree on
-  - What the papers disagree on
-  - Important limitations
-  - Research gaps
-- This section is mandatory.
+# Research Insights
 
-4. Most Useful Insights
-- Provide the 5 most valuable insights across all evidence.
-- Organize by importance, not by paper.
+Summarize the most important findings across all papers.
 
-5. Recommended Direction
-- Include: Most practical approach, Most promising approach, Most innovative approach,
-  and Lowest-cost approach.
-- Explain why each direction fits the evidence.
+# Consensus
 
-6. Implementation Roadmap
-- Create a roadmap for solving the user's problem, not for individual papers.
-- Include Phase 1 - Foundation, Phase 2 - Prototype, Phase 3 - Evaluation,
-  and Phase 4 - Optimization.
-- For each phase include Goals, Deliverables, Recommended tools, and Risks.
+What most papers agree on.
 
-7. Builder Guidance
-- If the user wants to build something, provide Datasets, Models, Frameworks,
-  Evaluation metrics, and Deployment options.
-- Recommend only tools supported by the evidence when possible.
+# Research Gaps
 
-8. Evidence Grounding
-- List the major claims and the citation IDs supporting each claim.
+What remains unsolved.
 
-9. References
-- For each citation include:
-  [N] Paper Title
-  Authors
-  Year
-  Link
-  Supporting evidence: "short excerpt from retrieved text"
-- Keep excerpts under 2 sentences.
+# Recommended Build
+
+Project Name:
+
+Objective:
+
+Recommended Architecture:
+
+Core Components:
+
+Implementation Difficulty:
+(Beginner / Intermediate / Advanced)
+
+Estimated Build Time:
+
+Why This Approach:
+Explain why the evidence supports this recommendation.
+
+Expected Benefits:
+
+Expected Tradeoffs:
+
+# Builder Guidance
+
+The first 3 concrete steps the user should take.
+
+# Evidence Used
+
+For each key recommendation:
+- Supporting Paper
+- Supporting Finding
+- Why it matters
 
 Critical rules:
-- Never output "What this paper is about".
-- Never output "Step-by-step reading plan".
-- Never output "Difficulty level".
-- Never output "Estimated learning path".
-- Never output generic AI advice.
-- The final output should feel like a senior researcher helping a builder decide
-  what to do next, not a paper summary tool.
+- Do not output a paper-by-paper summary.
+- Do not output "What this paper is about".
+- Do not output "Step-by-step reading plan".
+- Do not output "Estimated learning path".
+- Do not output generic AI advice.
+- Keep the answer concise enough for a builder to act on immediately.
 """.strip()
     return system_prompt, user_prompt
 
@@ -345,11 +348,11 @@ Requirements:
     return system_prompt, user_prompt
 
 
-def roadmap_cache_key(papers, summaries=None, paper_context=None, query=""):
+def roadmap_cache_key(papers, summaries=None, paper_context=None, query="", model=None):
     paper_context = paper_context or build_roadmap_context(papers, summaries)
     return make_cache_key(
-        "roadmap-v5-synthesis",
-        model_name("roadmap"),
+        "roadmap-v6-research-to-prototype-advisor",
+        model or model_name("roadmap"),
         query or "",
         [
             paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title")
@@ -360,11 +363,11 @@ def roadmap_cache_key(papers, summaries=None, paper_context=None, query=""):
     )
 
 
-def paper_roadmap_cache_key(paper):
+def paper_roadmap_cache_key(paper, model=None):
     metadata = paper.get("metadata", {}) or {}
     return make_cache_key(
         "paper-guidance-v1",
-        model_name("roadmap"),
+        model or model_name("roadmap"),
         paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title"),
         paper.get("title"),
         paper.get("abstract"),
@@ -377,8 +380,8 @@ def paper_roadmap_cache_key(paper):
     )
 
 
-def roadmap_cache_status(papers, summaries=None, query=""):
-    cache_key = roadmap_cache_key(papers, summaries, query=query)
+def roadmap_cache_status(papers, summaries=None, query="", model=None):
+    cache_key = roadmap_cache_key(papers, summaries, query=query, model=model)
     if cache_key in ROADMAP_CACHE:
         return {"cached": True, "cache": "memory"}
     if cache_get("roadmaps", cache_key):
@@ -386,8 +389,8 @@ def roadmap_cache_status(papers, summaries=None, query=""):
     return {"cached": False, "cache": "miss"}
 
 
-def paper_roadmap_cache_status(paper):
-    cache_key = paper_roadmap_cache_key(paper)
+def paper_roadmap_cache_status(paper, model=None):
+    cache_key = paper_roadmap_cache_key(paper, model=model)
     if cache_key in PAPER_ROADMAP_CACHE:
         return {"cached": True, "cache": "memory"}
     if cache_get("paper_roadmaps", cache_key):

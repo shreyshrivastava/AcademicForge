@@ -7,6 +7,38 @@ import streamlit as st
 
 
 BACKEND_URL = os.getenv("ACADEMICFORGE_BACKEND_URL", "http://localhost:8000")
+MODE_OPTIONS = {
+    "fast": {
+        "label": "Fast Mode (Qwen)",
+        "short": "Fast",
+        "purpose": "Quick insights, shorter responses.",
+    },
+    "deep": {
+        "label": "Deep Mode (Gemma)",
+        "short": "Deep",
+        "purpose": "Detailed analysis, prototype guidance.",
+    },
+}
+CATEGORY_OPTIONS = [
+    "Balanced",
+    "Foundational",
+    "Survey",
+    "Recent",
+    "Implementation Focused",
+    "Evaluation Focused",
+    "Alternative Approach",
+    "Contrarian View",
+]
+CATEGORY_ACCENTS = {
+    "Foundational": "#1a73e8",
+    "Survey": "#7b1fa2",
+    "Recent": "#00897b",
+    "Implementation Focused": "#188038",
+    "Evaluation Focused": "#f9ab00",
+    "Alternative Approach": "#d93025",
+    "Contrarian View": "#5f6368",
+    "Uncategorized": "#5f6368",
+}
 
 
 def post_json(path, payload):
@@ -21,22 +53,29 @@ def get_config():
     return response.json()
 
 
-def search_papers(query):
-    return post_json("/search", {"query": query}).get("papers", [])
+def search_papers(query, categories=None):
+    return post_json("/search", {"query": query, "categories": categories or []})
 
 
 def summarize_paper(paper):
     return post_json("/summarize", paper).get("summary", "")
 
 
-def generate_paper_roadmap(paper):
-    return post_json("/roadmap/paper", paper).get("roadmap", "")
+def generate_paper_roadmap(paper, generation_mode):
+    payload = dict(paper)
+    payload["generation_mode"] = generation_mode
+    return post_json("/roadmap/paper", payload).get("roadmap", "")
 
 
-def stream_roadmap(papers, summaries, query):
+def stream_roadmap(papers, summaries, query, generation_mode):
     response = requests.post(
         f"{BACKEND_URL}/roadmap/stream",
-        json={"papers": papers, "summaries": summaries, "query": query},
+        json={
+            "papers": papers,
+            "summaries": summaries,
+            "query": query,
+            "generation_mode": generation_mode,
+        },
         stream=True,
         timeout=240,
     )
@@ -46,19 +85,30 @@ def stream_roadmap(papers, summaries, query):
             yield chunk
 
 
-def roadmap_cache_status(papers, summaries, query):
+def roadmap_cache_status(papers, summaries, query, generation_mode):
     return post_json(
         "/roadmap/cache-status",
-        {"papers": papers, "summaries": summaries, "query": query},
+        {
+            "papers": papers,
+            "summaries": summaries,
+            "query": query,
+            "generation_mode": generation_mode,
+        },
     )
 
 
-def paper_roadmap_cache_status(paper):
-    return post_json("/roadmap/paper/cache-status", paper)
+def paper_roadmap_cache_status(paper, generation_mode):
+    payload = dict(paper)
+    payload["generation_mode"] = generation_mode
+    return post_json("/roadmap/paper/cache-status", payload)
 
 
 def paper_cache_id(paper):
     return paper.get("paper_id") or paper.get("url") or paper.get("link") or paper["title"]
+
+
+def guidance_cache_id(paper, generation_mode):
+    return f"{generation_mode}:{paper_cache_id(paper)}"
 
 
 def paper_label(index, paper):
@@ -75,10 +125,108 @@ def paper_year(paper):
     return str(value)[:4] if value else "unknown"
 
 
+def applied_focus_categories(research_focus):
+    return [category for category in research_focus if category != "Balanced"]
+
+
+def mode_config(config, generation_mode):
+    public_modes = (config or {}).get("generation_modes", {})
+    fallback = MODE_OPTIONS[generation_mode]
+    return {
+        "label": public_modes.get(generation_mode, {}).get("label", fallback["label"]),
+        "model": public_modes.get(generation_mode, {}).get("model", "configured model"),
+        "purpose": public_modes.get(generation_mode, {}).get("purpose", fallback["purpose"]),
+    }
+
+
+def grouped_by_category(papers):
+    groups = {}
+    for paper in papers:
+        groups.setdefault(paper_category(paper), []).append(paper)
+    ordered = [category for category in CATEGORY_OPTIONS if category in groups and category != "Balanced"]
+    ordered.extend(sorted(category for category in groups if category not in ordered))
+    return [(category, groups[category]) for category in ordered]
+
+
+def render_category_heading(category, count):
+    accent = CATEGORY_ACCENTS.get(category, CATEGORY_ACCENTS["Uncategorized"])
+    st.markdown(
+        f"""
+        <div class="af-section-heading" style="--accent-color: {accent};">
+            {html.escape(category)} <span style="font-weight: 400; opacity: 0.72;">({count})</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_selection_guidance(selected_count, focus_count, generation_mode):
+    if selected_count >= 5:
+        st.warning(
+            "This may take longer. More papers mean more tokens, slower generation, "
+            "and less focused recommendations. For sharper synthesis, select 2-4 papers."
+        )
+    elif generation_mode == "deep" and selected_count >= 4:
+        st.warning(
+            "Deep Mode is more detailed and slower. For the best Gemma output, use 2-3 papers."
+        )
+    elif selected_count == 4:
+        st.info("Four papers is workable, but 2-3 papers usually gives sharper recommendations.")
+
+    if focus_count >= 4:
+        st.warning(
+            "Broad research focus selected. Choosing many paper types can make results less focused."
+        )
+    elif focus_count == 3:
+        st.info("Three focus categories is broad. For focused retrieval, 1-2 categories is usually better.")
+
+
 def apply_card_styles():
     st.markdown(
         """
         <style>
+        .block-container {
+            padding-top: 2.2rem;
+        }
+        .af-title {
+            text-align: center;
+            font-size: 2.2rem;
+            font-weight: 650;
+            letter-spacing: 0;
+            margin-bottom: 0.2rem;
+        }
+        .af-subtitle {
+            text-align: center;
+            color: rgba(250, 250, 250, 0.74);
+            margin-bottom: 1.2rem;
+        }
+        .af-search-shell {
+            max-width: 920px;
+            margin: 0 auto 1.2rem auto;
+            padding: 1.15rem 1.15rem 0.8rem 1.15rem;
+            border: 1px solid rgba(218, 220, 224, 0.22);
+            border-radius: 8px;
+            background: rgba(32, 33, 36, 0.58);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+        }
+        .af-mode-status {
+            max-width: 920px;
+            margin: 0 auto 1rem auto;
+            border-left: 4px solid #1a73e8;
+            padding: 0.62rem 0.8rem;
+            border-radius: 6px;
+            background: rgba(26, 115, 232, 0.12);
+            color: rgba(250, 250, 250, 0.92);
+            font-size: 0.92rem;
+        }
+        .af-section-heading {
+            margin-top: 1.4rem;
+            margin-bottom: 0.6rem;
+            padding-left: 0.75rem;
+            border-left: 4px solid var(--accent-color);
+            font-size: 1.1rem;
+            font-weight: 650;
+        }
         .paper-card-title {
             color: inherit;
             font-size: 1.05rem;
@@ -223,6 +371,7 @@ def render_paper_cards(
     show_guidance_controls=False,
     selectable=False,
     scope="results",
+    generation_mode="fast",
 ):
     summaries = summaries or []
     selected_set = set(st.session_state.selected_labels)
@@ -230,6 +379,7 @@ def render_paper_cards(
     for index, paper in enumerate(papers):
         summary = summaries[index] if index < len(summaries) else None
         cache_id = paper_cache_id(paper)
+        guidance_id = guidance_cache_id(paper, generation_mode)
         label = paper_label(all_labels.index(paper) + 1, paper) if paper in all_labels else paper_label(index + 1, paper)
         title = html.escape(paper["title"])
         authors = html.escape(", ".join(paper.get("authors", [])[:5]) or "Unknown authors")
@@ -267,12 +417,12 @@ def render_paper_cards(
             if show_guidance_controls:
                 if action_cols[2].button("Guidance", key=f"paper-roadmap-button-{scope}-{cache_id}"):
                     try:
-                        status = paper_roadmap_cache_status(paper)
+                        status = paper_roadmap_cache_status(paper, generation_mode)
                         if status.get("cached"):
-                            st.session_state.paper_roadmaps[cache_id] = generate_paper_roadmap(paper)
+                            st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
                         else:
                             with st.spinner("Generating paper guidance..."):
-                                st.session_state.paper_roadmaps[cache_id] = generate_paper_roadmap(paper)
+                                st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
                     except requests.ConnectionError:
                         st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
                     except requests.HTTPError as exc:
@@ -284,9 +434,9 @@ def render_paper_cards(
                 st.markdown("**Summary**")
                 st.markdown(summary)
 
-            if cache_id in st.session_state.paper_roadmaps:
+            if guidance_id in st.session_state.paper_roadmaps:
                 st.markdown("**Paper guidance**")
-                st.markdown(st.session_state.paper_roadmaps[cache_id])
+                st.markdown(st.session_state.paper_roadmaps[guidance_id])
 
     if selectable:
         valid_all_labels = [paper_label(index, paper) for index, paper in enumerate(all_labels, start=1)]
@@ -295,11 +445,12 @@ def render_paper_cards(
         ]
 
 
-def render_paper_details(papers, summaries=None, show_roadmap_controls=False, scope="results"):
+def render_paper_details(papers, summaries=None, show_roadmap_controls=False, scope="results", generation_mode="fast"):
     summaries = summaries or []
     for index, paper in enumerate(papers):
         summary = summaries[index] if index < len(summaries) else None
         cache_id = paper_cache_id(paper)
+        guidance_id = guidance_cache_id(paper, generation_mode)
         with st.expander(f"{index + 1}. {paper['title']}", expanded=index == 0):
             st.write(f"**Source:** {paper.get('source', 'arxiv')}")
             st.write(f"**Authors:** {', '.join(paper.get('authors', []))}")
@@ -316,38 +467,35 @@ def render_paper_details(papers, summaries=None, show_roadmap_controls=False, sc
             if show_roadmap_controls:
                 if st.button("Guidance", key=f"paper-roadmap-button-{scope}-{cache_id}"):
                     try:
-                        status = paper_roadmap_cache_status(paper)
+                        status = paper_roadmap_cache_status(paper, generation_mode)
                         if status.get("cached"):
-                            st.session_state.paper_roadmaps[cache_id] = generate_paper_roadmap(paper)
+                            st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
                         else:
                             with st.spinner("Generating paper guidance..."):
-                                st.session_state.paper_roadmaps[cache_id] = generate_paper_roadmap(paper)
+                                st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
                     except requests.ConnectionError:
                         st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
                     except requests.HTTPError as exc:
                         st.error(f"The backend returned an error: {exc.response.text}")
                     except requests.RequestException as exc:
                         st.error(f"Could not reach the backend: {exc}")
-                if cache_id in st.session_state.paper_roadmaps:
+                if guidance_id in st.session_state.paper_roadmaps:
                     st.markdown("**Paper guidance**")
-                    st.markdown(st.session_state.paper_roadmaps[cache_id])
+                    st.markdown(st.session_state.paper_roadmaps[guidance_id])
 
 
 st.set_page_config(page_title="AcademicForge", page_icon="AF", layout="wide")
 apply_card_styles()
 
-st.title("AcademicForge")
-st.caption("Find papers, synthesize evidence, and turn research into implementation guidance.")
+st.markdown('<div class="af-title">AcademicForge</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="af-subtitle">Question -> Research -> Decision -> Prototype</div>',
+    unsafe_allow_html=True,
+)
 
 try:
     config = get_config()
-    llm_models = config.get("llm_models", {})
-    st.caption(
-        "LLM: "
-        f"{config['llm_provider']} / "
-        f"summary={llm_models.get('summary', 'unknown')} / "
-        f"roadmap={llm_models.get('roadmap', 'unknown')}"
-    )
+    config = get_config()
 except requests.RequestException:
     config = None
 
@@ -365,16 +513,70 @@ if "roadmap_elapsed" not in st.session_state:
     st.session_state.roadmap_elapsed = None
 if "generated_labels" not in st.session_state:
     st.session_state.generated_labels = []
+if "generated_mode" not in st.session_state:
+    st.session_state.generated_mode = ""
 if "paper_roadmaps" not in st.session_state:
     st.session_state.paper_roadmaps = {}
+if "generation_mode" not in st.session_state:
+    st.session_state.generation_mode = "fast"
+if "research_focus" not in st.session_state:
+    st.session_state.research_focus = ["Balanced"]
+if "last_search_focus" not in st.session_state:
+    st.session_state.last_search_focus = []
+if "search_message" not in st.session_state:
+    st.session_state.search_message = ""
 
 default_query = st.query_params.get("query", "")
 
+st.markdown('<div class="af-search-shell">', unsafe_allow_html=True)
 research_question = st.text_input(
     "Research question or arXiv link",
-    placeholder="Example: https://arxiv.org/abs/1706.03762",
+    placeholder="Ask a research question or paste an arXiv link",
     value=default_query,
 )
+mode_labels = [MODE_OPTIONS["fast"]["label"], MODE_OPTIONS["deep"]["label"]]
+current_mode_index = 0 if st.session_state.generation_mode == "fast" else 1
+selected_mode_label = st.radio(
+    "Analysis mode",
+    mode_labels,
+    index=current_mode_index,
+    horizontal=True,
+    help=(
+        "Fast Mode: Quick insights, shorter responses. "
+        "Deep Mode: Detailed analysis, prototype guidance."
+    ),
+)
+st.session_state.generation_mode = "deep" if selected_mode_label == MODE_OPTIONS["deep"]["label"] else "fast"
+research_focus = st.multiselect(
+    "Research Focus",
+    CATEGORY_OPTIONS,
+    default=st.session_state.research_focus,
+    help=(
+        "Choose the paper types you want more answers from. "
+        "Balanced keeps the default evidence mix. One or two focused categories is usually best."
+    ),
+)
+if not research_focus:
+    research_focus = ["Balanced"]
+if "Balanced" in research_focus and len(research_focus) > 1:
+    research_focus = [category for category in research_focus if category != "Balanced"]
+st.session_state.research_focus = research_focus
+focus_categories = applied_focus_categories(research_focus)
+st.markdown("</div>", unsafe_allow_html=True)
+
+active_mode = mode_config(config, st.session_state.generation_mode)
+st.markdown(
+    f"""
+    <div class="af-mode-status">
+        <strong>{html.escape(active_mode["label"])}</strong>
+        &nbsp;using <code>{html.escape(active_mode["model"])}</code><br/>
+        {html.escape(active_mode["purpose"])}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+render_selection_guidance(0, len(focus_categories), st.session_state.generation_mode)
 
 auto_run_search = (
     st.query_params.get("run") == "1"
@@ -388,13 +590,17 @@ if should_search:
         st.warning("Please enter a research question.")
     else:
         try:
-            with st.spinner("Searching arXiv..."):
-                st.session_state.papers = search_papers(research_question.strip())
+            with st.spinner("Searching live research sources..."):
+                search_payload = search_papers(research_question.strip(), focus_categories)
+                st.session_state.papers = search_payload.get("papers", [])
+                st.session_state.search_message = search_payload.get("message", "")
             st.session_state.last_query = research_question.strip()
+            st.session_state.last_search_focus = list(focus_categories)
             st.session_state.summaries = []
             st.session_state.roadmap = ""
             st.session_state.roadmap_elapsed = None
             st.session_state.generated_labels = []
+            st.session_state.generated_mode = ""
             st.session_state.paper_roadmaps = {}
             labels = [
                 paper_label(index, paper)
@@ -413,6 +619,14 @@ if papers:
     st.subheader("Search results")
     labels = [paper_label(index, paper) for index, paper in enumerate(papers, start=1)]
 
+    if st.session_state.last_search_focus:
+        st.caption(
+            "Research focus applied on search: "
+            + ", ".join(st.session_state.last_search_focus)
+        )
+    else:
+        st.caption("Research focus applied on search: Balanced")
+
     filtered_papers = render_category_filters(papers)
     st.caption(f"Showing {len(filtered_papers)} of {len(papers)} selected evidence papers.")
 
@@ -428,13 +642,16 @@ if papers:
     if action_cols[1].button("Clear selection"):
         st.session_state.selected_labels = []
 
-    render_paper_cards(
-        filtered_papers,
-        papers,
-        show_guidance_controls=True,
-        selectable=True,
-        scope="results",
-    )
+    for category, category_papers in grouped_by_category(filtered_papers):
+        render_category_heading(category, len(category_papers))
+        render_paper_cards(
+            category_papers,
+            papers,
+            show_guidance_controls=True,
+            selectable=True,
+            scope=f"results-{category.lower().replace(' ', '-')}",
+            generation_mode=st.session_state.generation_mode,
+        )
     render_technical_dashboard(papers, config)
 
     selected_labels = [label for label in st.session_state.selected_labels if label in labels]
@@ -445,16 +662,22 @@ if papers:
     ]
     selection_changed_after_generation = (
         bool(st.session_state.generated_labels)
-        and selected_labels != st.session_state.generated_labels
+        and (
+            selected_labels != st.session_state.generated_labels
+            or st.session_state.generation_mode != st.session_state.generated_mode
+        )
     )
     if selection_changed_after_generation:
-        st.info("Selection changed. Generate again to update synthesis for the new papers.")
+        st.info("Selection or mode changed. Generate again to update synthesis.")
 
     if selected_papers:
         st.caption(f"Selected {len(selected_papers)} paper(s) for research synthesis.")
         render_selected_evidence(selected_papers)
-        if len(selected_papers) > 3:
-            st.info("For faster and sharper synthesis, select 2-3 papers unless you want a survey.")
+        render_selection_guidance(
+            len(selected_papers),
+            len(st.session_state.last_search_focus),
+            st.session_state.generation_mode,
+        )
     else:
         st.warning("Select at least one paper to generate a synthesis.")
 
@@ -464,11 +687,12 @@ if papers:
                 selected_papers,
                 st.session_state.summaries,
                 st.session_state.last_query or research_question.strip(),
+                st.session_state.generation_mode,
             )
             if status.get("cached"):
                 st.success(f"Synthesis cache: ready from {status.get('cache')} cache.")
             else:
-                st.info("Synthesis cache: miss. Next generation will run the local MLX model.")
+                st.info(f"Synthesis cache: miss. Next generation will run {active_mode['label']}.")
         except requests.RequestException:
             pass
 
@@ -490,6 +714,7 @@ if papers:
                     selected_papers,
                     st.session_state.summaries,
                     st.session_state.last_query or research_question.strip(),
+                    st.session_state.generation_mode,
                 ):
                     roadmap_chunks.append(chunk)
                     roadmap_placeholder.markdown("".join(roadmap_chunks))
@@ -497,6 +722,7 @@ if papers:
                 st.session_state.roadmap_elapsed = time.perf_counter() - roadmap_started
                 roadmap_placeholder.empty()
             st.session_state.generated_labels = selected_labels
+            st.session_state.generated_mode = st.session_state.generation_mode
         except requests.ConnectionError:
             st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
         except requests.HTTPError as exc:
@@ -508,6 +734,7 @@ if papers:
         st.session_state.summaries
         and st.session_state.roadmap
         and selected_labels == st.session_state.generated_labels
+        and st.session_state.generation_mode == st.session_state.generated_mode
     )
 
     if can_show_generated_output:
@@ -519,6 +746,7 @@ if papers:
             show_guidance_controls=False,
             selectable=False,
             scope="selected",
+            generation_mode=st.session_state.generation_mode,
         )
 
     if can_show_generated_output:
@@ -528,7 +756,7 @@ if papers:
             if elapsed < 1:
                 st.success(f"Synthesis loaded from cache in {elapsed:.2f}s.")
             else:
-                st.info(f"Synthesis generated locally with MLX in {elapsed:.2f}s.")
+                st.info(f"Synthesis generated with {active_mode['label']} in {elapsed:.2f}s.")
         if isinstance(st.session_state.roadmap, str):
             st.markdown(st.session_state.roadmap)
         else:
@@ -551,4 +779,4 @@ if papers:
             mime="text/markdown",
         )
 elif st.session_state.last_query:
-    st.info("No papers found for this query.")
+    st.info(st.session_state.search_message or "No papers found for this query.")

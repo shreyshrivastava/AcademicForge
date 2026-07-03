@@ -13,12 +13,12 @@ def _paper_cache_key(paper):
     return paper.get("paper_id") or paper.get("url") or paper.get("link") or paper["title"]
 
 
-def summarize_paper(paper):
+def summarize_paper(paper, model=None):
     """Generate a concise, useful research summary for one paper."""
     paper_id = _paper_cache_key(paper)
     cache_key = make_cache_key(
         "summary-v4",
-        model_name("summary"),
+        model or model_name("summary"),
         paper_id,
         paper.get("title"),
         paper.get("abstract"),
@@ -65,7 +65,7 @@ Rules:
 - If a detail is missing, say to verify it in the full paper.
 """.strip()
 
-    summary = generate_text(system_prompt, user_prompt, token_budget=360, task="summary")
+    summary = generate_text(system_prompt, user_prompt, token_budget=360, task="summary", model=model)
     SUMMARY_CACHE[cache_key] = summary
     cache_set("summaries", cache_key, summary)
     logger.info("Summary generation completed paper_id=%r", paper_id)
