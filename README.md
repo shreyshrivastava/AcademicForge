@@ -127,10 +127,36 @@ AcademicForge uses a hybrid retrieval and local generation pipeline:
 2. Rank candidates with BM25 for exact technical terms.
 3. Rank candidates with dense semantic search for meaning-level similarity.
 4. Fuse rankings with reciprocal rank fusion.
-5. Let the user inspect and select papers.
-6. Summarize selected papers with a local MLX model.
-7. Generate a streamed implementation roadmap from compact paper notes.
-8. Cache summaries and roadmaps locally for fast repeat runs.
+5. Re-rank the top evidence pool.
+6. Select a balanced 8-10 paper evidence set.
+7. Let the user inspect and select papers.
+8. Summarize selected papers with a local MLX model.
+9. Generate streamed research synthesis from compact evidence notes.
+10. Cache summaries and synthesis outputs locally for fast repeat runs.
+
+## Evidence Selection Strategy
+
+AcademicForge does not send every retrieved paper to the model. The retrieval funnel is:
+
+```text
+Retrieve 20-30 papers
+  -> re-rank with hybrid retrieval signals
+  -> select the best 8-10 evidence papers
+  -> synthesize for the user's specific goal
+```
+
+The selected evidence set aims for this balance:
+
+| Evidence type | Target count | Why it matters |
+| --- | ---: | --- |
+| Foundational papers | 2-3 | Gives the synthesis stable concepts and established methods. |
+| Recent papers | 2-3 | Keeps the answer current and aligned with newer work. |
+| Implementation-focused papers | 2-3 | Helps convert research into buildable systems. |
+| Evaluation-focused papers | 1-2 | Provides benchmarks, datasets, or metrics. |
+| Contrarian or alternative papers | 1-2 | Surfaces limitations, tradeoffs, and non-obvious directions. |
+
+The current selector uses transparent heuristics from titles, abstracts, and dates.
+Future versions can replace this with a learned router or cross-encoder reranker.
 
 ## Key Features
 

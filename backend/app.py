@@ -44,6 +44,7 @@ class Paper(BaseModel):
 class PapersRequest(BaseModel):
     papers: List[Paper]
     summaries: List[str] = []
+    query: str = ""
 
 @app.get("/config")
 async def get_config():
@@ -82,7 +83,7 @@ async def generate_roadmap(request: PapersRequest):
     try:
         logger.info("Mixed roadmap requested paper_count=%d", len(request.papers))
         papers = [paper.model_dump() for paper in request.papers]
-        roadmap = generate_ai_roadmap(papers, request.summaries)
+        roadmap = generate_ai_roadmap(papers, request.summaries, request.query)
         return {"roadmap": roadmap}
     except Exception as e:
         logger.exception("Mixed roadmap failed")
@@ -118,7 +119,7 @@ async def roadmap_cache_status(request: PapersRequest):
     """Return whether the selected roadmap is already cached."""
     try:
         papers = [paper.model_dump() for paper in request.papers]
-        status = get_roadmap_cache_status(papers, request.summaries)
+        status = get_roadmap_cache_status(papers, request.summaries, request.query)
         logger.info(
             "Mixed roadmap cache status paper_count=%d cache=%s cached=%s",
             len(request.papers),
@@ -136,7 +137,7 @@ async def stream_roadmap(request: PapersRequest):
         logger.info("Mixed roadmap stream requested paper_count=%d", len(request.papers))
         papers = [paper.model_dump() for paper in request.papers]
         return StreamingResponse(
-            stream_ai_roadmap(papers, request.summaries),
+            stream_ai_roadmap(papers, request.summaries, request.query),
             media_type="text/plain",
         )
     except Exception as e:

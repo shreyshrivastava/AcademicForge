@@ -35,6 +35,7 @@ def test_roadmap_cache_status_endpoint_returns_status():
                 }
             ],
             "summaries": ["Core idea\nA test."],
+            "query": "build a prototype",
         },
     )
     assert response.status_code == 200
@@ -89,7 +90,8 @@ def test_paper_roadmap_cache_status_endpoint_returns_status():
 def test_roadmap_stream_endpoint_streams_text():
     original_stream = backend_app.stream_ai_roadmap
 
-    def fake_stream(papers, summaries=None):
+    def fake_stream(papers, summaries=None, query=""):
+        assert query == "build a prototype"
         yield "hello "
         yield "roadmap"
 
@@ -110,6 +112,7 @@ def test_roadmap_stream_endpoint_streams_text():
                     }
                 ],
                 "summaries": ["Core idea\nA test."],
+                "query": "build a prototype",
             },
         ) as response:
             assert response.status_code == 200

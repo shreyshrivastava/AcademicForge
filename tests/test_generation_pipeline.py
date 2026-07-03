@@ -45,12 +45,12 @@ Domain transfer and ambiguous evidence remain open problems.
 
 def test_roadmap_context_is_compact_and_structured():
     context = build_roadmap_context([PAPER], [SUMMARY])
-    assert "Paper 1: Reducing Hallucination" in context
+    assert "[Evidence 1] Reducing Hallucination" in context
     assert "Retrieval:" not in context
     assert "RRF" not in context
-    assert "Implementation relevance:" in context
-    assert "long-abstract long-abstract long-abstract" not in context
-    assert len(context) < 1200
+    assert "Prior extracted notes:" in context
+    assert " ".join(["long-abstract"] * 80) not in context
+    assert len(context) < 1800
 
 
 def test_generate_roadmap_uses_compact_context():
@@ -69,17 +69,22 @@ def test_generate_roadmap_uses_compact_context():
     roadmap_generator.generate_text = fake_generate_text
     with tempfile.TemporaryDirectory() as tmpdir:
         cache.CACHE_DIR = Path(tmpdir)
-        result = generate_roadmap([PAPER], [SUMMARY])
+        result = generate_roadmap([PAPER], [SUMMARY], query="build a RAG hallucination detector")
         cache.CACHE_DIR = original_cache_dir
         roadmap_generator.generate_text = original_generate_text
         roadmap_generator.ROADMAP_CACHE.clear()
 
     assert result == "roadmap"
-    assert captured["token_budget"] == 1300
+    assert captured["token_budget"] == 1900
     assert captured["task"] == "roadmap"
-    assert "Selected paper comparison" in captured["user_prompt"]
-    assert "Recommended direction" in captured["user_prompt"]
-    assert " ".join(["long-abstract"] * 50) not in captured["user_prompt"]
+    assert "User Goal Analysis" in captured["user_prompt"]
+    assert "Paper Relevance Analysis" in captured["user_prompt"]
+    assert "Research Synthesis" in captured["user_prompt"]
+    assert "Recommended Direction" in captured["user_prompt"]
+    assert "build a RAG hallucination detector" in captured["user_prompt"]
+    assert "1. What this paper is about" not in captured["user_prompt"]
+    assert "4. Step-by-step reading plan" not in captured["user_prompt"]
+    assert " ".join(["long-abstract"] * 80) not in captured["user_prompt"]
 
 
 def test_generate_paper_roadmap_uses_paper_specific_prompt():
@@ -106,9 +111,12 @@ def test_generate_paper_roadmap_uses_paper_specific_prompt():
     assert result == "paper roadmap"
     assert captured["token_budget"] == 1100
     assert captured["task"] == "roadmap"
-    assert "What this paper is about" in captured["user_prompt"]
-    assert "Step-by-step reading plan" in captured["user_prompt"]
-    assert "How to use this in a project" in captured["user_prompt"]
+    assert "Builder Goal Fit" in captured["user_prompt"]
+    assert "Evidence Contribution" in captured["user_prompt"]
+    assert "Implementation Direction" in captured["user_prompt"]
+    assert "1. What this paper is about" not in captured["user_prompt"]
+    assert "4. Step-by-step reading plan" not in captured["user_prompt"]
+    assert "8. Difficulty level" not in captured["user_prompt"]
 
 
 def test_paper_roadmap_cache_reuses_disk_cache_and_invalidates_on_content_change():
@@ -205,9 +213,9 @@ def test_roadmap_disk_cache_reuses_existing_roadmap_after_memory_clear():
     roadmap_generator.generate_text = fake_generate_text
     with tempfile.TemporaryDirectory() as tmpdir:
         cache.CACHE_DIR = Path(tmpdir)
-        first = generate_roadmap([PAPER], [SUMMARY])
+        first = generate_roadmap([PAPER], [SUMMARY], query="build detector")
         roadmap_generator.ROADMAP_CACHE.clear()
-        second = generate_roadmap([PAPER], [SUMMARY])
+        second = generate_roadmap([PAPER], [SUMMARY], query="build detector")
         cache.CACHE_DIR = original_cache_dir
         roadmap_generator.generate_text = original_generate_text
         roadmap_generator.ROADMAP_CACHE.clear()
@@ -228,13 +236,13 @@ def test_roadmap_cache_status_reports_miss_and_disk_hit():
     roadmap_generator.generate_text = fake_generate_text
     with tempfile.TemporaryDirectory() as tmpdir:
         cache.CACHE_DIR = Path(tmpdir)
-        assert roadmap_cache_status([PAPER], [SUMMARY]) == {
+        assert roadmap_cache_status([PAPER], [SUMMARY], query="build detector") == {
             "cached": False,
             "cache": "miss",
         }
-        generate_roadmap([PAPER], [SUMMARY])
+        generate_roadmap([PAPER], [SUMMARY], query="build detector")
         roadmap_generator.ROADMAP_CACHE.clear()
-        assert roadmap_cache_status([PAPER], [SUMMARY]) == {
+        assert roadmap_cache_status([PAPER], [SUMMARY], query="build detector") == {
             "cached": True,
             "cache": "disk",
         }
@@ -259,9 +267,9 @@ def test_stream_roadmap_yields_chunks_and_caches_result():
     roadmap_generator.generate_text_stream = fake_stream
     with tempfile.TemporaryDirectory() as tmpdir:
         cache.CACHE_DIR = Path(tmpdir)
-        first = "".join(stream_roadmap([PAPER], [SUMMARY]))
+        first = "".join(stream_roadmap([PAPER], [SUMMARY], query="build detector"))
         roadmap_generator.ROADMAP_CACHE.clear()
-        second = "".join(stream_roadmap([PAPER], [SUMMARY]))
+        second = "".join(stream_roadmap([PAPER], [SUMMARY], query="build detector"))
         cache.CACHE_DIR = original_cache_dir
         roadmap_generator.generate_text_stream = original_stream
         roadmap_generator.ROADMAP_CACHE.clear()
