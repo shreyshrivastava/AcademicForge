@@ -125,6 +125,18 @@ def paper_year(paper):
     return str(value)[:4] if value else "unknown"
 
 
+def citation_label(paper):
+    metadata = paper.get("metadata", {}) or {}
+    citation_count = metadata.get("citation_count")
+    influential_count = metadata.get("influential_citation_count")
+    if citation_count is None:
+        return ""
+    label = f"{citation_count:,} citations"
+    if influential_count:
+        label += f" · {influential_count:,} influential"
+    return label
+
+
 def applied_focus_categories(research_focus):
     return [category for category in research_focus if category != "Balanced"]
 
@@ -200,6 +212,32 @@ def apply_card_styles():
             color: rgba(250, 250, 250, 0.74);
             margin-bottom: 1.2rem;
         }
+        .af-helper-card {
+            max-width: 920px;
+            margin: 0 auto 1rem auto;
+            padding: 0.9rem 1rem;
+            border: 1px solid rgba(218, 220, 224, 0.24);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .af-helper-title {
+            font-weight: 700;
+            margin-bottom: 0.28rem;
+        }
+        .af-helper-text {
+            color: rgba(250, 250, 250, 0.78);
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+        .af-empty-state {
+            max-width: 920px;
+            margin: 0.35rem auto 1rem auto;
+            padding: 0.8rem 0.95rem;
+            border-radius: 8px;
+            border: 1px solid rgba(218, 220, 224, 0.2);
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(250, 250, 250, 0.82);
+        }
         .af-search-shell {
             max-width: 920px;
             margin: 0 auto 1.2rem auto;
@@ -208,6 +246,36 @@ def apply_card_styles():
             border-radius: 8px;
             background: rgba(32, 33, 36, 0.58);
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+        }
+        .af-search-kicker {
+            color: rgba(250, 250, 250, 0.68);
+            font-size: 0.78rem;
+            font-weight: 650;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }
+        .af-search-title {
+            color: rgba(250, 250, 250, 0.96);
+            font-size: 1.08rem;
+            font-weight: 650;
+            margin-bottom: 0.65rem;
+        }
+        .af-control-caption {
+            color: rgba(250, 250, 250, 0.68);
+            font-size: 0.82rem;
+            margin: 0.15rem 0 0.55rem 0;
+        }
+        div.stButton > button[kind="primary"] {
+            background: #1a73e8;
+            border-color: #1a73e8;
+            color: #ffffff;
+            font-weight: 650;
+        }
+        div.stButton > button[kind="primary"]:hover {
+            background: #1558b0;
+            border-color: #1558b0;
+            color: #ffffff;
         }
         .af-mode-status {
             max-width: 920px;
@@ -276,6 +344,31 @@ def apply_card_styles():
     )
 
 
+def render_status_banner(config, generation_mode):
+    if config is None:
+        st.markdown(
+            """
+            <div class="af-helper-card">
+                <div class="af-helper-title">Backend unavailable</div>
+                <div class="af-helper-text">The interface is ready, but the backend is not responding yet. Start it with <strong>uvicorn backend.app:app --reload</strong> and refresh the page.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    active_mode = mode_config(config, generation_mode)
+    st.markdown(
+        f"""
+        <div class="af-helper-card">
+            <div class="af-helper-title">Ready for synthesis</div>
+            <div class="af-helper-text">Connected to <strong>{html.escape(active_mode['label'])}</strong> using <strong>{html.escape(active_mode['model'])}</strong>. Search for evidence, choose a few papers, and generate a roadmap.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_results_table(papers):
     st.caption(f"Found {len(papers)} ranked papers.")
     st.dataframe(
@@ -285,6 +378,8 @@ def render_results_table(papers):
                 "Title": paper["title"],
                 "Category": paper.get("metadata", {}).get("academicforge_category", "Uncategorized"),
                 "Source": paper.get("source", "arxiv"),
+                "Citations": paper.get("metadata", {}).get("citation_count"),
+                "Influential": paper.get("metadata", {}).get("influential_citation_count"),
                 "BM25": paper.get("bm25_rank"),
                 "Dense": paper.get("dense_rank"),
                 "RRF": round(float(paper.get("rrf_score", 0.0) or 0.0), 5),
@@ -388,14 +483,23 @@ def render_paper_cards(
         url = paper.get("url") or paper.get("link")
         source = html.escape(paper.get("source", "arxiv"))
         category = html.escape(paper_category(paper))
-        snippet = html.escape(paper["abstract"][:650] + ("..." if len(paper["abstract"]) > 650 else ""))
+        abstract = html.escape(paper.get("abstract", ""))
+        citation_text = citation_label(paper)
+        meta_parts = [
+            authors,
+            html.escape(paper_year(paper)),
+            source,
+        ]
+        if citation_text:
+            meta_parts.append(html.escape(citation_text))
+        metadata_line = " · ".join(meta_parts)
 
         with st.container(border=True):
             st.markdown(
                 f"""
                 <div class="paper-card-title">{title}</div>
-                <div class="paper-card-meta">{authors} · {html.escape(paper_year(paper))} · {source}</div>
-                <div class="paper-card-abstract">{snippet}</div>
+                <div class="paper-card-meta">{metadata_line}</div>
+                <div class="paper-card-abstract">{abstract}</div>
                 <span class="paper-chip paper-chip-category">{category}</span>
                 """,
                 unsafe_allow_html=True,
@@ -455,13 +559,15 @@ def render_paper_details(papers, summaries=None, show_roadmap_controls=False, sc
             st.write(f"**Source:** {paper.get('source', 'arxiv')}")
             st.write(f"**Authors:** {', '.join(paper.get('authors', []))}")
             st.write(f"**Date:** {paper.get('date') or paper.get('published', '')}")
+            citations = citation_label(paper)
+            if citations:
+                st.write(f"**Citations:** {citations}")
             st.write(
                 "**Category:** "
                 f"{paper_category(paper)}"
             )
             st.write(f"**URL:** [Open paper]({paper.get('url') or paper.get('link')})")
-            snippet = paper["abstract"][:600]
-            st.write(f"**Abstract snippet:** {snippet}{'...' if len(paper['abstract']) > 600 else ''}")
+            st.write(f"**Abstract:** {paper.get('abstract', '')}")
             if summary:
                 st.write(f"**Summary:** {summary}")
             if show_roadmap_controls:
@@ -489,15 +595,16 @@ apply_card_styles()
 
 st.markdown('<div class="af-title">AcademicForge</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="af-subtitle">Question -> Research -> Decision -> Prototype</div>',
+    '<div class="af-subtitle">Question → Research → Decision → Prototype</div>',
     unsafe_allow_html=True,
 )
 
 try:
     config = get_config()
-    config = get_config()
 except requests.RequestException:
     config = None
+
+render_status_banner(config, st.session_state.generation_mode if "generation_mode" in st.session_state else "fast")
 
 if "papers" not in st.session_state:
     st.session_state.papers = []
@@ -528,62 +635,67 @@ if "search_message" not in st.session_state:
 
 default_query = st.query_params.get("query", "")
 
-st.markdown('<div class="af-search-shell">', unsafe_allow_html=True)
-research_question = st.text_input(
-    "Research question or arXiv link",
-    placeholder="Ask a research question or paste an arXiv link",
-    value=default_query,
-)
-mode_labels = [MODE_OPTIONS["fast"]["label"], MODE_OPTIONS["deep"]["label"]]
-current_mode_index = 0 if st.session_state.generation_mode == "fast" else 1
-selected_mode_label = st.radio(
-    "Analysis mode",
-    mode_labels,
-    index=current_mode_index,
-    horizontal=True,
-    help=(
-        "Fast Mode: Quick insights, shorter responses. "
-        "Deep Mode: Detailed analysis, prototype guidance."
-    ),
-)
-st.session_state.generation_mode = "deep" if selected_mode_label == MODE_OPTIONS["deep"]["label"] else "fast"
-research_focus = st.multiselect(
-    "Research Focus",
-    CATEGORY_OPTIONS,
-    default=st.session_state.research_focus,
-    help=(
-        "Choose the paper types you want more answers from. "
-        "Balanced keeps the default evidence mix. One or two focused categories is usually best."
-    ),
-)
+with st.container(border=True):
+    st.markdown(
+        """
+        <div class="af-search-kicker">Search</div>
+        <div class="af-search-title">Find research evidence</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    search_cols = st.columns([5, 1.15], vertical_alignment="bottom")
+    research_question = search_cols[0].text_input(
+        "Question or link",
+        placeholder="Ask a research question or add a link",
+        value=default_query,
+    )
+    auto_run_search = (
+        st.query_params.get("run") == "1"
+        and research_question.strip()
+        and st.session_state.last_query != research_question.strip()
+    )
+    manual_search = search_cols[1].button("Search", type="primary", width="stretch")
+
+    st.markdown(
+        '<div class="af-control-caption">Fast Mode uses Qwen. Deep Mode uses Gemma.</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("Tip: start with 2–4 papers for sharper synthesis and faster generation.")
+    control_cols = st.columns([1.25, 2.75])
+    mode_labels = [MODE_OPTIONS["fast"]["label"], MODE_OPTIONS["deep"]["label"]]
+    current_mode_index = 0 if st.session_state.generation_mode == "fast" else 1
+    selected_mode_label = control_cols[0].radio(
+        "Analysis mode",
+        mode_labels,
+        index=current_mode_index,
+        horizontal=True,
+        help=(
+            "Fast Mode uses Qwen for quick insights. "
+            "Deep Mode uses Gemma for detailed analysis."
+        ),
+    )
+    st.session_state.generation_mode = "deep" if selected_mode_label == MODE_OPTIONS["deep"]["label"] else "fast"
+    research_focus = control_cols[1].multiselect(
+        "Research Focus",
+        CATEGORY_OPTIONS,
+        default=st.session_state.research_focus,
+        help=(
+            "Choose the paper types you want more answers from. "
+            "Balanced keeps the default evidence mix. One or two focused categories is usually best."
+        ),
+    )
 if not research_focus:
     research_focus = ["Balanced"]
 if "Balanced" in research_focus and len(research_focus) > 1:
     research_focus = [category for category in research_focus if category != "Balanced"]
 st.session_state.research_focus = research_focus
 focus_categories = applied_focus_categories(research_focus)
-st.markdown("</div>", unsafe_allow_html=True)
 
 active_mode = mode_config(config, st.session_state.generation_mode)
-st.markdown(
-    f"""
-    <div class="af-mode-status">
-        <strong>{html.escape(active_mode["label"])}</strong>
-        &nbsp;using <code>{html.escape(active_mode["model"])}</code><br/>
-        {html.escape(active_mode["purpose"])}
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 
 render_selection_guidance(0, len(focus_categories), st.session_state.generation_mode)
 
-auto_run_search = (
-    st.query_params.get("run") == "1"
-    and research_question.strip()
-    and st.session_state.last_query != research_question.strip()
-)
-should_search = st.button("Search papers", type="primary") or auto_run_search
+should_search = manual_search or auto_run_search
 
 if should_search:
     if not research_question.strip():
@@ -779,4 +891,7 @@ if papers:
             mime="text/markdown",
         )
 elif st.session_state.last_query:
-    st.info(st.session_state.search_message or "No papers found for this query.")
+    st.markdown(
+        '<div class="af-empty-state">No evidence was found for that query. Try broadening the wording, switching research focus, or using a more specific question.</div>',
+        unsafe_allow_html=True,
+    )
