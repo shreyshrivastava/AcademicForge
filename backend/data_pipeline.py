@@ -15,6 +15,7 @@ from backend.retrieval.models import result_to_paper
 logger = logging.getLogger(__name__)
 
 INITIAL_CANDIDATE_COUNT = 30
+EXPANDED_CANDIDATE_COUNT = 100
 RERANK_POOL_SIZE = 30
 FINAL_EVIDENCE_TARGET = 10
 MIN_RELEVANT_PAPERS = 3
@@ -110,25 +111,39 @@ def search_arxiv_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COU
 
     papers = []
     client = arxiv.Client()
-    for result in client.results(search):
-        paper_url = result.pdf_url or result.entry_id
-        papers.append(
-            {
-                "paper_id": result.entry_id,
-                "title": result.title,
-                "authors": [author.name for author in result.authors],
-                "abstract": result.summary,
-                "source": "arxiv",
-                "url": paper_url,
-                "link": paper_url,
-                "published": result.published.date().isoformat(),
-                "date": result.published.date().isoformat(),
-                "metadata": {
-                    "categories": list(result.categories or []),
-                    "primary_category": result.primary_category,
-                },
-            }
+    try:
+        results = list(client.results(search))
+    except Exception as exc:
+        logger.warning(
+            "arXiv search failed query=%r direct_id=%s error=%s",
+            query,
+            bool(arxiv_id),
+            exc,
         )
+        return [], bool(arxiv_id)
+
+    for result in results:
+        try:
+            paper_url = result.pdf_url or result.entry_id
+            papers.append(
+                {
+                    "paper_id": result.entry_id,
+                    "title": result.title,
+                    "authors": [author.name for author in result.authors],
+                    "abstract": result.summary,
+                    "source": "arxiv",
+                    "url": paper_url,
+                    "link": paper_url,
+                    "published": result.published.date().isoformat(),
+                    "date": result.published.date().isoformat(),
+                    "metadata": {
+                        "categories": list(result.categories or []),
+                        "primary_category": result.primary_category,
+                    },
+                }
+            )
+        except Exception as exc:
+            logger.warning("Skipping malformed arXiv result query=%r error=%s", query, exc)
 
     logger.info("arXiv candidates fetched direct_id=%s count=%d", bool(arxiv_id), len(papers))
     return papers, bool(arxiv_id)
@@ -157,38 +172,47 @@ def search_semantic_scholar_candidates(query: str, max_results: int = INITIAL_CA
         logger.warning("Semantic Scholar search failed query=%r error=%s", query, exc)
         return []
 
-    papers = []
-    for result in response.json().get("data", []):
-        title = result.get("title") or ""
-        abstract = result.get("abstract") or ""
-        if not title or not abstract:
-            continue
+    try:
+        results = response.json().get("data", [])
+    except ValueError as exc:
+        logger.warning("Semantic Scholar returned invalid JSON query=%r error=%s", query, exc)
+        return []
 
-        paper_url = result.get("url") or ""
-        external_ids = result.get("externalIds") or {}
-        authors = [
-            author.get("name", "")
-            for author in result.get("authors", [])
-            if author.get("name")
-        ]
-        papers.append(
-            {
-                "paper_id": result.get("paperId") or paper_url or title,
-                "title": title,
-                "authors": authors,
-                "abstract": abstract,
-                "source": "semantic_scholar",
-                "url": paper_url,
-                "link": paper_url,
-                "published": result.get("publicationDate") or str(result.get("year") or ""),
-                "date": result.get("publicationDate") or str(result.get("year") or ""),
-                "metadata": {
-                    "fields_of_study": result.get("fieldsOfStudy") or [],
-                    "external_ids": external_ids,
-                    "semantic_scholar_year": result.get("year"),
-                },
-            }
-        )
+    papers = []
+    for result in results:
+        try:
+            title = result.get("title") or ""
+            abstract = result.get("abstract") or ""
+            if not title or not abstract:
+                continue
+
+            paper_url = result.get("url") or ""
+            external_ids = result.get("externalIds") or {}
+            authors = [
+                author.get("name", "")
+                for author in result.get("authors", [])
+                if author.get("name")
+            ]
+            papers.append(
+                {
+                    "paper_id": result.get("paperId") or paper_url or title,
+                    "title": title,
+                    "authors": authors,
+                    "abstract": abstract,
+                    "source": "semantic_scholar",
+                    "url": paper_url,
+                    "link": paper_url,
+                    "published": result.get("publicationDate") or str(result.get("year") or ""),
+                    "date": result.get("publicationDate") or str(result.get("year") or ""),
+                    "metadata": {
+                        "fields_of_study": result.get("fieldsOfStudy") or [],
+                        "external_ids": external_ids,
+                        "semantic_scholar_year": result.get("year"),
+                    },
+                }
+            )
+        except Exception as exc:
+            logger.warning("Skipping malformed Semantic Scholar result query=%r error=%s", query, exc)
 
     logger.info("Semantic Scholar candidates fetched count=%d", len(papers))
     return papers
@@ -449,10 +473,24 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
         search_query,
         search_query,
     )
-    papers, direct_id = search_live_candidates(search_query)
+    candidates, direct_id = search_live_candidates(search_query)
     if direct_id:
-        return select_evidence_set(papers, target=1)
-    papers = filter_relevant_papers(original_query, papers)
+        return select_evidence_set(candidates, target=1)
+    papers = filter_relevant_papers(original_query, candidates)
+    if len(papers) < FINAL_EVIDENCE_TARGET:
+        logger.info(
+            "Expanding source search original_query=%r relevant_count=%d target=%d expanded_candidates=%d",
+            original_query,
+            len(papers),
+            FINAL_EVIDENCE_TARGET,
+            EXPANDED_CANDIDATE_COUNT,
+        )
+        expanded_candidates, _ = search_live_candidates(
+            search_query,
+            max_results=EXPANDED_CANDIDATE_COUNT,
+        )
+        candidates = _dedupe_papers([*candidates, *expanded_candidates])
+        papers = filter_relevant_papers(original_query, candidates)
     if len(papers) < MIN_RELEVANT_PAPERS:
         logger.warning(
             "Not enough relevant papers original_query=%r relevant_count=%d",
