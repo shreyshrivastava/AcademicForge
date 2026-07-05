@@ -155,7 +155,10 @@ def search_semantic_scholar_candidates(query: str, max_results: int = INITIAL_CA
     params = {
         "query": query,
         "limit": str(max_results),
-        "fields": "title,abstract,authors,year,url,externalIds,fieldsOfStudy,publicationDate",
+        "fields": (
+            "title,abstract,authors,year,url,externalIds,fieldsOfStudy,"
+            "publicationDate,citationCount,influentialCitationCount"
+        ),
     }
     logger.info(
         "External search source=semantic_scholar query=%r url=%s?query=%s&limit=%d&fields=%s",
@@ -208,6 +211,8 @@ def search_semantic_scholar_candidates(query: str, max_results: int = INITIAL_CA
                         "fields_of_study": result.get("fieldsOfStudy") or [],
                         "external_ids": external_ids,
                         "semantic_scholar_year": result.get("year"),
+                        "citation_count": result.get("citationCount"),
+                        "influential_citation_count": result.get("influentialCitationCount"),
                     },
                 }
             )

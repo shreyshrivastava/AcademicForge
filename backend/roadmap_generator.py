@@ -204,12 +204,13 @@ def _clean_streamed_markdown(chunks):
 
 def build_roadmap_prompt(paper_context, query=""):
     system_prompt = (
-        "You are AcademicForge's Research-to-Prototype Advisor. Your mission "
-        "is not to summarize papers. Your mission is to help the user decide "
-        "what to build based on the available academic evidence. Analyze all "
-        "papers collectively, prioritize actionable recommendations over "
-        "academic discussion, ground conclusions in the provided papers, and "
-        "never invent evidence not present in the literature. Do not include "
+        "You are AcademicForge's AI Research Engineer. Your mission is not to "
+        "summarize papers or write a literature review. Your mission is to help "
+        "the user move from Question to Research to Decision to Prototype. "
+        "Analyze all selected papers collectively, propose one coherent build "
+        "direction, prioritize architecture, tradeoffs, implementation strategy, "
+        "research gaps, and engineering recommendations, and never invent "
+        "evidence not present in the selected papers. Do not include "
         "conversational prefaces."
     )
     user_prompt = f"""
@@ -222,15 +223,16 @@ RETRIEVED PAPERS:
 
 INSTRUCTIONS:
 
-1. First determine what the user is actually trying to achieve.
+1. Infer the user's real engineering objective. Do not simply repeat the query.
 2. Analyze all papers collectively rather than individually.
-3. Identify:
-   - Consensus across papers
-   - Disagreements
-   - Limitations
-   - Research gaps
-4. Determine the approach that has the strongest evidence support.
-5. Recommend a practical implementation that a builder, engineer, researcher,
+3. Extract transferable engineering knowledge:
+   - common themes across selected papers
+   - frequently occurring approaches
+   - implementation patterns
+   - limitations and research gaps
+   - how the selected research mode should influence the plan
+4. Determine the approach that has the strongest support from the selected papers.
+5. Recommend one practical implementation that a builder, engineer, researcher,
    student, or startup founder could realistically create.
 6. Prioritize actionable recommendations over academic discussion.
 7. Ground all conclusions in the provided papers.
@@ -239,24 +241,34 @@ INSTRUCTIONS:
    Citation numbers must match the Evidence numbers above.
 10. If the evidence does not support a recommendation, say what needs to be
     verified instead of guessing.
+11. Do not repeat paper summaries. Assume the user has already read Summary and
+    Guidance panels.
+12. Do not output Evidence Used, Supporting Evidence, or a separate evidence
+    grounding section.
 
 OUTPUT FORMAT:
 
+# Research Plan
+
 # User Goal Analysis
 
-Brief explanation of what the user is trying to achieve.
+2-3 sentences explaining the real engineering objective. Do not simply repeat
+the query.
 
-# Research Insights
+# Research Focus
 
-Summarize the most important findings across all papers.
+Concise synthesis of common themes, frequently occurring approaches,
+implementation patterns, relevant evidence, and how the selected research mode
+influences the plan. Do not use bullet dumps.
 
-# Consensus
+# Key Findings
 
-What most papers agree on.
+Transferable engineering insights from the selected papers. Avoid obvious
+statements and extract what matters for system design.
 
 # Research Gaps
 
-What remains unsolved.
+What remains unresolved, weakly supported, or risky.
 
 # Recommended Build
 
@@ -267,6 +279,9 @@ Objective:
 Recommended Architecture:
 
 Core Components:
+List concrete architecture components. Each component must include a short
+explanation. Avoid generic names such as Processing Engine, Monitoring Module,
+or Optimization Component.
 
 Implementation Difficulty:
 (Beginner / Intermediate / Advanced)
@@ -282,17 +297,14 @@ Expected Tradeoffs:
 
 # Builder Guidance
 
-The first 3 concrete steps the user should take.
-
-# Evidence Used
-
-For each key recommendation:
-- Supporting Paper
-- Supporting Finding
-- Why it matters
+Explain recommended implementation order, risks, tradeoffs, validation strategy,
+and next steps.
 
 Critical rules:
 - Do not output a paper-by-paper summary.
+- Do not output a literature review.
+- Do not output Evidence Used.
+- Do not output Supporting Evidence.
 - Do not output "What this paper is about".
 - Do not output "Step-by-step reading plan".
 - Do not output "Estimated learning path".
@@ -306,10 +318,11 @@ def build_paper_roadmap_prompt(paper):
     authors = ", ".join(paper.get("authors", []))
     categories = ", ".join(paper.get("metadata", {}).get("categories", []))
     system_prompt = (
-        "You are AcademicForge. Your job is not to summarize papers. Convert "
-        "retrieved evidence into actionable guidance for a builder. Use only "
-        "the paper title, abstract, and metadata. Do not include conversational "
-        "prefaces and do not invent implementation details."
+        "You are AcademicForge. Your job is to give short, practical guidance "
+        "for how a builder can use one paper. Guidance answers only: how can I "
+        "use this paper? Use only the paper title, abstract, and metadata. Do "
+        "not include conversational prefaces and do not invent implementation "
+        "details."
     )
     user_prompt = f"""
 Evidence [1]
@@ -323,23 +336,17 @@ Categories: {categories}
 Abstract:
 {_truncate(paper.get("abstract", ""), 2500)}
 
-Return concise Markdown with these exact sections:
-1. Builder Goal Fit
-2. Evidence Contribution
-3. Actionable Insight
-4. Implementation Direction
-5. Evaluation Strategy
-6. Risks And Verification Needs
-7. Evidence Grounding
-8. Reference
-
 Requirements:
-- Focus on how this evidence helps a builder decide what to do next.
+- Return exactly three short paragraphs.
+- Paragraph 1: why this paper matters.
+- Paragraph 2: how to use it in a project.
+- Paragraph 3: what to watch out for or verify.
+- Do not use headings.
+- Do not use bullet lists.
 - Do not summarize the full paper.
-- Add citation [1] for every major claim.
 - Only name benchmarks, datasets, models, algorithms, or libraries if they appear in the title, abstract, or metadata.
 - Do not invent training steps, fine-tuning requirements, reward model designs, or evaluation names.
-- If an implementation detail is missing, say "Verify in the full paper:" followed by the specific thing to check.
+- If an implementation detail is missing, say briefly what to verify in the full paper.
 - Never output "What this paper is about".
 - Never output "Step-by-step reading plan".
 - Never output "Difficulty level".
@@ -351,7 +358,7 @@ Requirements:
 def roadmap_cache_key(papers, summaries=None, paper_context=None, query="", model=None):
     paper_context = paper_context or build_roadmap_context(papers, summaries)
     return make_cache_key(
-        "roadmap-v6-research-to-prototype-advisor",
+        "roadmap-v7-ai-research-engineer-plan",
         model or model_name("roadmap"),
         query or "",
         [
@@ -366,7 +373,7 @@ def roadmap_cache_key(papers, summaries=None, paper_context=None, query="", mode
 def paper_roadmap_cache_key(paper, model=None):
     metadata = paper.get("metadata", {}) or {}
     return make_cache_key(
-        "paper-guidance-v1",
+        "paper-guidance-v2-short-practical",
         model or model_name("roadmap"),
         paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title"),
         paper.get("title"),

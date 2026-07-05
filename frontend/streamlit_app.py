@@ -1,5 +1,6 @@
 import html
 import os
+import re
 import time
 
 import requests
@@ -30,15 +31,271 @@ CATEGORY_OPTIONS = [
     "Contrarian View",
 ]
 CATEGORY_ACCENTS = {
-    "Foundational": "#1a73e8",
-    "Survey": "#7b1fa2",
-    "Recent": "#00897b",
-    "Implementation Focused": "#188038",
-    "Evaluation Focused": "#f9ab00",
-    "Alternative Approach": "#d93025",
-    "Contrarian View": "#5f6368",
-    "Uncategorized": "#5f6368",
+    "Foundational": "#5B8DBE",
+    "Survey": "#9C7ECF",
+    "Recent": "#4AA99C",
+    "Implementation Focused": "#6FA85C",
+    "Evaluation Focused": "#D4A24C",
+    "Alternative Approach": "#7C8FA6",
+    "Contrarian View": "#8A8F98",
+    "Uncategorized": "#6B7280",
 }
+
+
+SYNTHESIS_SECTION_ORDER = [
+    "User Goal Analysis",
+    "Research Focus",
+    "Key Findings",
+    "Research Gaps",
+    "Recommended Build",
+    "Builder Guidance",
+]
+
+RECOMMENDED_BUILD_FIELDS = [
+    "Project Name",
+    "Objective",
+    "Recommended Architecture",
+    "Core Components",
+    "Implementation Difficulty",
+    "Estimated Build Time",
+    "Why This Approach",
+    "Expected Benefits",
+    "Expected Tradeoffs",
+]
+
+RECOMMENDED_BUILD_LABELS = {
+    "Project Name": "Project name",
+    "Objective": "Objective",
+    "Recommended Architecture": "Architecture",
+    "Core Components": "Core components",
+    "Why This Approach": "Why this approach",
+    "Expected Benefits": "Expected benefits",
+    "Expected Tradeoffs": "Expected tradeoffs",
+}
+
+SYNTHESIS_SECTION_LABELS = {
+    "User Goal Analysis": "User goal analysis",
+    "Research Focus": "Research focus",
+    "Key Findings": "Key findings",
+    "Research Gaps": "Research gaps",
+    "Recommended Build": "Recommended build",
+    "Builder Guidance": "Builder guidance",
+}
+
+SECTION_ALIASES = {
+    "research insights": "Research Focus",
+    "consensus": "Key Findings",
+    "evidence used": None,
+    "supporting evidence": None,
+}
+
+
+def split_into_sections(text):
+    header_map = {header.lower(): header for header in SYNTHESIS_SECTION_ORDER}
+    sections = {}
+    current, buffer = None, []
+    for line in text.splitlines():
+        key = line.strip().strip("*#").strip().rstrip(":").lower()
+        alias = SECTION_ALIASES.get(key, key)
+        if alias is None:
+            if current:
+                sections[current] = "\n".join(buffer).strip()
+            current, buffer = None, []
+        elif str(alias).lower() in header_map:
+            if current:
+                sections[current] = "\n".join(buffer).strip()
+            current, buffer = header_map[str(alias).lower()], []
+        else:
+            if current:
+                buffer.append(line)
+    if current:
+        sections[current] = "\n".join(buffer).strip()
+    return sections
+
+
+def split_recommended_build(body):
+    field_map = {field.lower(): field for field in RECOMMENDED_BUILD_FIELDS}
+    fields, current, buffer = {}, None, []
+    for line in body.splitlines():
+        match = re.match(r"^\s*([A-Za-z ]+):\s*(.*)$", line)
+        label = match.group(1).strip().lower() if match else ""
+        if label in field_map:
+            if current:
+                fields[current] = "\n".join(buffer).strip()
+            current = field_map[label]
+            buffer = [match.group(2)] if match.group(2) else []
+        elif current:
+            buffer.append(line)
+    if current:
+        fields[current] = "\n".join(buffer).strip()
+    return fields
+
+
+def extract_bullets(text):
+    items = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        bullet_match = re.match(r"^[*\-]\s*(.*)$", stripped)
+        numbered_match = re.match(r"^\d+\.\s*(.*)$", stripped)
+        if bullet_match:
+            items.append(bullet_match.group(1))
+        elif numbered_match:
+            items.append(numbered_match.group(1))
+    return items
+
+
+def extract_numbered(text):
+    items = []
+    for line in text.splitlines():
+        match = re.match(r"^\s*\d+\.\s*(.*)$", line.strip())
+        if match:
+            items.append(match.group(1))
+    return items
+
+
+def render_list_or_body(text, ordered=False):
+    items = extract_numbered(text) if ordered else extract_bullets(text)
+    if items:
+        tag = "ol" if ordered else "ul"
+        rendered_items = "".join(f"<li>{render_citation_spans(item)}</li>" for item in items)
+        st.markdown(f"<{tag} class='syn-list'>{rendered_items}</{tag}>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div class='syn-body'>{render_citation_spans(text)}</div>", unsafe_allow_html=True)
+
+
+def render_citation_spans(text):
+    escaped = html.escape(text)
+    return re.sub(r"\[(\d+)\]", r'<span class="cite">[\1]</span>', escaped)
+
+
+def pulse_loading_html(label):
+    return f"""
+    <div class="af-pulse-wrap">
+        <div class="af-pulse-dots">
+            <div class="af-pulse-dot"></div>
+            <div class="af-pulse-dot"></div>
+            <div class="af-pulse-dot"></div>
+        </div>
+        <div class="af-pulse-label">{html.escape(label)}</div>
+    </div>
+    """
+
+
+def render_synthesis_heading(label, top=False):
+    st.markdown(
+        f"""
+        <div class="syn-heading" style="{'' if top else 'margin-top: 1.6rem;'}">
+            <span class="syn-marker"></span>
+            <span class="syn-heading-label">{html.escape(label)}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_synthesis(roadmap_text):
+    sections = split_into_sections(roadmap_text)
+    if not sections:
+        st.markdown(roadmap_text)
+        return
+
+    render_synthesis_heading("Research Plan", top=True)
+
+    for section in SYNTHESIS_SECTION_ORDER:
+        body = sections.get(section)
+        if not body:
+            continue
+
+        render_synthesis_heading(SYNTHESIS_SECTION_LABELS[section])
+
+        if section == "Recommended Build":
+            build_fields = split_recommended_build(body)
+            for field in RECOMMENDED_BUILD_FIELDS:
+                value = build_fields.get(field)
+                if not value or field in ("Implementation Difficulty", "Estimated Build Time"):
+                    continue
+                st.markdown(
+                    f'<div class="syn-field-label">{html.escape(RECOMMENDED_BUILD_LABELS[field])}</div>',
+                    unsafe_allow_html=True,
+                )
+                if field in ("Core Components", "Expected Benefits", "Expected Tradeoffs"):
+                    render_list_or_body(value)
+                else:
+                    st.markdown(
+                        f'<div class="syn-field-value">{render_citation_spans(value)}</div>',
+                        unsafe_allow_html=True,
+                    )
+            badges = [
+                build_fields[field]
+                for field in ("Implementation Difficulty", "Estimated Build Time")
+                if build_fields.get(field)
+            ]
+            if badges:
+                badge_html = "".join(f'<span class="syn-badge">{html.escape(b)}</span>' for b in badges)
+                st.markdown(badge_html, unsafe_allow_html=True)
+
+        elif section == "Builder Guidance":
+            render_list_or_body(body, ordered=True)
+
+        else:
+            st.markdown(f"<div class='syn-body'>{render_citation_spans(body)}</div>", unsafe_allow_html=True)
+
+
+def render_synthesis_panel(roadmap_text):
+    with st.container(border=True):
+        if isinstance(roadmap_text, str):
+            render_synthesis(roadmap_text)
+        else:
+            st.json(roadmap_text)
+
+
+def paper_insight_panel_html(label, text):
+    return f"""
+    <div class="af-insight-block">
+        <div class="af-insight-label">{html.escape(label)}</div>
+        <div class="af-insight-text">{html.escape(text)}</div>
+    </div>
+    """
+
+
+def paper_insight_loading_html(label, loading_text):
+    return f"""
+    <div class="af-insight-block">
+        <div class="af-insight-label">{html.escape(label)}</div>
+        {pulse_loading_html(loading_text)}
+    </div>
+    """
+
+
+def render_synthesis_empty_state():
+    st.markdown(
+        """
+        <div class="synthesis-stage-empty">
+            <div class="synthesis-stage-title">Research Plan will appear here</div>
+            <div class="synthesis-stage-copy">
+                Select 2-4 papers and generate one combined research-to-prototype plan.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_synthesis_loading_state(label="Generating Research Plan..."):
+    with st.container(border=True):
+        st.markdown(pulse_loading_html(label), unsafe_allow_html=True)
+
+
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip("#")
+    return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def accent_rgba(hex_color, alpha):
+    r, g, b = hex_to_rgb(hex_color)
+    return f"rgba({r}, {g}, {b}, {alpha})"
 
 
 def post_json(path, payload):
@@ -165,7 +422,8 @@ def render_category_heading(category, count):
     st.markdown(
         f"""
         <div class="af-section-heading" style="--accent-color: {accent};">
-            {html.escape(category)} <span style="font-weight: 400; opacity: 0.72;">({count})</span>
+            <span class="af-section-marker"></span>
+            {html.escape(category)} <span class="af-section-count">({count})</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -176,7 +434,7 @@ def render_selection_guidance(selected_count, focus_count, generation_mode):
     if selected_count >= 5:
         st.warning(
             "This may take longer. More papers mean more tokens, slower generation, "
-            "and less focused recommendations. For sharper synthesis, select 2-4 papers."
+            "and less focused recommendations. For a sharper Research Plan, select 2-4 papers."
         )
     elif generation_mode == "deep" and selected_count >= 4:
         st.warning(
@@ -197,146 +455,369 @@ def apply_card_styles():
     st.markdown(
         """
         <style>
-        .block-container {
-            padding-top: 2.2rem;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap');
+
+        :root {
+            --af-ember: #ED1C24;
+            --af-ember-hover: #C4151B;
+            --af-ember-soft: rgba(237, 28, 36, 0.14);
+            --af-hairline: rgba(255, 255, 255, 0.10);
+            --af-hairline-strong: rgba(255, 255, 255, 0.20);
+            --af-surface: rgba(255, 255, 255, 0.035);
+            --af-surface-raised: rgba(255, 255, 255, 0.055);
+            --af-text-hi: rgba(240, 240, 238, 0.96);
+            --af-text-mid: rgba(240, 240, 238, 0.70);
+            --af-text-low: rgba(240, 240, 238, 0.48);
+            --af-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
+
+        .stApp {
+            font-family: var(--af-font);
+        }
+
+        .block-container {
+            padding-top: 2.4rem;
+        }
+
         .af-title {
             text-align: center;
-            font-size: 2.2rem;
-            font-weight: 650;
+            font-family: var(--af-font);
+            font-size: 2.6rem;
+            font-weight: 700;
             letter-spacing: 0;
-            margin-bottom: 0.2rem;
+            color: var(--af-text-hi);
+            margin-bottom: 0.3rem;
+        }
+        .af-title::after {
+            content: '';
+            display: block;
+            width: 46px;
+            height: 3px;
+            margin: 0.55rem auto 0 auto;
+            background: var(--af-ember);
+            border-radius: 2px;
         }
         .af-subtitle {
             text-align: center;
-            color: rgba(250, 250, 250, 0.74);
-            margin-bottom: 1.2rem;
+            color: var(--af-text-mid);
+            font-size: 0.98rem;
+            letter-spacing: 0;
+            margin-bottom: 1.6rem;
         }
         .af-helper-card {
             max-width: 920px;
             margin: 0 auto 1rem auto;
-            padding: 0.9rem 1rem;
-            border: 1px solid rgba(218, 220, 224, 0.24);
+            padding: 0.95rem 1.1rem;
+            border: 1px solid var(--af-hairline);
             border-radius: 10px;
-            background: rgba(255, 255, 255, 0.04);
+            background: var(--af-surface);
         }
         .af-helper-title {
-            font-weight: 700;
-            margin-bottom: 0.28rem;
+            font-weight: 600;
+            color: var(--af-text-hi);
+            margin-bottom: 0.3rem;
         }
         .af-helper-text {
-            color: rgba(250, 250, 250, 0.78);
+            color: var(--af-text-mid);
             font-size: 0.92rem;
-            line-height: 1.45;
+            line-height: 1.5;
         }
         .af-empty-state {
             max-width: 920px;
             margin: 0.35rem auto 1rem auto;
-            padding: 0.8rem 0.95rem;
+            padding: 0.9rem 1rem;
             border-radius: 8px;
-            border: 1px solid rgba(218, 220, 224, 0.2);
-            background: rgba(255, 255, 255, 0.03);
-            color: rgba(250, 250, 250, 0.82);
+            border: 1px solid var(--af-hairline);
+            background: var(--af-surface);
+            color: var(--af-text-mid);
         }
         .af-search-shell {
             max-width: 920px;
             margin: 0 auto 1.2rem auto;
-            padding: 1.15rem 1.15rem 0.8rem 1.15rem;
-            border: 1px solid rgba(218, 220, 224, 0.22);
-            border-radius: 8px;
-            background: rgba(32, 33, 36, 0.58);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+            padding: 1.35rem 1.35rem 1rem 1.35rem;
+            border: 1px solid var(--af-hairline);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.045);
+            box-shadow: 0 18px 70px rgba(0, 0, 0, 0.25);
         }
         .af-search-kicker {
-            color: rgba(250, 250, 250, 0.68);
-            font-size: 0.78rem;
-            font-weight: 650;
-            letter-spacing: 0.06em;
-            margin-bottom: 0.25rem;
+            color: var(--af-ember);
+            font-family: var(--af-font);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            margin-bottom: 0.3rem;
             text-transform: uppercase;
         }
         .af-search-title {
-            color: rgba(250, 250, 250, 0.96);
-            font-size: 1.08rem;
-            font-weight: 650;
-            margin-bottom: 0.65rem;
+            color: var(--af-text-hi);
+            font-family: var(--af-font);
+            font-size: 1.32rem;
+            font-weight: 700;
+            margin-bottom: 0.7rem;
+        }
+        .af-search-subcopy {
+            color: var(--af-text-mid);
+            font-size: 0.9rem;
+            line-height: 1.45;
+            margin-bottom: 0.85rem;
         }
         .af-control-caption {
-            color: rgba(250, 250, 250, 0.68);
+            color: var(--af-text-mid);
             font-size: 0.82rem;
             margin: 0.15rem 0 0.55rem 0;
         }
+        div[data-testid="stTextInput"] input {
+            border-radius: 10px;
+            border: 1px solid var(--af-hairline-strong);
+            background: rgba(255,255,255,0.06);
+        }
+        div[data-testid="stRadio"] label,
+        div[data-testid="stMultiSelect"] label {
+            color: var(--af-text-mid);
+            font-size: 0.85rem;
+        }
+        div[data-testid="stMultiSelect"] [data-baseweb="tag"] {
+            background: var(--af-ember-soft);
+            border: 1px solid rgba(237, 28, 36, 0.35);
+            color: var(--af-text-hi);
+        }
         div.stButton > button[kind="primary"] {
-            background: #1a73e8;
-            border-color: #1a73e8;
-            color: #ffffff;
-            font-weight: 650;
+            background: var(--af-ember);
+            border-color: var(--af-ember);
+            color: #FFFFFF;
+            font-weight: 600;
         }
         div.stButton > button[kind="primary"]:hover {
-            background: #1558b0;
-            border-color: #1558b0;
-            color: #ffffff;
+            background: var(--af-ember-hover);
+            border-color: var(--af-ember-hover);
+            color: #FFFFFF;
         }
         .af-mode-status {
             max-width: 920px;
             margin: 0 auto 1rem auto;
-            border-left: 4px solid #1a73e8;
-            padding: 0.62rem 0.8rem;
-            border-radius: 6px;
-            background: rgba(26, 115, 232, 0.12);
-            color: rgba(250, 250, 250, 0.92);
+            border-left: 3px solid var(--af-ember);
+            padding: 0.65rem 0.85rem;
+            border-radius: 0 6px 6px 0;
+            background: var(--af-ember-soft);
+            color: var(--af-text-hi);
             font-size: 0.92rem;
         }
         .af-section-heading {
-            margin-top: 1.4rem;
-            margin-bottom: 0.6rem;
-            padding-left: 0.75rem;
-            border-left: 4px solid var(--accent-color);
-            font-size: 1.1rem;
-            font-weight: 650;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-top: 1.7rem;
+            margin-bottom: 0.7rem;
+            font-family: var(--af-font);
+            font-size: 1.08rem;
+            font-weight: 700;
+            color: var(--af-text-hi);
+        }
+        .af-section-marker {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            background: var(--accent-color);
+            flex-shrink: 0;
+        }
+        .af-section-count {
+            font-weight: 400;
+            color: var(--af-text-low);
+            font-size: 0.95rem;
         }
         .paper-card-title {
-            color: inherit;
-            font-size: 1.05rem;
-            font-weight: 650;
-            line-height: 1.3;
-            margin-bottom: 0.1rem;
+            color: var(--af-text-hi);
+            font-family: var(--af-font);
+            font-size: 1.12rem;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: 0.15rem;
         }
         .paper-card-meta {
-            color: rgba(250, 250, 250, 0.72);
-            font-size: 0.86rem;
-            margin-bottom: 0.45rem;
+            color: var(--af-text-low);
+            font-family: var(--af-font);
+            font-size: 0.78rem;
+            letter-spacing: 0;
+            margin-bottom: 0.55rem;
         }
         .paper-card-abstract {
-            color: rgba(250, 250, 250, 0.9);
-            font-size: 0.92rem;
-            line-height: 1.45;
-            margin-bottom: 0.55rem;
+            color: var(--af-text-mid);
+            font-size: 0.93rem;
+            line-height: 1.5;
+            margin-bottom: 0.6rem;
         }
         .paper-chip {
             display: inline-block;
-            border: 1px solid #dadce0;
+            border: 1px solid var(--af-hairline-strong);
             border-radius: 999px;
-            padding: 0.12rem 0.48rem;
-            margin-right: 0.25rem;
-            margin-bottom: 0.25rem;
-            color: #3c4043;
-            background: #f8fafd;
-            font-size: 0.78rem;
+            padding: 0.14rem 0.55rem;
+            margin-right: 0.3rem;
+            margin-bottom: 0.3rem;
+            color: var(--af-text-mid);
+            background: var(--af-surface);
+            font-size: 0.76rem;
             white-space: nowrap;
         }
         .paper-chip-category {
-            border-color: rgba(147, 197, 253, 0.45);
-            background: rgba(30, 64, 175, 0.45);
-            color: #ffffff;
             font-weight: 600;
         }
+        .af-pulse-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 1.4rem 0;
+        }
+        .af-pulse-dots {
+            display: flex;
+            gap: 8px;
+        }
+        .af-pulse-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--af-ember);
+            animation: af-dot-breathe 1.2s ease-in-out infinite;
+        }
+        .af-pulse-dot:nth-child(2) { animation-delay: 0.15s; }
+        .af-pulse-dot:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes af-dot-breathe {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        .af-pulse-label {
+            font-size: 0.8rem;
+            color: var(--af-text-mid);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .af-pulse-dot { animation: none; opacity: 0.8; }
+        }
+        .af-insight-block {
+            border-left: 2px solid var(--af-ember);
+            border-radius: 0 8px 8px 0;
+            background: rgba(255,255,255,0.025);
+            border-top: 1px solid var(--af-hairline);
+            border-right: 1px solid var(--af-hairline);
+            border-bottom: 1px solid var(--af-hairline);
+            padding-left: 0.7rem;
+            padding-top: 0.65rem;
+            padding-right: 0.8rem;
+            padding-bottom: 0.7rem;
+            margin-top: 0.75rem;
+            margin-bottom: 0.2rem;
+        }
+        .af-insight-label {
+            font-family: var(--af-font);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0;
+            color: var(--af-ember);
+            margin-bottom: 3px;
+            font-weight: 700;
+        }
+        .af-insight-text {
+            font-size: 0.87rem;
+            color: var(--af-text-mid);
+            line-height: 1.55;
+            white-space: pre-line;
+        }
         .selected-paper-row {
-            border-left: 3px solid #1a73e8;
-            padding-left: 0.6rem;
+            border-left: 2px solid var(--af-ember);
+            padding-left: 0.65rem;
             margin-bottom: 0.5rem;
-            color: inherit;
+            color: var(--af-text-hi);
             font-size: 0.9rem;
+        }
+        .synthesis-control-title {
+            color: var(--af-text-hi);
+            font-weight: 600;
+            margin-bottom: 0.15rem;
+        }
+        .synthesis-control-meta {
+            color: var(--af-text-mid);
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+        .synthesis-stage-empty {
+            border: 1px solid var(--af-hairline);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.025);
+            padding: 1.45rem;
+            text-align: center;
+            margin-top: 0.8rem;
+        }
+        .synthesis-stage-title {
+            color: var(--af-text-hi);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .synthesis-stage-copy {
+            color: var(--af-text-low);
+            font-size: 0.86rem;
+        }
+        .syn-heading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 0.8rem;
+            font-family: var(--af-font);
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--af-text-hi);
+        }
+        .syn-marker {
+            width: 6px;
+            height: 6px;
+            border-radius: 2px;
+            background: var(--af-ember);
+            flex-shrink: 0;
+        }
+        .syn-heading-label {
+            text-transform: capitalize;
+        }
+        .syn-field-label {
+            font-family: var(--af-font);
+            font-weight: 700;
+            color: var(--af-text-hi);
+            font-size: 0.92rem;
+            margin-top: 0.6rem;
+            margin-bottom: 0.35rem;
+        }
+        .syn-field-value {
+            color: var(--af-text-mid);
+            font-size: 0.90rem;
+            line-height: 1.55;
+            margin-bottom: 0.5rem;
+        }
+        .syn-list {
+            margin-left: 1.2rem;
+            color: var(--af-text-mid);
+            font-size: 0.90rem;
+            line-height: 1.6;
+        }
+        .syn-list li {
+            margin-bottom: 0.3rem;
+        }
+        .syn-badge {
+            display: inline-block;
+            background: var(--af-surface-raised);
+            border: 1px solid var(--af-hairline);
+            border-radius: 4px;
+            padding: 0.25rem 0.6rem;
+            margin-right: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.80rem;
+            color: var(--af-text-mid);
+        }
+        .syn-body {
+            color: var(--af-text-mid);
+            font-size: 0.90rem;
+            line-height: 1.6;
+        }
+        .cite {
+            color: var(--af-ember);
+            font-weight: 500;
         }
         </style>
         """,
@@ -361,8 +842,8 @@ def render_status_banner(config, generation_mode):
     st.markdown(
         f"""
         <div class="af-helper-card">
-            <div class="af-helper-title">Ready for synthesis</div>
-            <div class="af-helper-text">Connected to <strong>{html.escape(active_mode['label'])}</strong> using <strong>{html.escape(active_mode['model'])}</strong>. Search for evidence, choose a few papers, and generate a roadmap.</div>
+            <div class="af-helper-title">Ready for research planning</div>
+            <div class="af-helper-text">Connected to <strong>{html.escape(active_mode['label'])}</strong> using <strong>{html.escape(active_mode['model'])}</strong>. Search for evidence, choose a few papers, and generate a Research Plan.</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -405,7 +886,7 @@ def render_technical_dashboard(papers, config=None):
         category_counts = {}
         for paper in papers:
             category_counts[paper_category(paper)] = category_counts.get(paper_category(paper), 0) + 1
-        st.write("**Evidence category mix**")
+        st.write("**Paper category mix**")
         st.dataframe(
             [
                 {"Category": category, "Count": count}
@@ -424,26 +905,9 @@ def render_technical_dashboard(papers, config=None):
                 st.json(paper.get("metadata", {}))
 
 
-def render_category_filters(papers):
-    categories = sorted({paper_category(paper) for paper in papers})
-    if not categories:
-        return papers
-
-    selected_categories = st.multiselect(
-        "Filter by evidence category",
-        categories,
-        default=categories,
-        help="Narrow the current evidence set by the type of paper you want to work with.",
-    )
-    if not selected_categories:
-        st.warning("Select at least one category to show papers.")
-        return []
-    return [paper for paper in papers if paper_category(paper) in selected_categories]
-
-
 def render_selected_evidence(selected_papers):
     with st.container(border=True):
-        st.subheader("Selected evidence")
+        st.subheader("Selected papers")
         if not selected_papers:
             st.caption("Choose papers from the result cards.")
             return
@@ -482,7 +946,6 @@ def render_paper_cards(
             authors += ", et al."
         url = paper.get("url") or paper.get("link")
         source = html.escape(paper.get("source", "arxiv"))
-        category = html.escape(paper_category(paper))
         abstract = html.escape(paper.get("abstract", ""))
         citation_text = citation_label(paper)
         meta_parts = [
@@ -494,20 +957,38 @@ def render_paper_cards(
             meta_parts.append(html.escape(citation_text))
         metadata_line = " · ".join(meta_parts)
 
+        if "on_demand_summaries" not in st.session_state:
+            st.session_state.on_demand_summaries = {}
+        inline_summary = summary or st.session_state.on_demand_summaries.get(cache_id)
+
         with st.container(border=True):
             st.markdown(
                 f"""
                 <div class="paper-card-title">{title}</div>
                 <div class="paper-card-meta">{metadata_line}</div>
                 <div class="paper-card-abstract">{abstract}</div>
-                <span class="paper-chip paper-chip-category">{category}</span>
                 """,
                 unsafe_allow_html=True,
             )
-
-            action_cols = st.columns([1.25, 1, 1, 4])
             if selectable:
-                checked = action_cols[0].checkbox(
+                action_cols = st.columns([1.1, 0.9, 1.05, 1.05, 2.9])
+                select_col, open_col, summary_col, guidance_col = (
+                    action_cols[0],
+                    action_cols[1],
+                    action_cols[2],
+                    action_cols[3],
+                )
+            else:
+                action_cols = st.columns([0.9, 1.05, 1.05, 3.0])
+                select_col, open_col, summary_col, guidance_col = (
+                    None,
+                    action_cols[0],
+                    action_cols[1],
+                    action_cols[2],
+                )
+
+            if selectable:
+                checked = select_col.checkbox(
                     "Select",
                     value=label in selected_set,
                     key=f"select-paper-{scope}-{cache_id}",
@@ -517,30 +998,59 @@ def render_paper_cards(
                 else:
                     selected_set.discard(label)
             if url:
-                action_cols[1].link_button("Open", url)
-            if show_guidance_controls:
-                if action_cols[2].button("Guidance", key=f"paper-roadmap-button-{scope}-{cache_id}"):
-                    try:
-                        status = paper_roadmap_cache_status(paper, generation_mode)
-                        if status.get("cached"):
-                            st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
-                        else:
-                            with st.spinner("Generating paper guidance..."):
-                                st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
-                    except requests.ConnectionError:
-                        st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
-                    except requests.HTTPError as exc:
-                        st.error(f"The backend returned an error: {exc.response.text}")
-                    except requests.RequestException as exc:
-                        st.error(f"Could not reach the backend: {exc}")
+                open_col.link_button("Open", url)
+            summary_clicked = summary_col.button("Summary", key=f"paper-summary-button-{scope}-{cache_id}")
+            guidance_clicked = guidance_col.button("Guidance", key=f"paper-roadmap-button-{scope}-{cache_id}")
 
-            if summary:
-                st.markdown("**Summary**")
-                st.markdown(summary)
+            panel_placeholder = st.empty()
+            if summary_clicked and not inline_summary:
+                panel_placeholder.markdown(
+                    paper_insight_loading_html("Summary", "Summarizing this paper..."),
+                    unsafe_allow_html=True,
+                )
+                try:
+                    inline_summary = summarize_paper(paper)
+                    st.session_state.on_demand_summaries[cache_id] = inline_summary
+                    panel_placeholder.empty()
+                except requests.ConnectionError:
+                    panel_placeholder.error(
+                        "The backend is not running. Start it with: uvicorn backend.app:app --reload"
+                    )
+                except requests.HTTPError as exc:
+                    panel_placeholder.error(f"The backend returned an error: {exc.response.text}")
+                except requests.RequestException as exc:
+                    panel_placeholder.error(f"Could not reach the backend: {exc}")
 
+            if guidance_clicked and guidance_id not in st.session_state.paper_roadmaps:
+                panel_placeholder.markdown(
+                    paper_insight_loading_html("Guidance", "Generating guidance..."),
+                    unsafe_allow_html=True,
+                )
+                try:
+                    status = paper_roadmap_cache_status(paper, generation_mode)
+                    if status.get("cached"):
+                        panel_placeholder.markdown(
+                            paper_insight_loading_html("Guidance", "Loading cached guidance..."),
+                            unsafe_allow_html=True,
+                        )
+                    st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
+                    panel_placeholder.empty()
+                except requests.ConnectionError:
+                    panel_placeholder.error(
+                        "The backend is not running. Start it with: uvicorn backend.app:app --reload"
+                    )
+                except requests.HTTPError as exc:
+                    panel_placeholder.error(f"The backend returned an error: {exc.response.text}")
+                except requests.RequestException as exc:
+                    panel_placeholder.error(f"Could not reach the backend: {exc}")
+
+            if inline_summary:
+                st.markdown(paper_insight_panel_html("Summary", inline_summary), unsafe_allow_html=True)
             if guidance_id in st.session_state.paper_roadmaps:
-                st.markdown("**Paper guidance**")
-                st.markdown(st.session_state.paper_roadmaps[guidance_id])
+                st.markdown(
+                    paper_insight_panel_html("Guidance", st.session_state.paper_roadmaps[guidance_id]),
+                    unsafe_allow_html=True,
+                )
 
     if selectable:
         valid_all_labels = [paper_label(index, paper) for index, paper in enumerate(all_labels, start=1)]
@@ -577,8 +1087,13 @@ def render_paper_details(papers, summaries=None, show_roadmap_controls=False, sc
                         if status.get("cached"):
                             st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
                         else:
-                            with st.spinner("Generating paper guidance..."):
-                                st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
+                            guidance_placeholder = st.empty()
+                            guidance_placeholder.markdown(
+                                pulse_loading_html("Generating guidance..."),
+                                unsafe_allow_html=True,
+                            )
+                            st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
+                            guidance_placeholder.empty()
                     except requests.ConnectionError:
                         st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
                     except requests.HTTPError as exc:
@@ -624,6 +1139,8 @@ if "generated_mode" not in st.session_state:
     st.session_state.generated_mode = ""
 if "paper_roadmaps" not in st.session_state:
     st.session_state.paper_roadmaps = {}
+if "on_demand_summaries" not in st.session_state:
+    st.session_state.on_demand_summaries = {}
 if "generation_mode" not in st.session_state:
     st.session_state.generation_mode = "fast"
 if "research_focus" not in st.session_state:
@@ -639,7 +1156,8 @@ with st.container(border=True):
     st.markdown(
         """
         <div class="af-search-kicker">Search</div>
-        <div class="af-search-title">Find research evidence</div>
+        <div class="af-search-title">Ask a research question</div>
+        <div class="af-search-subcopy">AcademicForge turns papers into an implementation-ready research plan.</div>
         """,
         unsafe_allow_html=True,
     )
@@ -657,10 +1175,9 @@ with st.container(border=True):
     manual_search = search_cols[1].button("Search", type="primary", width="stretch")
 
     st.markdown(
-        '<div class="af-control-caption">Fast Mode uses Qwen. Deep Mode uses Gemma.</div>',
+        '<div class="af-control-caption">Fast Mode: quick Qwen insights. Deep Mode: detailed Gemma planning.</div>',
         unsafe_allow_html=True,
     )
-    st.caption("Tip: start with 2–4 papers for sharper synthesis and faster generation.")
     control_cols = st.columns([1.25, 2.75])
     mode_labels = [MODE_OPTIONS["fast"]["label"], MODE_OPTIONS["deep"]["label"]]
     current_mode_index = 0 if st.session_state.generation_mode == "fast" else 1
@@ -676,12 +1193,12 @@ with st.container(border=True):
     )
     st.session_state.generation_mode = "deep" if selected_mode_label == MODE_OPTIONS["deep"]["label"] else "fast"
     research_focus = control_cols[1].multiselect(
-        "Research Focus",
+        "Research Lens",
         CATEGORY_OPTIONS,
         default=st.session_state.research_focus,
         help=(
-            "Choose the paper types you want more answers from. "
-            "Balanced keeps the default evidence mix. One or two focused categories is usually best."
+            "Choose the lens that should guide retrieval and the Research Plan. "
+            "Balanced keeps the default paper mix. One or two focused lenses is usually best."
         ),
     )
 if not research_focus:
@@ -702,10 +1219,15 @@ if should_search:
         st.warning("Please enter a research question.")
     else:
         try:
-            with st.spinner("Searching live research sources..."):
-                search_payload = search_papers(research_question.strip(), focus_categories)
-                st.session_state.papers = search_payload.get("papers", [])
-                st.session_state.search_message = search_payload.get("message", "")
+            search_placeholder = st.empty()
+            search_placeholder.markdown(
+                pulse_loading_html("Searching live research sources..."),
+                unsafe_allow_html=True,
+            )
+            search_payload = search_papers(research_question.strip(), focus_categories)
+            st.session_state.papers = search_payload.get("papers", [])
+            st.session_state.search_message = search_payload.get("message", "")
+            search_placeholder.empty()
             st.session_state.last_query = research_question.strip()
             st.session_state.last_search_focus = list(focus_categories)
             st.session_state.summaries = []
@@ -720,27 +1242,22 @@ if should_search:
             ]
             st.session_state.selected_labels = labels[: min(3, len(labels))]
         except requests.ConnectionError:
+            search_placeholder.empty()
             st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
         except requests.HTTPError as exc:
+            search_placeholder.empty()
             st.error(f"The backend returned an error: {exc.response.text}")
         except requests.RequestException as exc:
+            search_placeholder.empty()
             st.error(f"Could not reach the backend: {exc}")
 
 papers = st.session_state.papers
 if papers:
-    st.subheader("Search results")
+    st.subheader("Paper Results")
     labels = [paper_label(index, paper) for index, paper in enumerate(papers, start=1)]
 
-    if st.session_state.last_search_focus:
-        st.caption(
-            "Research focus applied on search: "
-            + ", ".join(st.session_state.last_search_focus)
-        )
-    else:
-        st.caption("Research focus applied on search: Balanced")
-
-    filtered_papers = render_category_filters(papers)
-    st.caption(f"Showing {len(filtered_papers)} of {len(papers)} selected evidence papers.")
+    filtered_papers = papers
+    st.caption(f"{len(papers)} papers retrieved. Select papers to generate a Research Plan.")
 
     action_cols = st.columns([1, 1, 4])
     filtered_labels = [
@@ -754,16 +1271,14 @@ if papers:
     if action_cols[1].button("Clear selection"):
         st.session_state.selected_labels = []
 
-    for category, category_papers in grouped_by_category(filtered_papers):
-        render_category_heading(category, len(category_papers))
-        render_paper_cards(
-            category_papers,
-            papers,
-            show_guidance_controls=True,
-            selectable=True,
-            scope=f"results-{category.lower().replace(' ', '-')}",
-            generation_mode=st.session_state.generation_mode,
-        )
+    render_paper_cards(
+        filtered_papers,
+        papers,
+        show_guidance_controls=True,
+        selectable=True,
+        scope="results",
+        generation_mode=st.session_state.generation_mode,
+    )
     render_technical_dashboard(papers, config)
 
     selected_labels = [label for label in st.session_state.selected_labels if label in labels]
@@ -780,10 +1295,10 @@ if papers:
         )
     )
     if selection_changed_after_generation:
-        st.info("Selection or mode changed. Generate again to update synthesis.")
+        st.info("Selection or mode changed. Generate again to update the Research Plan.")
 
     if selected_papers:
-        st.caption(f"Selected {len(selected_papers)} paper(s) for research synthesis.")
+        st.caption(f"Selected {len(selected_papers)} paper(s) for the combined Research Plan.")
         render_selected_evidence(selected_papers)
         render_selection_guidance(
             len(selected_papers),
@@ -791,55 +1306,88 @@ if papers:
             st.session_state.generation_mode,
         )
     else:
-        st.warning("Select at least one paper to generate a synthesis.")
+        st.warning("Select at least one paper to generate a Research Plan.")
 
     if selected_papers and st.session_state.summaries and selected_labels == st.session_state.generated_labels:
+        cache_placeholder = st.empty()
         try:
+            cache_placeholder.markdown(
+                pulse_loading_html("Checking Research Plan cache..."),
+                unsafe_allow_html=True,
+            )
             status = roadmap_cache_status(
                 selected_papers,
                 st.session_state.summaries,
                 st.session_state.last_query or research_question.strip(),
                 st.session_state.generation_mode,
             )
+            cache_placeholder.empty()
             if status.get("cached"):
-                st.success(f"Synthesis cache: ready from {status.get('cache')} cache.")
+                st.success(f"Research Plan cache: ready from {status.get('cache')} cache.")
             else:
-                st.info(f"Synthesis cache: miss. Next generation will run {active_mode['label']}.")
+                st.info(f"Research Plan cache: miss. Next generation will run {active_mode['label']}.")
         except requests.RequestException:
+            cache_placeholder.empty()
             pass
 
-    should_generate = st.button(
-        "Generate research synthesis",
-        disabled=not selected_papers,
-    )
+    with st.container(border=True):
+        control_cols = st.columns([3, 1.25])
+        control_cols[0].markdown(
+            f"""
+            <div class="synthesis-control-title">Research Plan</div>
+            <div class="synthesis-control-meta">
+                {len(selected_papers)} selected paper(s) · Active mode: {html.escape(active_mode['label'])}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        should_generate = control_cols[1].button(
+            "Generate Research Plan",
+            disabled=not selected_papers,
+            type="primary",
+            width="stretch",
+        )
 
     if should_generate:
+        plan_placeholder = st.empty()
         try:
-            with st.spinner("Summarizing selected papers..."):
-                st.session_state.summaries = [summarize_paper(paper) for paper in selected_papers]
+            selected_summaries = []
+            for paper in selected_papers:
+                cache_id = paper_cache_id(paper)
+                if cache_id in st.session_state.on_demand_summaries:
+                    selected_summaries.append(st.session_state.on_demand_summaries[cache_id])
+                    continue
 
-            with st.spinner("Synthesizing research evidence..."):
-                roadmap_started = time.perf_counter()
-                roadmap_placeholder = st.empty()
-                roadmap_chunks = []
-                for chunk in stream_roadmap(
-                    selected_papers,
-                    st.session_state.summaries,
-                    st.session_state.last_query or research_question.strip(),
-                    st.session_state.generation_mode,
-                ):
-                    roadmap_chunks.append(chunk)
-                    roadmap_placeholder.markdown("".join(roadmap_chunks))
-                st.session_state.roadmap = "".join(roadmap_chunks).strip()
-                st.session_state.roadmap_elapsed = time.perf_counter() - roadmap_started
-                roadmap_placeholder.empty()
+                with plan_placeholder.container():
+                    render_synthesis_loading_state("Summarizing selected evidence...")
+                summary = summarize_paper(paper)
+                selected_summaries.append(summary)
+            st.session_state.summaries = selected_summaries
+
+            roadmap_started = time.perf_counter()
+            with plan_placeholder.container():
+                render_synthesis_loading_state("Streaming Research Plan...")
+            roadmap_chunks = []
+            for chunk in stream_roadmap(
+                selected_papers,
+                st.session_state.summaries,
+                st.session_state.last_query or research_question.strip(),
+                st.session_state.generation_mode,
+            ):
+                roadmap_chunks.append(chunk)
+            st.session_state.roadmap = "".join(roadmap_chunks).strip()
+            st.session_state.roadmap_elapsed = time.perf_counter() - roadmap_started
+            plan_placeholder.empty()
             st.session_state.generated_labels = selected_labels
             st.session_state.generated_mode = st.session_state.generation_mode
         except requests.ConnectionError:
+            plan_placeholder.empty()
             st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
         except requests.HTTPError as exc:
+            plan_placeholder.empty()
             st.error(f"The backend returned an error: {exc.response.text}")
         except requests.RequestException as exc:
+            plan_placeholder.empty()
             st.error(f"Could not reach the backend: {exc}")
 
     can_show_generated_output = (
@@ -849,36 +1397,23 @@ if papers:
         and st.session_state.generation_mode == st.session_state.generated_mode
     )
 
-    if can_show_generated_output:
-        st.subheader("Selected paper summaries")
-        render_paper_cards(
-            selected_papers,
-            selected_papers,
-            summaries=st.session_state.summaries,
-            show_guidance_controls=False,
-            selectable=False,
-            scope="selected",
-            generation_mode=st.session_state.generation_mode,
-        )
+    if not can_show_generated_output and not should_generate:
+        render_synthesis_empty_state()
 
     if can_show_generated_output:
-        st.subheader("Research synthesis")
         if st.session_state.roadmap_elapsed is not None:
             elapsed = st.session_state.roadmap_elapsed
             if elapsed < 1:
-                st.success(f"Synthesis loaded from cache in {elapsed:.2f}s.")
+                st.success(f"Research Plan loaded from cache in {elapsed:.2f}s.")
             else:
-                st.info(f"Synthesis generated with {active_mode['label']} in {elapsed:.2f}s.")
-        if isinstance(st.session_state.roadmap, str):
-            st.markdown(st.session_state.roadmap)
-        else:
-            st.json(st.session_state.roadmap)
+                st.info(f"Research Plan generated with {active_mode['label']} in {elapsed:.2f}s.")
+        render_synthesis_panel(st.session_state.roadmap)
 
-        markdown = "## Research Synthesis\n\n"
+        markdown = "## Research Plan\n\n"
         markdown += f"### Research question\n{st.session_state.last_query or research_question.strip()}\n\n"
         for paper, summary in zip(selected_papers, st.session_state.summaries):
             markdown += f"### {paper['title']}\n\n{summary}\n\n"
-        markdown += "### Synthesis\n"
+        markdown += "### Combined Research Plan\n"
         markdown += (
             st.session_state.roadmap
             if isinstance(st.session_state.roadmap, str)

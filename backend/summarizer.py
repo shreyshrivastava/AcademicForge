@@ -17,7 +17,7 @@ def summarize_paper(paper, model=None):
     """Generate a concise, useful research summary for one paper."""
     paper_id = _paper_cache_key(paper)
     cache_key = make_cache_key(
-        "summary-v4",
+        "summary-v5-concise-paper-say",
         model or model_name("summary"),
         paper_id,
         paper.get("title"),
@@ -39,11 +39,10 @@ def summarize_paper(paper, model=None):
 
     system_prompt = (
         "You are AcademicForge, a careful academic research assistant. "
-        "Write plain-English paper summaries for builders. Explain the paper "
-        "as if the reader is deciding whether it is worth implementing. Be "
-        "specific, avoid hype, avoid abstract-like phrasing, and do not invent "
-        "details not supported by the title and abstract. Do not include "
-        "conversational prefaces."
+        "Write concise plain-English paper summaries for builders. A summary "
+        "answers only: what does this paper say? Be specific, avoid hype, "
+        "avoid abstract-like phrasing, and do not invent details not supported "
+        "by the title and abstract. Do not include conversational prefaces."
     )
     user_prompt = f"""
 Paper title: {title}
@@ -51,18 +50,15 @@ Authors: {authors}
 Abstract:
 {abstract}
 
-Write a short structured summary with these exact sections:
-- One-sentence takeaway
-- What problem it solves
-- How it works
-- Why a builder should care
-- What to verify in the full paper
+Write a concise summary in 2-4 sentences.
 
 Rules:
-- Use 1-2 bullets per section.
+- Do not use headings.
+- Do not use bullet lists.
+- Do not give builder recommendations or implementation advice.
 - Do not restate the abstract.
 - Do not mention benchmarks, datasets, libraries, or implementation details unless the abstract says them.
-- If a detail is missing, say to verify it in the full paper.
+- If a key detail is missing, mention briefly that it should be verified in the full paper.
 """.strip()
 
     summary = generate_text(system_prompt, user_prompt, token_budget=360, task="summary", model=model)
