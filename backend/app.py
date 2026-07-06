@@ -52,6 +52,13 @@ class PapersRequest(BaseModel):
     query: str = ""
     generation_mode: str = "fast"
 
+def normalize_research_categories(categories: List[str] | None) -> List[str]:
+    """Keep Balanced exclusive for API callers too."""
+    cleaned = [category for category in (categories or []) if category]
+    if "Balanced" in cleaned:
+        return []
+    return cleaned
+
 def model_for_mode(mode: str | None) -> str:
     return DEEP_MODE_MODEL if (mode or "").strip().lower() == "deep" else FAST_MODE_MODEL
 
@@ -81,7 +88,7 @@ async def search_papers(request: SearchRequest):
     try:
         logger.info("Search requested query_preview=%r", request.query[:80])
         arxiv_id = extract_arxiv_id(request.query)
-        papers = retrieve_and_rank_papers(request.query, request.categories)
+        papers = retrieve_and_rank_papers(request.query, normalize_research_categories(request.categories))
         logger.info("Search completed arxiv_id=%s result_count=%d", bool(arxiv_id), len(papers))
         return {
             "papers": papers,

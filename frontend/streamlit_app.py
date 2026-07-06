@@ -30,6 +30,24 @@ CATEGORY_OPTIONS = [
     "Alternative Approach",
     "Contrarian View",
 ]
+RESEARCH_LENS_OPTIONS = [
+    "Balanced",
+    "Foundational",
+    "Survey",
+    "Implementation Focused",
+    "Evaluation Focused",
+    "Alternative Approach",
+    "Contrarian View",
+]
+RESEARCH_LENS_DESCRIPTIONS = {
+    "Balanced": "General-purpose mix of evidence.",
+    "Foundational": "Prioritize core and highly cited work.",
+    "Survey": "Prioritize review and survey papers.",
+    "Implementation Focused": "Prioritize practical methods and systems.",
+    "Evaluation Focused": "Prioritize benchmarks, metrics, and comparisons.",
+    "Alternative Approach": "Prioritize different solution paths.",
+    "Contrarian View": "Prioritize papers that challenge common assumptions.",
+}
 CATEGORY_ACCENTS = {
     "Foundational": "#5B8DBE",
     "Survey": "#9C7ECF",
@@ -394,8 +412,8 @@ def citation_label(paper):
     return label
 
 
-def applied_focus_categories(research_focus):
-    return [category for category in research_focus if category != "Balanced"]
+def applied_focus_categories(research_lens):
+    return [] if research_lens == "Balanced" else [research_lens]
 
 
 def mode_config(config, generation_mode):
@@ -476,13 +494,16 @@ def apply_card_styles():
         }
 
         .block-container {
-            padding-top: 2.4rem;
+            max-width: 1600px;
+            padding-top: clamp(1.1rem, 2.4vw, 2.4rem);
+            padding-left: clamp(0.75rem, 2.4vw, 2.5rem);
+            padding-right: clamp(0.75rem, 2.4vw, 2.5rem);
         }
 
         .af-title {
             text-align: center;
             font-family: var(--af-font);
-            font-size: 2.6rem;
+            font-size: clamp(1.75rem, 4.2vw, 3rem);
             font-weight: 700;
             letter-spacing: 0;
             color: var(--af-text-hi);
@@ -500,12 +521,12 @@ def apply_card_styles():
         .af-subtitle {
             text-align: center;
             color: var(--af-text-mid);
-            font-size: 0.98rem;
+            font-size: clamp(0.82rem, 1.5vw, 1.05rem);
             letter-spacing: 0;
-            margin-bottom: 1.6rem;
+            margin-bottom: clamp(1rem, 2vw, 1.6rem);
         }
         .af-helper-card {
-            max-width: 920px;
+            max-width: 1600px;
             margin: 0 auto 1rem auto;
             padding: 0.95rem 1.1rem;
             border: 1px solid var(--af-hairline);
@@ -523,7 +544,7 @@ def apply_card_styles():
             line-height: 1.5;
         }
         .af-empty-state {
-            max-width: 920px;
+            max-width: 1600px;
             margin: 0.35rem auto 1rem auto;
             padding: 0.9rem 1rem;
             border-radius: 8px;
@@ -532,13 +553,23 @@ def apply_card_styles():
             color: var(--af-text-mid);
         }
         .af-search-shell {
-            max-width: 920px;
+            max-width: 1600px;
             margin: 0 auto 1.2rem auto;
-            padding: 1.35rem 1.35rem 1rem 1.35rem;
+            padding: clamp(0.9rem, 1.6vw, 1.35rem);
             border: 1px solid var(--af-hairline);
-            border-radius: 14px;
+            border-radius: 12px;
             background: rgba(255, 255, 255, 0.045);
             box-shadow: 0 18px 70px rgba(0, 0, 0, 0.25);
+        }
+        .st-key-search_shell {
+            max-width: 1600px;
+            margin: 0 auto 1.2rem auto;
+        }
+        .st-key-search_shell [data-testid="stVerticalBlockBorderWrapper"],
+        .st-key-search_shell[data-testid="stVerticalBlockBorderWrapper"] {
+            padding: clamp(0.95rem, 1.8vw, 1.45rem);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.045);
         }
         .af-search-kicker {
             color: var(--af-ember);
@@ -546,21 +577,21 @@ def apply_card_styles():
             font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.55rem;
             text-transform: uppercase;
         }
         .af-search-title {
             color: var(--af-text-hi);
             font-family: var(--af-font);
-            font-size: 1.32rem;
+            font-size: 1.14rem;
             font-weight: 700;
-            margin-bottom: 0.7rem;
+            margin-bottom: 1.05rem;
         }
         .af-search-subcopy {
             color: var(--af-text-mid);
-            font-size: 0.9rem;
+            font-size: 0.84rem;
             line-height: 1.45;
-            margin-bottom: 0.85rem;
+            margin-bottom: 0.6rem;
         }
         .af-control-caption {
             color: var(--af-text-mid);
@@ -568,25 +599,107 @@ def apply_card_styles():
             margin: 0.15rem 0 0.55rem 0;
         }
         div[data-testid="stTextInput"] input {
-            border-radius: 10px;
+            min-height: 46px;
+            border-radius: 8px;
             border: 1px solid var(--af-hairline-strong);
             background: rgba(255,255,255,0.06);
+            color: var(--af-text-hi);
+            font-size: 0.92rem;
+            font-weight: 500;
         }
-        div[data-testid="stRadio"] label,
-        div[data-testid="stMultiSelect"] label {
+        div[data-testid="stTextInput"] label,
+        div[data-testid="stPills"] label {
             color: var(--af-text-mid);
-            font-size: 0.85rem;
+            font-size: 0.96rem;
+            font-weight: 700;
         }
-        div[data-testid="stMultiSelect"] [data-baseweb="tag"] {
-            background: var(--af-ember-soft);
-            border: 1px solid rgba(237, 28, 36, 0.35);
+        div[data-testid="stPills"] {
+            margin-top: 0.75rem;
+        }
+        div[data-testid="stPills"] button {
+            min-height: 36px;
+            border-radius: 9px;
+            border: 1px solid var(--af-hairline-strong);
+            background: rgba(255,255,255,0.035);
+            color: var(--af-text-mid);
+            font-size: 0.84rem;
+            font-weight: 700;
+            padding-left: 0.8rem;
+            padding-right: 0.8rem;
+        }
+        div[data-testid="stPills"] button[aria-pressed="true"] {
+            border-color: rgba(237, 28, 36, 0.65);
+            background: rgba(237, 28, 36, 0.16);
+            color: #ff5a60;
+        }
+        div[data-testid="stPills"] button:hover {
+            border-color: rgba(237, 28, 36, 0.50);
             color: var(--af-text-hi);
         }
+        .af-lens-heading {
+            color: var(--af-text-hi);
+            font-size: 0.96rem;
+            font-weight: 700;
+            margin-top: 0.9rem;
+            margin-bottom: 0.15rem;
+        }
+        .af-lens-subtitle {
+            color: var(--af-text-mid);
+            font-size: 0.84rem;
+            line-height: 1.4;
+            margin-bottom: 0.55rem;
+        }
+        .af-lens-description {
+            color: var(--af-text-mid);
+            font-size: 0.84rem;
+            line-height: 1.45;
+            margin-top: 0.45rem;
+        }
+        div[data-testid="stRadio"] > div[role="radiogroup"] {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        div[data-testid="stRadio"] label {
+            min-height: 36px;
+            border: 1px solid var(--af-hairline-strong);
+            border-radius: 9px;
+            padding: 7px 14px;
+            background: rgba(255,255,255,0.035);
+            cursor: pointer;
+        }
+        div[data-testid="stRadio"] label > div:first-child {
+            display: none;
+        }
+        div[data-testid="stRadio"] label p {
+            color: var(--af-text-mid);
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+        div[data-testid="stRadio"] label:has(input:checked) {
+            background: rgba(237, 28, 36, 0.22);
+            border-color: var(--af-ember);
+        }
+        div[data-testid="stRadio"] label:has(input:checked) p {
+            color: #ff6a70;
+            font-weight: 700;
+        }
+        @media (max-width: 640px) {
+            div[data-testid="stRadio"] label {
+                padding: 6px 11px;
+            }
+            div[data-testid="stRadio"] label p {
+                font-size: 0.78rem;
+            }
+        }
         div.stButton > button[kind="primary"] {
+            min-height: 46px;
+            border-radius: 8px;
             background: var(--af-ember);
             border-color: var(--af-ember);
             color: #FFFFFF;
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 0.92rem;
         }
         div.stButton > button[kind="primary"]:hover {
             background: var(--af-ember-hover);
@@ -594,7 +707,7 @@ def apply_card_styles():
             color: #FFFFFF;
         }
         .af-mode-status {
-            max-width: 920px;
+            max-width: 1600px;
             margin: 0 auto 1rem auto;
             border-left: 3px solid var(--af-ember);
             padding: 0.65rem 0.85rem;
@@ -838,16 +951,7 @@ def render_status_banner(config, generation_mode):
         )
         return
 
-    active_mode = mode_config(config, generation_mode)
-    st.markdown(
-        f"""
-        <div class="af-helper-card">
-            <div class="af-helper-title">Ready for research planning</div>
-            <div class="af-helper-text">Connected to <strong>{html.escape(active_mode['label'])}</strong> using <strong>{html.escape(active_mode['model'])}</strong>. Search for evidence, choose a few papers, and generate a Research Plan.</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    return
 
 
 def render_results_table(papers):
@@ -946,6 +1050,9 @@ def render_paper_cards(
             authors += ", et al."
         url = paper.get("url") or paper.get("link")
         source = html.escape(paper.get("source", "arxiv"))
+        category_name = paper_category(paper)
+        category = html.escape(category_name)
+        category_accent = CATEGORY_ACCENTS.get(category_name, CATEGORY_ACCENTS["Uncategorized"])
         abstract = html.escape(paper.get("abstract", ""))
         citation_text = citation_label(paper)
         meta_parts = [
@@ -966,6 +1073,7 @@ def render_paper_cards(
                 f"""
                 <div class="paper-card-title">{title}</div>
                 <div class="paper-card-meta">{metadata_line}</div>
+                <span class="paper-chip paper-chip-category" style="border-color: {accent_rgba(category_accent, 0.45)}; background: {accent_rgba(category_accent, 0.16)}; color: {category_accent};">{category}</span>
                 <div class="paper-card-abstract">{abstract}</div>
                 """,
                 unsafe_allow_html=True,
@@ -1143,8 +1251,14 @@ if "on_demand_summaries" not in st.session_state:
     st.session_state.on_demand_summaries = {}
 if "generation_mode" not in st.session_state:
     st.session_state.generation_mode = "fast"
-if "research_focus" not in st.session_state:
-    st.session_state.research_focus = ["Balanced"]
+if "research_lens" not in st.session_state:
+    previous_focus = st.session_state.get("research_focus", ["Balanced"])
+    if isinstance(previous_focus, list) and previous_focus:
+        st.session_state.research_lens = (
+            previous_focus[0] if previous_focus[0] in RESEARCH_LENS_OPTIONS else "Balanced"
+        )
+    else:
+        st.session_state.research_lens = "Balanced"
 if "last_search_focus" not in st.session_state:
     st.session_state.last_search_focus = []
 if "search_message" not in st.session_state:
@@ -1152,20 +1266,13 @@ if "search_message" not in st.session_state:
 
 default_query = st.query_params.get("query", "")
 
-with st.container(border=True):
-    st.markdown(
-        """
-        <div class="af-search-kicker">Search</div>
-        <div class="af-search-title">Ask a research question</div>
-        <div class="af-search-subcopy">AcademicForge turns papers into an implementation-ready research plan.</div>
-        """,
-        unsafe_allow_html=True,
-    )
-    search_cols = st.columns([5, 1.15], vertical_alignment="bottom")
+with st.container(border=True, key="search_shell"):
+    search_cols = st.columns([5, 1.05], vertical_alignment="bottom", gap="medium")
     research_question = search_cols[0].text_input(
         "Question or link",
         placeholder="Ask a research question or add a link",
         value=default_query,
+        label_visibility="collapsed",
     )
     auto_run_search = (
         st.query_params.get("run") == "1"
@@ -1174,39 +1281,39 @@ with st.container(border=True):
     )
     manual_search = search_cols[1].button("Search", type="primary", width="stretch")
 
+    mode_labels = {
+        "fast": "Fast Mode · Qwen",
+        "deep": "Deep Mode · Gemma",
+    }
+    selected_mode_label = st.pills(
+        "Analysis Mode",
+        list(mode_labels.values()),
+        selection_mode="single",
+        default=mode_labels[st.session_state.generation_mode],
+        help="Fast Mode gives quicker insights. Deep Mode gives more detailed planning.",
+    )
+    st.session_state.generation_mode = "deep" if selected_mode_label == mode_labels["deep"] else "fast"
+
     st.markdown(
-        '<div class="af-control-caption">Fast Mode: quick Qwen insights. Deep Mode: detailed Gemma planning.</div>',
+        """
+        <div class="af-lens-heading">Research Lens</div>
+        <div class="af-lens-subtitle">Choose how AcademicForge explores and synthesizes research.</div>
+        """,
         unsafe_allow_html=True,
     )
-    control_cols = st.columns([1.25, 2.75])
-    mode_labels = [MODE_OPTIONS["fast"]["label"], MODE_OPTIONS["deep"]["label"]]
-    current_mode_index = 0 if st.session_state.generation_mode == "fast" else 1
-    selected_mode_label = control_cols[0].radio(
-        "Analysis mode",
-        mode_labels,
-        index=current_mode_index,
-        horizontal=True,
-        help=(
-            "Fast Mode uses Qwen for quick insights. "
-            "Deep Mode uses Gemma for detailed analysis."
-        ),
-    )
-    st.session_state.generation_mode = "deep" if selected_mode_label == MODE_OPTIONS["deep"]["label"] else "fast"
-    research_focus = control_cols[1].multiselect(
+    research_lens = st.radio(
         "Research Lens",
-        CATEGORY_OPTIONS,
-        default=st.session_state.research_focus,
-        help=(
-            "Choose the lens that should guide retrieval and the Research Plan. "
-            "Balanced keeps the default paper mix. One or two focused lenses is usually best."
-        ),
+        RESEARCH_LENS_OPTIONS,
+        index=RESEARCH_LENS_OPTIONS.index(st.session_state.research_lens),
+        horizontal=True,
+        label_visibility="collapsed",
+        key="research_lens",
     )
-if not research_focus:
-    research_focus = ["Balanced"]
-if "Balanced" in research_focus and len(research_focus) > 1:
-    research_focus = [category for category in research_focus if category != "Balanced"]
-st.session_state.research_focus = research_focus
-focus_categories = applied_focus_categories(research_focus)
+    st.markdown(
+        f'<div class="af-lens-description">{html.escape(RESEARCH_LENS_DESCRIPTIONS[research_lens])}</div>',
+        unsafe_allow_html=True,
+    )
+focus_categories = applied_focus_categories(research_lens)
 
 active_mode = mode_config(config, st.session_state.generation_mode)
 

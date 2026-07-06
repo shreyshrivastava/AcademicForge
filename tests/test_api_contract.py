@@ -52,6 +52,30 @@ def test_search_endpoint_passes_research_focus():
         backend_app.retrieve_and_rank_papers = original_retrieve
 
 
+def test_search_endpoint_treats_balanced_as_exclusive():
+    original_retrieve = backend_app.retrieve_and_rank_papers
+
+    def fake_retrieve(query, categories=None):
+        assert query == "rag implementation"
+        assert categories == []
+        return []
+
+    backend_app.retrieve_and_rank_papers = fake_retrieve
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/search",
+            json={
+                "query": "rag implementation",
+                "categories": ["Balanced", "Implementation Focused"],
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["papers"] == []
+    finally:
+        backend_app.retrieve_and_rank_papers = original_retrieve
+
+
 def test_roadmap_cache_status_endpoint_returns_status():
     client = TestClient(app)
     response = client.post(
