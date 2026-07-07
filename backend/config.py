@@ -61,9 +61,20 @@ class AppConfig:
 
     @classmethod
     def from_env(cls) -> "AppConfig":
-        default_model = os.getenv("LOCAL_LLM_MODEL", DEFAULT_MODEL).strip()
+        provider = _provider_from_env()
+        raw_model = os.getenv("LOCAL_LLM_MODEL")
+        if raw_model:
+            default_model = raw_model.strip()
+        else:
+            if provider == "openai":
+                default_model = "gpt-4o-mini"
+            elif provider == "fireworks":
+                default_model = "accounts/fireworks/models/qwen2p5-8b-instruct"
+            else:
+                default_model = DEFAULT_MODEL
+
         return cls(
-            llm_provider=_provider_from_env(),
+            llm_provider=provider,
             llm_model=default_model,
             llm_summary_model=os.getenv("LOCAL_LLM_SUMMARY_MODEL", default_model).strip(),
             llm_research_plan_model=(

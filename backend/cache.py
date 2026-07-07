@@ -79,3 +79,35 @@ def _prune_namespace(namespace_dir: Path) -> None:
             old_file.unlink()
         except OSError:
             pass
+
+
+def check_and_increment_usage(limit: int = 10) -> int:
+    """Read usage_counter.json from cache folder and increment it.
+
+    If the count meets or exceeds the limit, raises a RuntimeError.
+    """
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    counter_path = CACHE_DIR / "usage_counter.json"
+
+    count = 0
+    if counter_path.exists():
+        try:
+            data = json.loads(counter_path.read_text(encoding="utf-8"))
+            count = data.get("usage_count", 0)
+        except Exception:
+            pass
+
+    if count >= limit:
+        raise RuntimeError(
+            f"Demo credit limit reached ({limit} generations used). "
+            "Host your own instance of AcademicForge with your API key to run more queries."
+        )
+
+    count += 1
+    try:
+        counter_path.write_text(json.dumps({"usage_count": count}), encoding="utf-8")
+    except Exception:
+        pass
+
+    return count
+

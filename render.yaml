@@ -8,13 +8,9 @@ services:
     startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: LOCAL_LLM_PROVIDER
-        value: transformers
-      - key: LOCAL_LLM_MODEL
-        value: Qwen/Qwen2.5-1.5B-Instruct # Fast CPU inference model for Render instances
-      - key: LOCAL_LLM_SUMMARY_MODEL
-        value: Qwen/Qwen2.5-1.5B-Instruct
-      - key: LOCAL_LLM_RESEARCH_PLAN_MODEL
-        value: Qwen/Qwen2.5-1.5B-Instruct
+        value: fireworks
+      - key: FIREWORKS_API_KEY
+        sync: false # Render will securely prompt you for this key during deployment
       - key: LOCAL_LLM_MAX_TOKENS
         value: "700"
       - key: LOCAL_LLM_TEMPERATURE

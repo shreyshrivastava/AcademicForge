@@ -135,6 +135,12 @@ class LLMService:
 
     def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
+        if self.provider in {"openai", "fireworks"}:
+            from backend.cache import check_and_increment_usage
+            check_and_increment_usage(limit=10)
+            return _clean_response(
+                _generate_api(self.provider, system_prompt, user_prompt, token_budget, selected_model)
+            )
         if self.provider == "mlx":
             return _clean_response(
                 _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
@@ -145,11 +151,16 @@ class LLMService:
             )
         raise LocalLLMError(
             f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. "
-            "Use 'mlx', 'transformers', 'cuda', or 'rocm'."
+            "Use 'mlx', 'transformers', 'openai', or 'fireworks'."
         )
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
+        if self.provider in {"openai", "fireworks"}:
+            from backend.cache import check_and_increment_usage
+            check_and_increment_usage(limit=10)
+            yield from _generate_api_stream(self.provider, system_prompt, user_prompt, token_budget, selected_model)
+            return
         if self.provider == "mlx":
             yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
             return
@@ -158,7 +169,7 @@ class LLMService:
             return
         raise LocalLLMError(
             f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. "
-            "Use 'mlx', 'transformers', 'cuda', or 'rocm'."
+            "Use 'mlx', 'transformers', 'openai', or 'fireworks'."
         )
 
 
@@ -242,3 +253,98 @@ def _generate_transformers(system_prompt, user_prompt, token_budget, selected_mo
         )
     new_tokens = output_ids[0][inputs["input_ids"].shape[-1]:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+
+
+def _generate_api(provider, system_prompt, user_prompt, token_budget, selected_model):
+    import os
+    import requests
+
+    if provider == "openai":
+        url = "https://api.openai.com/v1/chat/completions"
+        api_key = os.getenv("OPENAI_API_KEY")
+    elif provider == "fireworks":
+        url = "https://api.fireworks.ai/inference/v1/chat/completions"
+        api_key = os.getenv("FIREWORKS_API_KEY")
+    else:
+        raise LocalLLMError(f"Unsupported API provider: {provider}")
+
+    if not api_key:
+        raise LocalLLMError(f"API key missing for provider: {provider}. Please set the environment variable.")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "model": selected_model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": temperature(),
+        "max_tokens": token_budget or max_tokens()
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=30)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        raise LocalLLMError(f"API request failed for {provider}: {e}")
+
+
+def _generate_api_stream(provider, system_prompt, user_prompt, token_budget, selected_model):
+    import os
+    import json
+    import requests
+
+    if provider == "openai":
+        url = "https://api.openai.com/v1/chat/completions"
+        api_key = os.getenv("OPENAI_API_KEY")
+    elif provider == "fireworks":
+        url = "https://api.fireworks.ai/inference/v1/chat/completions"
+        api_key = os.getenv("FIREWORKS_API_KEY")
+    else:
+        raise LocalLLMError(f"Unsupported API provider: {provider}")
+
+    if not api_key:
+        raise LocalLLMError(f"API key missing for provider: {provider}. Please set the environment variable.")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "model": selected_model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": temperature(),
+        "max_tokens": token_budget or max_tokens(),
+        "stream": True
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data, stream=True, timeout=30)
+        response.raise_for_status()
+
+        for line in response.iter_lines():
+            if not line:
+                continue
+            decoded_line = line.decode("utf-8").strip()
+            if decoded_line.startswith("data: "):
+                content = decoded_line[6:]
+                if content == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(content)
+                    delta = chunk["choices"][0]["delta"]
+                    if "content" in delta:
+                        yield delta["content"]
+                except Exception:
+                    continue
+    except Exception as e:
+        raise LocalLLMError(f"API stream failed for {provider}: {e}")
