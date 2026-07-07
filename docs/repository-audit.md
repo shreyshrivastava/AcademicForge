@@ -45,7 +45,7 @@ This audit summarizes the repository state after the hackathon-readiness pass.
 Repository description:
 
 ```text
-AI-powered academic discovery platform with hybrid retrieval, local MLX summaries, and streamed research Research Plans.
+An AI-powered research-to-implementation engine that translates academic papers into production-ready system architectures and engineering blueprints.
 ```
 
 Topics:
