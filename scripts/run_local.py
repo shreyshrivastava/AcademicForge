@@ -17,7 +17,7 @@ def build_env(args):
     env["LOCAL_LLM_PROVIDER"] = args.provider
     env["LOCAL_LLM_MODEL"] = args.model
     env["LOCAL_LLM_SUMMARY_MODEL"] = args.summary_model or args.model
-    env["LOCAL_LLM_ROADMAP_MODEL"] = args.roadmap_model or args.model
+    env["LOCAL_LLM_RESEARCH_PLAN_MODEL"] = args.research_plan_model or args.roadmap_model or args.model
     return env
 
 
@@ -116,7 +116,8 @@ def parse_args():
     parser.add_argument("--provider", default="mlx", help="LLM provider: mlx, transformers, rocm, cuda.")
     parser.add_argument("--model", default="mlx-community/gemma-3-1b-it-4bit", help="Default model.")
     parser.add_argument("--summary-model", help="Optional summary model override.")
-    parser.add_argument("--roadmap-model", help="Optional roadmap model override.")
+    parser.add_argument("--research-plan-model", help="Optional Research Plan model override.")
+    parser.add_argument("--roadmap-model", help="Compatibility alias for --research-plan-model.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--backend-port", type=int, default=8000)
     parser.add_argument("--frontend-port", type=int, default=8501)

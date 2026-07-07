@@ -1,8 +1,8 @@
 # AcademicForge
 
-AcademicForge is an AI research-to-build workbench for finding, comparing, summarizing, and turning academic papers into implementation roadmaps.
+AcademicForge is an AI research-to-build workbench for finding, comparing, summarizing, and turning academic papers into Research Plans.
 
-Instead of returning only keyword matches, AcademicForge combines arXiv search, BM25 keyword retrieval, dense semantic retrieval, reciprocal rank fusion, local and cloud-ready LLM summarization, and streamed roadmap generation to help builders move from:
+Instead of returning only keyword matches, AcademicForge combines arXiv search, BM25 keyword retrieval, dense semantic retrieval, reciprocal rank fusion, local and cloud-ready LLM summarization, and streamed Research Plan generation to help builders move from:
 
 ```text
 What should I read?
@@ -20,7 +20,7 @@ AcademicForge is being built for the AMD Developer Challenge as a product-orient
 
 The current project is intentionally split into two layers:
 
-- **Product layer:** a usable research assistant that turns papers into summaries and build roadmaps.
+- **Product layer:** a usable research assistant that turns papers into summaries and Research Plans.
 - **Inference layer:** a provider-aware backend that can run locally with MLX today and move to AMD Cloud, ROCm, vLLM, Fireworks, or Gemma-hosted inference later.
 
 This matters because MLX is excellent for fast local iteration on Apple Silicon, but AMD hardware is the natural path for a hosted, scalable, hackathon-ready deployment.
@@ -44,9 +44,9 @@ Future optimization: router chooses the cheapest model that preserves answer qua
 
 ## What We Tested
 
-Local tests were run on the AcademicForge summary and roadmap workflow, not generic chatbot prompts. The benchmark uses `scripts/benchmark_llm.py` and measures tiny generation, paper summaries, roadmap generation, output length, latency, and simple quality flags.
+Local tests were run on the AcademicForge summary and Research Plan workflow, not generic chatbot prompts. The benchmark uses `scripts/benchmark_llm.py` and measures tiny generation, paper summaries, Research Plan generation, output length, latency, and simple quality flags.
 
-| Model | Local runtime | Total benchmark time | Tiny generation | Summary behavior | Roadmap behavior | Current verdict |
+| Model | Local runtime | Total benchmark time | Tiny generation | Summary behavior | Research Plan behavior | Current verdict |
 | --- | --- | ---: | ---: | --- | --- | --- |
 | `mlx-community/gemma-3-1b-it-4bit` | MLX / `mlx-lm` | `26.399s` | `3.846s` | More verbose; sometimes invented details in earlier tests. | Usable but more generic. | Useful as a small router/smoke-test model, not the main demo model. |
 | `mlx-community/Qwen3-4B-4bit` | MLX / `mlx-lm` | `23.870s` to `35.890s` | `1.595s` to `1.787s` | Concise, cleaner, more faithful to abstracts. | Best speed/quality balance for AcademicForge today. | Default local model. |
@@ -82,21 +82,21 @@ Planned AMD comparison:
 | Experiment | Local baseline | AMD Cloud / Fireworks target | What we measure |
 | --- | --- | --- | --- |
 | Paper summary | Qwen3 4B MLX | Gemma 4 or Qwen on ROCm/vLLM | Latency, faithfulness, concision. |
-| Roadmap generation | Qwen3 4B MLX | Gemma 4 on AMD/Fireworks | Completeness, implementation usefulness, hallucination rate. |
+| Research Plan generation | Qwen3 4B MLX | Gemma 4 on AMD/Fireworks | Completeness, implementation usefulness, hallucination rate. |
 | Router decision | Gemma 3 1B MLX | Hosted larger model fallback | Token cost saved without quality loss. |
 | Batch benchmarking | Local single-user run | AMD GPU endpoint | Throughput and scalability. |
 
-## Fine-Tuning And Routing Roadmap
+## Fine-Tuning And Routing Plan
 
 Fine-tuning is not required for the current MVP, but it is an important next step for making AcademicForge feel more specialized than a generic chatbot.
 
 Near-term tuning plan:
 
-1. Collect AcademicForge examples: paper abstract, expected summary, expected roadmap, and quality labels.
-2. Create a small evaluation set for summary faithfulness and roadmap usefulness.
+1. Collect AcademicForge examples: paper abstract, expected summary, expected Research Plan, and quality labels.
+2. Create a small evaluation set for summary faithfulness and Research Plan usefulness.
 3. Fine-tune or prompt-tune a small router/evaluator model to decide:
    - summarize locally
-   - roadmap locally
+   - Research Plan locally
    - call hosted Gemma 4 / AMD model
    - ask the user for a narrower goal
 4. Compare prompt-only routing vs fine-tuned routing using the same benchmark harness.
@@ -115,7 +115,7 @@ Researchers, students, and hackathon builders often lose time moving between sea
 - over-ranks exact keyword matches and misses semantically relevant papers
 - gives little help comparing why papers matter
 - does not separate methods, benchmarks, theory, datasets, and implementation ideas
-- leaves users to manually synthesize a roadmap from several papers
+- leaves users to manually synthesize a Research Plan from several papers
 
 AcademicForge focuses on the early research-to-build workflow: discover candidates, compare them, select the best papers, summarize them, and generate a practical implementation direction.
 
@@ -131,8 +131,8 @@ AcademicForge uses a hybrid retrieval and local generation pipeline:
 6. Select a balanced 8-10 paper evidence set.
 7. Let the user inspect and select papers.
 8. Summarize selected papers with a local MLX model.
-9. Generate streamed research synthesis from compact evidence notes.
-10. Cache summaries and synthesis outputs locally for fast repeat runs.
+9. Generate a streamed Research Plan from compact paper notes.
+10. Cache summaries and Research Plan outputs locally for fast repeat runs.
 
 ## Evidence Selection Strategy
 
@@ -149,7 +149,7 @@ The selected evidence set aims for this balance:
 
 | Evidence type | Target count | Why it matters |
 | --- | ---: | --- |
-| Foundational papers | 2-3 | Gives the synthesis stable concepts and established methods. |
+| Foundational papers | 2-3 | Gives the Research Plan stable concepts and established methods. |
 | Recent papers | 2-3 | Keeps the answer current and aligned with newer work. |
 | Implementation-focused papers | 2-3 | Helps convert research into buildable systems. |
 | Evaluation-focused papers | 1-2 | Provides benchmarks, datasets, or metrics. |
@@ -164,10 +164,10 @@ Future versions can replace this with a learned router or cross-encoder reranker
 - Hybrid retrieval: BM25 + dense embeddings + reciprocal rank fusion.
 - Optional reranker placeholder for future cross-encoder reranking.
 - Paper selection before expensive LLM calls.
-- Local MLX summarization and roadmap generation.
-- Task-specific model routing for summaries and roadmaps.
-- Streamed roadmap output so users see progress quickly.
-- Persistent disk cache for summaries and roadmaps.
+- Local MLX summarization and Research Plan generation.
+- Task-specific model routing for summaries and Research Plans.
+- Streamed Research Plan output so users see progress quickly.
+- Persistent disk cache for summaries and Research Plans.
 - Streamlit UI for hackathon-friendly demos.
 - FastAPI backend with testable retrieval and generation layers.
 
@@ -184,8 +184,8 @@ User query
   -> Streamlit paper comparison UI
   -> selected papers
   -> local MLX summaries
-  -> compact roadmap context
-  -> streamed local MLX roadmap
+  -> compact Research Plan context
+  -> streamed local MLX Research Plan
   -> local cache
 ```
 
@@ -212,7 +212,8 @@ AcademicForge/
     cache.py                # local disk cache helpers
     llm.py                  # local LLM provider wrapper
     retrieval/              # BM25, dense search, RRF, hybrid search
-    roadmap_generator.py    # roadmap prompt, cache, streaming generation
+    research_plan_generator.py    # Research Plan prompt, cache, streaming generation
+    roadmap_generator.py         # compatibility aliases for old imports
     summarizer.py           # paper summarization and cache
   frontend/
     streamlit_app.py        # Streamlit UI
@@ -269,7 +270,7 @@ The app is local-first. By default it uses MLX and Qwen:
 export LOCAL_LLM_PROVIDER=mlx
 export LOCAL_LLM_MODEL=mlx-community/Qwen3-4B-4bit
 export LOCAL_LLM_SUMMARY_MODEL=mlx-community/Qwen3-4B-4bit
-export LOCAL_LLM_ROADMAP_MODEL=mlx-community/Qwen3-4B-4bit
+export LOCAL_LLM_RESEARCH_PLAN_MODEL=mlx-community/Qwen3-4B-4bit
 ```
 
 Useful environment variables:
@@ -280,7 +281,7 @@ LOCAL_LLM_PROVIDER=mlx
 # Accepted provider values: mlx, transformers, torch, cuda, rocm, roc
 LOCAL_LLM_MODEL=mlx-community/Qwen3-4B-4bit
 LOCAL_LLM_SUMMARY_MODEL=mlx-community/Qwen3-4B-4bit
-LOCAL_LLM_ROADMAP_MODEL=mlx-community/Qwen3-4B-4bit
+LOCAL_LLM_RESEARCH_PLAN_MODEL=mlx-community/Qwen3-4B-4bit
 LOCAL_LLM_MAX_TOKENS=900
 LOCAL_LLM_TEMPERATURE=0.2
 ACADEMICFORGE_CACHE_DIR=.academicforge_cache
@@ -325,9 +326,9 @@ streamlit run frontend/streamlit_app.py --server.address 127.0.0.1 --server.port
 1. Enter a research query, such as `reduce ai hallucination`.
 2. Review the ranked paper candidates.
 3. Inspect BM25 rank, dense rank, RRF score, source, authors, URL, and abstract snippet.
-4. Select 2-3 papers for a focused roadmap.
-5. Generate summaries and a streamed implementation roadmap.
-6. Download the roadmap as Markdown.
+4. Select 2-3 papers for a focused Research Plan.
+5. Generate summaries and a streamed Research Plan.
+6. Download the Research Plan as Markdown.
 
 ## Demo Script
 
@@ -337,7 +338,7 @@ Suggested live demo query:
 reduce ai hallucination
 ```
 
-Recommended paper selection for a text/RAG hallucination roadmap:
+Recommended paper selection for a text/RAG hallucination Research Plan:
 
 - `First Hallucination Tokens Are Different from Conditional Ones`
 - `OpenHalDet: A Unified Benchmark for Hallucination Detection across Diverse Generation Scenarios`
@@ -348,8 +349,8 @@ What to point out to judges:
 - Hybrid retrieval surfaces papers that keyword-only search may miss.
 - Dense and BM25 ranks are visible for explainability.
 - Users choose papers before LLM generation.
-- Roadmap output streams from a local MLX model.
-- Repeated summaries and roadmaps load instantly from cache.
+- Research Plan output streams from a local MLX model.
+- Repeated summaries and Research Plans load instantly from cache.
 
 ## Evaluation
 
@@ -358,16 +359,16 @@ Current validation includes:
 - BM25 returns relevant ranked results.
 - Dense search returns ranked results and falls back cleanly if embeddings are unavailable.
 - RRF deduplicates papers and promotes overlap between rankers.
-- Summary and roadmap caches reuse previous generations.
-- Roadmap generation uses compact paper notes.
-- Streaming roadmap endpoint returns incremental text.
+- Summary and Research Plan caches reuse previous generations.
+- Research Plan generation uses compact paper notes.
+- Streaming Research Plan endpoint returns incremental text.
 - FastAPI contract tests cover config, cache status, and streaming routes.
 
 Run checks:
 
 ```bash
 source venv/bin/activate
-python -m py_compile backend/app.py backend/cache.py backend/llm.py backend/summarizer.py backend/roadmap_generator.py frontend/streamlit_app.py backend/retrieval/*.py scripts/*.py tests/*.py
+python -m py_compile backend/app.py backend/cache.py backend/llm.py backend/summarizer.py backend/research_plan_generator.py backend/roadmap_generator.py frontend/streamlit_app.py backend/retrieval/*.py scripts/*.py tests/*.py
 python tests/test_cache.py
 python tests/test_generation_pipeline.py
 python tests/test_llm_routing.py
@@ -419,10 +420,10 @@ For timing comparisons, the benchmark isolates its cache by default. Add
 
 Earlier local benchmark notes:
 
-| Model | Tiny generation | Roadmap generation | Notes |
+| Model | Tiny generation | Research Plan generation | Notes |
 | --- | ---: | ---: | --- |
 | `mlx-community/Qwen3-4B-4bit` | 3.41s | 13.11s | Best current balance of speed and instruction following. |
-| `mlx-community/Llama-3.2-3B-Instruct-4bit` | 4.12s | 10.67s | Faster roadmap generation, but less precise on implementation/runtime details. |
+| `mlx-community/Llama-3.2-3B-Instruct-4bit` | 4.12s | 10.67s | Faster Research Plan generation, but less precise on implementation/runtime details. |
 | `mlx-community/Qwen3-4B-Instruct-2507-4bit` | 3.36s | 30.92s | Stronger writing and scope control, but too slow for current UX. |
 
 Gemma 4 local note:
@@ -443,7 +444,7 @@ python scripts/run_local.py --model mlx-community/gemma-4-e2b-it-OptiQ-4bit --re
 - Dense retrieval is in-memory and intended for MVP-scale candidate sets.
 - Reranking is a placeholder; no cross-encoder reranker is enabled yet.
 - Local MLX generation speed depends on hardware and model size.
-- The roadmap is only as good as the selected papers and available abstracts.
+- The Research Plan is only as good as the selected papers and available abstracts.
 - No user accounts, saved projects, or hosted deployment are included yet.
 
 ## Future Work
@@ -453,7 +454,7 @@ python scripts/run_local.py --model mlx-community/gemma-4-e2b-it-OptiQ-4bit --re
 - Add cross-encoder reranking.
 - Add saved research sessions.
 - Add export bundles for hackathon implementation plans.
-- Add code-generation mode with a coder model separate from the roadmap model.
+- Add code-generation mode with a coder model separate from the Research Plan model.
 - Add hosted demo instructions or a lightweight Docker path.
 
 More detail: [docs/roadmap.md](docs/roadmap.md)
@@ -463,7 +464,7 @@ More detail: [docs/roadmap.md](docs/roadmap.md)
 Suggested repository description:
 
 ```text
-AI-powered academic discovery platform with hybrid retrieval, local MLX summaries, and streamed research roadmaps.
+AI-powered academic discovery platform with hybrid retrieval, local MLX summaries, and streamed Research Plans.
 ```
 
 Suggested topics:
@@ -477,7 +478,7 @@ Recommended assets to add before final submission:
 - short demo GIF or screenshots in `docs/assets/`
 - 2-minute demo video link
 - architecture diagram image
-- example generated roadmap
+- example generated Research Plan
 
 ## Contributing
 

@@ -11,10 +11,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import backend.cache as cache
-import backend.roadmap_generator as roadmap_generator
+import backend.research_plan_generator as research_plan_generator
 import backend.summarizer as summarizer
 from backend.llm import generate_text, model_name, provider_name
-from backend.roadmap_generator import generate_roadmap
+from backend.research_plan_generator import generate_research_plan
 from backend.summarizer import summarize_paper
 
 
@@ -125,8 +125,8 @@ def _parse_models(models):
 
 def _reset_generation_state():
     summarizer.SUMMARY_CACHE.clear()
-    roadmap_generator.ROADMAP_CACHE.clear()
-    roadmap_generator.PAPER_ROADMAP_CACHE.clear()
+    research_plan_generator.RESEARCH_PLAN_CACHE.clear()
+    research_plan_generator.PAPER_GUIDANCE_CACHE.clear()
 
 
 class BenchmarkRunner:
@@ -146,7 +146,7 @@ class BenchmarkRunner:
             for model in self.models:
                 os.environ["LOCAL_LLM_MODEL"] = model
                 os.environ["LOCAL_LLM_SUMMARY_MODEL"] = model
-                os.environ["LOCAL_LLM_ROADMAP_MODEL"] = model
+                os.environ["LOCAL_LLM_RESEARCH_PLAN_MODEL"] = model
                 for run_index in range(1, self.runs + 1):
                     _reset_generation_state()
                     results.append(self._run_once(model, run_index))
@@ -163,9 +163,9 @@ class BenchmarkRunner:
                 "tiny_generation",
                 lambda: generate_text(
                     "You are a concise research assistant.",
-                    "In one sentence, say what a roadmap model should optimize for.",
+                    "In one sentence, say what a Research Plan model should optimize for.",
                     token_budget=60,
-                    task="roadmap",
+                    task="research_plan",
                 ),
             )
         ]
@@ -179,7 +179,7 @@ class BenchmarkRunner:
                 steps.append(step)
                 summaries.append(step.preview)
 
-        steps.append(run_step("roadmap", lambda: generate_roadmap(SAMPLE_PAPERS, summaries)))
+        steps.append(run_step("research_plan", lambda: generate_research_plan(SAMPLE_PAPERS, summaries)))
         total_seconds = round(time.perf_counter() - started, 3)
         return ModelRun(
             model=model,
@@ -302,7 +302,7 @@ def parse_args():
     parser.add_argument(
         "--skip-summary",
         action="store_true",
-        help="Use fixed summaries and benchmark roadmap generation only.",
+        help="Use fixed summaries and benchmark Research Plan generation only.",
     )
     parser.add_argument(
         "--use-cache",

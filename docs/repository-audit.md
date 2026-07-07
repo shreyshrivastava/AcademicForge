@@ -7,14 +7,14 @@ This audit summarizes the repository state after the hackathon-readiness pass.
 - Clear FastAPI backend and Streamlit frontend separation.
 - Modular retrieval layer under `backend/retrieval/`.
 - Local-first LLM wrapper with MLX as the default provider.
-- Summary and roadmap generation are cached locally.
-- Roadmap generation streams output to improve perceived latency.
+- Summary and Research Plan generation are cached locally.
+- Research Plan generation streams output to improve perceived latency.
 - Tests cover retrieval, cache, model routing, generation pipeline, API contracts, and the benchmark helper.
 
 ## Issues Found
 
 - README was useful for local development but not judge-ready.
-- Architecture, setup, and roadmap documentation were missing.
+- Architecture, setup, and product roadmap documentation were missing.
 - `.env.example`, `LICENSE`, and `CONTRIBUTING.md` were missing.
 - Generated Python cache files were present in source directories.
 - Accidental empty directories existed from early scaffolding:
@@ -45,7 +45,7 @@ This audit summarizes the repository state after the hackathon-readiness pass.
 Repository description:
 
 ```text
-AI-powered academic discovery platform with hybrid retrieval, local MLX summaries, and streamed research roadmaps.
+AI-powered academic discovery platform with hybrid retrieval, local MLX summaries, and streamed research Research Plans.
 ```
 
 Topics:
@@ -70,7 +70,7 @@ hackathon
 
 - Add screenshots or a demo GIF under `docs/assets/`.
 - Add a short demo video link to the README.
-- Add one generated example roadmap under `docs/examples/`.
+- Add one generated example Research Plan under `docs/examples/`.
 - Add a repository social preview image.
 - Add hosted demo instructions if deployment is completed.
 

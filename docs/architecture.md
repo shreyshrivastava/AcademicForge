@@ -15,8 +15,8 @@ Streamlit UI
        -> reranker placeholder
   -> selected papers
   -> local MLX summarization
-  -> compact roadmap context
-  -> streamed local MLX roadmap
+  -> compact Research Plan context
+  -> streamed local MLX Research Plan
   -> local JSON cache
 ```
 
@@ -27,9 +27,12 @@ Streamlit UI
 - `GET /config` - active local model configuration
 - `POST /search` - arXiv collection plus hybrid retrieval
 - `POST /summarize` - local paper summary generation
-- `POST /roadmap` - non-streaming roadmap generation
-- `POST /roadmap/stream` - streaming roadmap generation
-- `POST /roadmap/cache-status` - cache status for selected roadmap inputs
+- `POST /research-plan` - non-streaming Research Plan generation
+- `POST /research-plan/stream` - streaming Research Plan generation
+- `POST /research-plan/cache-status` - cache status for selected Research Plan inputs
+- `POST /paper-guidance` - single-paper practical guidance
+
+The older `/roadmap/*` routes remain as compatibility aliases during the product rename.
 
 ## Retrieval Layer
 
@@ -59,9 +62,9 @@ Task-specific model routing:
 
 - `LOCAL_LLM_MODEL`
 - `LOCAL_LLM_SUMMARY_MODEL`
-- `LOCAL_LLM_ROADMAP_MODEL`
+- `LOCAL_LLM_RESEARCH_PLAN_MODEL`
 
-This lets the project use communicator/instruct models for summaries and roadmaps while reserving coder models for future code-generation workflows.
+This lets the project use communicator/instruct models for summaries and Research Plans while reserving coder models for future code-generation workflows.
 
 Provider notes:
 
@@ -75,20 +78,20 @@ Provider notes:
 Cached items:
 
 - paper summaries
-- generated roadmaps
+- generated Research Plans
 
-The cache key includes the task, model, selected papers, summaries, and compact roadmap context, so changing model or selected papers produces a new cache entry.
+The cache key includes the task, model, selected papers, summaries, and compact Research Plan context, so changing model or selected papers produces a new cache entry.
 
 ## Frontend
 
 `frontend/streamlit_app.py` provides a simple judge-friendly UI:
 
 - search box
-- ranked paper table
-- paper detail expanders
-- paper selection control
+- Research Lens control
+- ranked paper cards with category chips
+- inline Summary and Guidance panels
 - summary generation
-- streamed roadmap rendering
+- streamed Research Plan rendering
 - Markdown export
 
 ## Why This Architecture

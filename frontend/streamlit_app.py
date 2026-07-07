@@ -60,7 +60,7 @@ CATEGORY_ACCENTS = {
 }
 
 
-SYNTHESIS_SECTION_ORDER = [
+RESEARCH_PLAN_SECTION_ORDER = [
     "User Goal Analysis",
     "Research Focus",
     "Key Findings",
@@ -91,7 +91,7 @@ RECOMMENDED_BUILD_LABELS = {
     "Expected Tradeoffs": "Expected tradeoffs",
 }
 
-SYNTHESIS_SECTION_LABELS = {
+RESEARCH_PLAN_SECTION_LABELS = {
     "User Goal Analysis": "User goal analysis",
     "Research Focus": "Research focus",
     "Key Findings": "Key findings",
@@ -109,7 +109,7 @@ SECTION_ALIASES = {
 
 
 def split_into_sections(text):
-    header_map = {header.lower(): header for header in SYNTHESIS_SECTION_ORDER}
+    header_map = {header.lower(): header for header in RESEARCH_PLAN_SECTION_ORDER}
     sections = {}
     current, buffer = None, []
     for line in text.splitlines():
@@ -201,7 +201,7 @@ def pulse_loading_html(label):
     """
 
 
-def render_synthesis_heading(label, top=False):
+def render_research_plan_heading(label, top=False):
     st.markdown(
         f"""
         <div class="syn-heading" style="{'' if top else 'margin-top: 1.6rem;'}">
@@ -213,20 +213,20 @@ def render_synthesis_heading(label, top=False):
     )
 
 
-def render_synthesis(roadmap_text):
-    sections = split_into_sections(roadmap_text)
+def render_research_plan(research_plan_text):
+    sections = split_into_sections(research_plan_text)
     if not sections:
-        st.markdown(roadmap_text)
+        st.markdown(research_plan_text)
         return
 
-    render_synthesis_heading("Research Plan", top=True)
+    render_research_plan_heading("Research Plan", top=True)
 
-    for section in SYNTHESIS_SECTION_ORDER:
+    for section in RESEARCH_PLAN_SECTION_ORDER:
         body = sections.get(section)
         if not body:
             continue
 
-        render_synthesis_heading(SYNTHESIS_SECTION_LABELS[section])
+        render_research_plan_heading(RESEARCH_PLAN_SECTION_LABELS[section])
 
         if section == "Recommended Build":
             build_fields = split_recommended_build(body)
@@ -261,12 +261,12 @@ def render_synthesis(roadmap_text):
             st.markdown(f"<div class='syn-body'>{render_citation_spans(body)}</div>", unsafe_allow_html=True)
 
 
-def render_synthesis_panel(roadmap_text):
+def render_research_plan_panel(research_plan_text):
     with st.container(border=True):
-        if isinstance(roadmap_text, str):
-            render_synthesis(roadmap_text)
+        if isinstance(research_plan_text, str):
+            render_research_plan(research_plan_text)
         else:
-            st.json(roadmap_text)
+            st.json(research_plan_text)
 
 
 def paper_insight_panel_html(label, text):
@@ -287,12 +287,12 @@ def paper_insight_loading_html(label, loading_text):
     """
 
 
-def render_synthesis_empty_state():
+def render_research_plan_empty_state():
     st.markdown(
         """
-        <div class="synthesis-stage-empty">
-            <div class="synthesis-stage-title">Research Plan will appear here</div>
-            <div class="synthesis-stage-copy">
+        <div class="research-plan-stage-empty">
+            <div class="research-plan-stage-title">Research Plan will appear here</div>
+            <div class="research-plan-stage-copy">
                 Select 2-4 papers and generate one combined research-to-prototype plan.
             </div>
         </div>
@@ -301,7 +301,7 @@ def render_synthesis_empty_state():
     )
 
 
-def render_synthesis_loading_state(label="Generating Research Plan..."):
+def render_research_plan_loading_state(label="Generating Research Plan..."):
     with st.container(border=True):
         st.markdown(pulse_loading_html(label), unsafe_allow_html=True)
 
@@ -336,15 +336,16 @@ def summarize_paper(paper):
     return post_json("/summarize", paper).get("summary", "")
 
 
-def generate_paper_roadmap(paper, generation_mode):
+def generate_paper_guidance(paper, generation_mode):
     payload = dict(paper)
     payload["generation_mode"] = generation_mode
-    return post_json("/roadmap/paper", payload).get("roadmap", "")
+    response = post_json("/paper-guidance", payload)
+    return response.get("guidance") or response.get("roadmap", "")
 
 
-def stream_roadmap(papers, summaries, query, generation_mode):
+def stream_research_plan(papers, summaries, query, generation_mode):
     response = requests.post(
-        f"{BACKEND_URL}/roadmap/stream",
+        f"{BACKEND_URL}/research-plan/stream",
         json={
             "papers": papers,
             "summaries": summaries,
@@ -360,9 +361,9 @@ def stream_roadmap(papers, summaries, query, generation_mode):
             yield chunk
 
 
-def roadmap_cache_status(papers, summaries, query, generation_mode):
+def research_plan_cache_status(papers, summaries, query, generation_mode):
     return post_json(
-        "/roadmap/cache-status",
+        "/research-plan/cache-status",
         {
             "papers": papers,
             "summaries": summaries,
@@ -372,10 +373,10 @@ def roadmap_cache_status(papers, summaries, query, generation_mode):
     )
 
 
-def paper_roadmap_cache_status(paper, generation_mode):
+def paper_guidance_cache_status(paper, generation_mode):
     payload = dict(paper)
     payload["generation_mode"] = generation_mode
-    return post_json("/roadmap/paper/cache-status", payload)
+    return post_json("/paper-guidance/cache-status", payload)
 
 
 def paper_cache_id(paper):
@@ -424,28 +425,6 @@ def mode_config(config, generation_mode):
         "model": public_modes.get(generation_mode, {}).get("model", "configured model"),
         "purpose": public_modes.get(generation_mode, {}).get("purpose", fallback["purpose"]),
     }
-
-
-def grouped_by_category(papers):
-    groups = {}
-    for paper in papers:
-        groups.setdefault(paper_category(paper), []).append(paper)
-    ordered = [category for category in CATEGORY_OPTIONS if category in groups and category != "Balanced"]
-    ordered.extend(sorted(category for category in groups if category not in ordered))
-    return [(category, groups[category]) for category in ordered]
-
-
-def render_category_heading(category, count):
-    accent = CATEGORY_ACCENTS.get(category, CATEGORY_ACCENTS["Uncategorized"])
-    st.markdown(
-        f"""
-        <div class="af-section-heading" style="--accent-color: {accent};">
-            <span class="af-section-marker"></span>
-            {html.escape(category)} <span class="af-section-count">({count})</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def render_selection_guidance(selected_count, focus_count, generation_mode):
@@ -552,15 +531,6 @@ def apply_card_styles():
             background: var(--af-surface);
             color: var(--af-text-mid);
         }
-        .af-search-shell {
-            max-width: 1600px;
-            margin: 0 auto 1.2rem auto;
-            padding: clamp(0.9rem, 1.6vw, 1.35rem);
-            border: 1px solid var(--af-hairline);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.045);
-            box-shadow: 0 18px 70px rgba(0, 0, 0, 0.25);
-        }
         .st-key-search_shell {
             max-width: 1600px;
             margin: 0 auto 1.2rem auto;
@@ -570,28 +540,6 @@ def apply_card_styles():
             padding: clamp(0.95rem, 1.8vw, 1.45rem);
             border-radius: 14px;
             background: rgba(255, 255, 255, 0.045);
-        }
-        .af-search-kicker {
-            color: var(--af-ember);
-            font-family: var(--af-font);
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0;
-            margin-bottom: 0.55rem;
-            text-transform: uppercase;
-        }
-        .af-search-title {
-            color: var(--af-text-hi);
-            font-family: var(--af-font);
-            font-size: 1.14rem;
-            font-weight: 700;
-            margin-bottom: 1.05rem;
-        }
-        .af-search-subcopy {
-            color: var(--af-text-mid);
-            font-size: 0.84rem;
-            line-height: 1.45;
-            margin-bottom: 0.6rem;
         }
         .af-control-caption {
             color: var(--af-text-mid);
@@ -705,16 +653,6 @@ def apply_card_styles():
             background: var(--af-ember-hover);
             border-color: var(--af-ember-hover);
             color: #FFFFFF;
-        }
-        .af-mode-status {
-            max-width: 1600px;
-            margin: 0 auto 1rem auto;
-            border-left: 3px solid var(--af-ember);
-            padding: 0.65rem 0.85rem;
-            border-radius: 0 6px 6px 0;
-            background: var(--af-ember-soft);
-            color: var(--af-text-hi);
-            font-size: 0.92rem;
         }
         .af-section-heading {
             display: flex;
@@ -842,17 +780,17 @@ def apply_card_styles():
             color: var(--af-text-hi);
             font-size: 0.9rem;
         }
-        .synthesis-control-title {
+        .research-plan-control-title {
             color: var(--af-text-hi);
             font-weight: 600;
             margin-bottom: 0.15rem;
         }
-        .synthesis-control-meta {
+        .research-plan-control-meta {
             color: var(--af-text-mid);
             font-size: 0.86rem;
             line-height: 1.45;
         }
-        .synthesis-stage-empty {
+        .research-plan-stage-empty {
             border: 1px solid var(--af-hairline);
             border-radius: 10px;
             background: rgba(255,255,255,0.025);
@@ -860,12 +798,12 @@ def apply_card_styles():
             text-align: center;
             margin-top: 0.8rem;
         }
-        .synthesis-stage-title {
+        .research-plan-stage-title {
             color: var(--af-text-hi);
             font-weight: 600;
             margin-bottom: 0.25rem;
         }
-        .synthesis-stage-copy {
+        .research-plan-stage-copy {
             color: var(--af-text-low);
             font-size: 0.86rem;
         }
@@ -985,7 +923,10 @@ def render_technical_dashboard(papers, config=None):
             metric_cols = st.columns(3)
             metric_cols[0].metric("Provider", config.get("llm_provider", "unknown"))
             metric_cols[1].metric("Summary model", llm_models.get("summary", "unknown"))
-            metric_cols[2].metric("Roadmap model", llm_models.get("roadmap", "unknown"))
+            metric_cols[2].metric(
+                "Research Plan model",
+                llm_models.get("research_plan") or llm_models.get("roadmap", "unknown"),
+            )
 
         category_counts = {}
         for paper in papers:
@@ -1108,7 +1049,7 @@ def render_paper_cards(
             if url:
                 open_col.link_button("Open", url)
             summary_clicked = summary_col.button("Summary", key=f"paper-summary-button-{scope}-{cache_id}")
-            guidance_clicked = guidance_col.button("Guidance", key=f"paper-roadmap-button-{scope}-{cache_id}")
+            guidance_clicked = guidance_col.button("Guidance", key=f"paper-guidance-button-{scope}-{cache_id}")
 
             panel_placeholder = st.empty()
             if summary_clicked and not inline_summary:
@@ -1129,19 +1070,19 @@ def render_paper_cards(
                 except requests.RequestException as exc:
                     panel_placeholder.error(f"Could not reach the backend: {exc}")
 
-            if guidance_clicked and guidance_id not in st.session_state.paper_roadmaps:
+            if guidance_clicked and guidance_id not in st.session_state.paper_guidance:
                 panel_placeholder.markdown(
                     paper_insight_loading_html("Guidance", "Generating guidance..."),
                     unsafe_allow_html=True,
                 )
                 try:
-                    status = paper_roadmap_cache_status(paper, generation_mode)
+                    status = paper_guidance_cache_status(paper, generation_mode)
                     if status.get("cached"):
                         panel_placeholder.markdown(
                             paper_insight_loading_html("Guidance", "Loading cached guidance..."),
                             unsafe_allow_html=True,
                         )
-                    st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
+                    st.session_state.paper_guidance[guidance_id] = generate_paper_guidance(paper, generation_mode)
                     panel_placeholder.empty()
                 except requests.ConnectionError:
                     panel_placeholder.error(
@@ -1154,9 +1095,9 @@ def render_paper_cards(
 
             if inline_summary:
                 st.markdown(paper_insight_panel_html("Summary", inline_summary), unsafe_allow_html=True)
-            if guidance_id in st.session_state.paper_roadmaps:
+            if guidance_id in st.session_state.paper_guidance:
                 st.markdown(
-                    paper_insight_panel_html("Guidance", st.session_state.paper_roadmaps[guidance_id]),
+                    paper_insight_panel_html("Guidance", st.session_state.paper_guidance[guidance_id]),
                     unsafe_allow_html=True,
                 )
 
@@ -1165,52 +1106,6 @@ def render_paper_cards(
         st.session_state.selected_labels = [
             label for label in valid_all_labels if label in selected_set
         ]
-
-
-def render_paper_details(papers, summaries=None, show_roadmap_controls=False, scope="results", generation_mode="fast"):
-    summaries = summaries or []
-    for index, paper in enumerate(papers):
-        summary = summaries[index] if index < len(summaries) else None
-        cache_id = paper_cache_id(paper)
-        guidance_id = guidance_cache_id(paper, generation_mode)
-        with st.expander(f"{index + 1}. {paper['title']}", expanded=index == 0):
-            st.write(f"**Source:** {paper.get('source', 'arxiv')}")
-            st.write(f"**Authors:** {', '.join(paper.get('authors', []))}")
-            st.write(f"**Date:** {paper.get('date') or paper.get('published', '')}")
-            citations = citation_label(paper)
-            if citations:
-                st.write(f"**Citations:** {citations}")
-            st.write(
-                "**Category:** "
-                f"{paper_category(paper)}"
-            )
-            st.write(f"**URL:** [Open paper]({paper.get('url') or paper.get('link')})")
-            st.write(f"**Abstract:** {paper.get('abstract', '')}")
-            if summary:
-                st.write(f"**Summary:** {summary}")
-            if show_roadmap_controls:
-                if st.button("Guidance", key=f"paper-roadmap-button-{scope}-{cache_id}"):
-                    try:
-                        status = paper_roadmap_cache_status(paper, generation_mode)
-                        if status.get("cached"):
-                            st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
-                        else:
-                            guidance_placeholder = st.empty()
-                            guidance_placeholder.markdown(
-                                pulse_loading_html("Generating guidance..."),
-                                unsafe_allow_html=True,
-                            )
-                            st.session_state.paper_roadmaps[guidance_id] = generate_paper_roadmap(paper, generation_mode)
-                            guidance_placeholder.empty()
-                    except requests.ConnectionError:
-                        st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
-                    except requests.HTTPError as exc:
-                        st.error(f"The backend returned an error: {exc.response.text}")
-                    except requests.RequestException as exc:
-                        st.error(f"Could not reach the backend: {exc}")
-                if guidance_id in st.session_state.paper_roadmaps:
-                    st.markdown("**Paper guidance**")
-                    st.markdown(st.session_state.paper_roadmaps[guidance_id])
 
 
 st.set_page_config(page_title="AcademicForge", page_icon="AF", layout="wide")
@@ -1237,16 +1132,16 @@ if "selected_labels" not in st.session_state:
     st.session_state.selected_labels = []
 if "summaries" not in st.session_state:
     st.session_state.summaries = []
-if "roadmap" not in st.session_state:
-    st.session_state.roadmap = ""
-if "roadmap_elapsed" not in st.session_state:
-    st.session_state.roadmap_elapsed = None
+if "research_plan" not in st.session_state:
+    st.session_state.research_plan = st.session_state.get("roadmap", "")
+if "research_plan_elapsed" not in st.session_state:
+    st.session_state.research_plan_elapsed = st.session_state.get("roadmap_elapsed")
 if "generated_labels" not in st.session_state:
     st.session_state.generated_labels = []
 if "generated_mode" not in st.session_state:
     st.session_state.generated_mode = ""
-if "paper_roadmaps" not in st.session_state:
-    st.session_state.paper_roadmaps = {}
+if "paper_guidance" not in st.session_state:
+    st.session_state.paper_guidance = st.session_state.get("paper_roadmaps", {})
 if "on_demand_summaries" not in st.session_state:
     st.session_state.on_demand_summaries = {}
 if "generation_mode" not in st.session_state:
@@ -1313,6 +1208,9 @@ with st.container(border=True, key="search_shell"):
         f'<div class="af-lens-description">{html.escape(RESEARCH_LENS_DESCRIPTIONS[research_lens])}</div>',
         unsafe_allow_html=True,
     )
+    
+
+
 focus_categories = applied_focus_categories(research_lens)
 
 active_mode = mode_config(config, st.session_state.generation_mode)
@@ -1338,11 +1236,11 @@ if should_search:
             st.session_state.last_query = research_question.strip()
             st.session_state.last_search_focus = list(focus_categories)
             st.session_state.summaries = []
-            st.session_state.roadmap = ""
-            st.session_state.roadmap_elapsed = None
+            st.session_state.research_plan = ""
+            st.session_state.research_plan_elapsed = None
             st.session_state.generated_labels = []
             st.session_state.generated_mode = ""
-            st.session_state.paper_roadmaps = {}
+            st.session_state.paper_guidance = {}
             labels = [
                 paper_label(index, paper)
                 for index, paper in enumerate(st.session_state.papers, start=1)
@@ -1422,7 +1320,7 @@ if papers:
                 pulse_loading_html("Checking Research Plan cache..."),
                 unsafe_allow_html=True,
             )
-            status = roadmap_cache_status(
+            status = research_plan_cache_status(
                 selected_papers,
                 st.session_state.summaries,
                 st.session_state.last_query or research_question.strip(),
@@ -1441,8 +1339,8 @@ if papers:
         control_cols = st.columns([3, 1.25])
         control_cols[0].markdown(
             f"""
-            <div class="synthesis-control-title">Research Plan</div>
-            <div class="synthesis-control-meta">
+            <div class="research-plan-control-title">Research Plan</div>
+            <div class="research-plan-control-meta">
                 {len(selected_papers)} selected paper(s) · Active mode: {html.escape(active_mode['label'])}
             </div>
             """,
@@ -1466,24 +1364,24 @@ if papers:
                     continue
 
                 with plan_placeholder.container():
-                    render_synthesis_loading_state("Summarizing selected evidence...")
+                    render_research_plan_loading_state("Summarizing selected evidence...")
                 summary = summarize_paper(paper)
                 selected_summaries.append(summary)
             st.session_state.summaries = selected_summaries
 
-            roadmap_started = time.perf_counter()
+            research_plan_started = time.perf_counter()
             with plan_placeholder.container():
-                render_synthesis_loading_state("Streaming Research Plan...")
-            roadmap_chunks = []
-            for chunk in stream_roadmap(
+                render_research_plan_loading_state("Streaming Research Plan...")
+            research_plan_chunks = []
+            for chunk in stream_research_plan(
                 selected_papers,
                 st.session_state.summaries,
                 st.session_state.last_query or research_question.strip(),
                 st.session_state.generation_mode,
             ):
-                roadmap_chunks.append(chunk)
-            st.session_state.roadmap = "".join(roadmap_chunks).strip()
-            st.session_state.roadmap_elapsed = time.perf_counter() - roadmap_started
+                research_plan_chunks.append(chunk)
+            st.session_state.research_plan = "".join(research_plan_chunks).strip()
+            st.session_state.research_plan_elapsed = time.perf_counter() - research_plan_started
             plan_placeholder.empty()
             st.session_state.generated_labels = selected_labels
             st.session_state.generated_mode = st.session_state.generation_mode
@@ -1499,22 +1397,22 @@ if papers:
 
     can_show_generated_output = (
         st.session_state.summaries
-        and st.session_state.roadmap
+        and st.session_state.research_plan
         and selected_labels == st.session_state.generated_labels
         and st.session_state.generation_mode == st.session_state.generated_mode
     )
 
     if not can_show_generated_output and not should_generate:
-        render_synthesis_empty_state()
+        render_research_plan_empty_state()
 
     if can_show_generated_output:
-        if st.session_state.roadmap_elapsed is not None:
-            elapsed = st.session_state.roadmap_elapsed
+        if st.session_state.research_plan_elapsed is not None:
+            elapsed = st.session_state.research_plan_elapsed
             if elapsed < 1:
                 st.success(f"Research Plan loaded from cache in {elapsed:.2f}s.")
             else:
                 st.info(f"Research Plan generated with {active_mode['label']} in {elapsed:.2f}s.")
-        render_synthesis_panel(st.session_state.roadmap)
+        render_research_plan_panel(st.session_state.research_plan)
 
         markdown = "## Research Plan\n\n"
         markdown += f"### Research question\n{st.session_state.last_query or research_question.strip()}\n\n"
@@ -1522,14 +1420,14 @@ if papers:
             markdown += f"### {paper['title']}\n\n{summary}\n\n"
         markdown += "### Combined Research Plan\n"
         markdown += (
-            st.session_state.roadmap
-            if isinstance(st.session_state.roadmap, str)
-            else str(st.session_state.roadmap)
+            st.session_state.research_plan
+            if isinstance(st.session_state.research_plan, str)
+            else str(st.session_state.research_plan)
         )
         st.download_button(
             "Download Markdown",
             markdown,
-            file_name="academicforge-roadmap.md",
+            file_name="academicforge-research-plan.md",
             mime="text/markdown",
         )
 elif st.session_state.last_query:

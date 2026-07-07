@@ -52,7 +52,7 @@ class AppConfig:
     llm_provider: str
     llm_model: str
     llm_summary_model: str
-    llm_roadmap_model: str
+    llm_research_plan_model: str
     llm_max_tokens: int
     llm_temperature: float
     cache_dir: Path
@@ -66,7 +66,11 @@ class AppConfig:
             llm_provider=_provider_from_env(),
             llm_model=default_model,
             llm_summary_model=os.getenv("LOCAL_LLM_SUMMARY_MODEL", default_model).strip(),
-            llm_roadmap_model=os.getenv("LOCAL_LLM_ROADMAP_MODEL", default_model).strip(),
+            llm_research_plan_model=(
+                os.getenv("LOCAL_LLM_RESEARCH_PLAN_MODEL")
+                or os.getenv("LOCAL_LLM_ROADMAP_MODEL")
+                or default_model
+            ).strip(),
             llm_max_tokens=_env_int("LOCAL_LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS),
             llm_temperature=_env_float("LOCAL_LLM_TEMPERATURE", DEFAULT_TEMPERATURE),
             cache_dir=Path(os.getenv("ACADEMICFORGE_CACHE_DIR", ".academicforge_cache")),
@@ -77,8 +81,8 @@ class AppConfig:
     def model_for_task(self, task: str | None = None) -> str:
         if task == "summary":
             return self.llm_summary_model
-        if task == "roadmap":
-            return self.llm_roadmap_model
+        if task in {"research_plan", "roadmap"}:
+            return self.llm_research_plan_model
         return self.llm_model
 
     def as_public_dict(self) -> dict:
@@ -87,7 +91,8 @@ class AppConfig:
             "llm_models": {
                 "default": self.llm_model,
                 "summary": self.llm_summary_model,
-                "roadmap": self.llm_roadmap_model,
+                "research_plan": self.llm_research_plan_model,
+                "roadmap": self.llm_research_plan_model,
             },
             "llm_max_tokens": self.llm_max_tokens,
             "llm_temperature": self.llm_temperature,

@@ -1,7 +1,40 @@
 import re
+import logging
 from functools import lru_cache
 
 from backend.config import get_config
+
+logger = logging.getLogger(__name__)
+
+
+def _patch_transformers_auto_factory():
+    """Fix transformers 5.x + Python 3.14 incompatibility.
+
+    ``transformers.models.auto.auto_factory._LazyAutoMapping.register``
+    calls ``key.__module__`` assuming *key* is always a class, but
+    ``mlx_lm`` passes a plain string config name which causes
+    ``AttributeError: 'str' object has no attribute '__module__'``.
+    We wrap the method so it handles string keys gracefully.
+    """
+    try:
+        from transformers.models.auto import auto_factory
+
+        original_register = auto_factory._LazyAutoMapping.register
+
+        def _safe_register(self, key, value, *, exist_ok=False):
+            if isinstance(key, str):
+                # Skip the __module__ check that crashes on string keys
+                self._extra_content[key] = value
+                return
+            return original_register(self, key, value, exist_ok=exist_ok)
+
+        auto_factory._LazyAutoMapping.register = _safe_register
+        logger.info("Patched transformers auto_factory for Python 3.14 compat")
+    except Exception:
+        pass  # If transformers is not installed or API changed, skip silently
+
+
+_patch_transformers_auto_factory()
 
 
 class LocalLLMError(RuntimeError):
@@ -21,7 +54,8 @@ def task_model_config():
     return {
         "default": config.llm_model,
         "summary": config.llm_summary_model,
-        "roadmap": config.llm_roadmap_model,
+        "research_plan": config.llm_research_plan_model,
+        "roadmap": config.llm_research_plan_model,
     }
 
 
@@ -150,7 +184,7 @@ def _clean_response(text):
     heading_match = re.search(r"(\*\*[^*\n]+:\*\*|##\s+)", text)
     if heading_match and heading_match.start() < 280:
         preface = text[:heading_match.start()].lower()
-        if any(marker in preface for marker in ("summary", "roadmap", "formatted", "requested", "provided")):
+        if any(marker in preface for marker in ("summary", "roadmap", "research plan", "formatted", "requested", "provided")):
             text = text[heading_match.start():].lstrip()
     fence_match = re.fullmatch(r"```(?:markdown|md)?\s*(.*?)\s*```", text, re.DOTALL)
     if fence_match:

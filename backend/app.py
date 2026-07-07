@@ -9,11 +9,11 @@ import os
 from backend.config import get_config as get_app_config
 from backend.data_pipeline import extract_arxiv_id, not_enough_relevant_message, retrieve_and_rank_papers
 from backend.llm import provider_name, task_model_config
-from backend.roadmap_generator import generate_roadmap as generate_ai_roadmap
-from backend.roadmap_generator import generate_paper_roadmap as generate_ai_paper_roadmap
-from backend.roadmap_generator import paper_roadmap_cache_status as get_paper_roadmap_cache_status
-from backend.roadmap_generator import roadmap_cache_status as get_roadmap_cache_status
-from backend.roadmap_generator import stream_roadmap as stream_ai_roadmap
+from backend.research_plan_generator import generate_paper_guidance as generate_ai_paper_guidance
+from backend.research_plan_generator import generate_research_plan as generate_ai_research_plan
+from backend.research_plan_generator import paper_guidance_cache_status as get_paper_guidance_cache_status
+from backend.research_plan_generator import research_plan_cache_status as get_research_plan_cache_status
+from backend.research_plan_generator import stream_research_plan as stream_ai_research_plan
 from backend.summarizer import summarize_paper as summarize_paper_with_ai
 
 load_dotenv()
@@ -108,40 +108,61 @@ async def summarize_paper(paper: Paper):
         logger.exception("Summary failed paper_id=%r", paper.paper_id)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/roadmap")
-async def generate_roadmap(request: PapersRequest):
-    """Generate an implementation roadmap based on paper summaries."""
+def research_plan_response(text: str) -> dict:
+    return {"research_plan": text, "roadmap": text}
+
+
+def paper_guidance_response(text: str) -> dict:
+    return {"guidance": text, "roadmap": text}
+
+
+@app.post("/research-plan")
+async def generate_research_plan(request: PapersRequest):
+    """Generate a Research Plan based on selected papers and summaries."""
     try:
-        logger.info("Mixed roadmap requested paper_count=%d", len(request.papers))
+        logger.info("Research Plan requested paper_count=%d", len(request.papers))
         papers = [paper.model_dump() for paper in request.papers]
-        roadmap = generate_ai_roadmap(
+        research_plan = generate_ai_research_plan(
             papers,
             request.summaries,
             request.query,
             model=model_for_mode(request.generation_mode),
         )
-        return {"roadmap": roadmap}
+        return research_plan_response(research_plan)
     except Exception as e:
-        logger.exception("Mixed roadmap failed")
+        logger.exception("Research Plan failed")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/roadmap")
+async def generate_roadmap(request: PapersRequest):
+    return await generate_research_plan(request)
+
+
+@app.post("/paper-guidance")
+async def generate_paper_guidance(paper: Paper):
+    """Generate practical guidance for one paper."""
+    try:
+        logger.info("Paper guidance requested paper_id=%r title=%r", paper.paper_id, paper.title[:80])
+        guidance = generate_ai_paper_guidance(paper.model_dump(), model=model_for_mode(paper.generation_mode))
+        return paper_guidance_response(guidance)
+    except Exception as e:
+        logger.exception("Paper guidance failed paper_id=%r", paper.paper_id)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/roadmap/paper")
 async def generate_paper_roadmap(paper: Paper):
-    """Generate a practical roadmap for one paper."""
-    try:
-        logger.info("Paper roadmap requested paper_id=%r title=%r", paper.paper_id, paper.title[:80])
-        return {"roadmap": generate_ai_paper_roadmap(paper.model_dump(), model=model_for_mode(paper.generation_mode))}
-    except Exception as e:
-        logger.exception("Paper roadmap failed paper_id=%r", paper.paper_id)
-        raise HTTPException(status_code=500, detail=str(e))
+    return await generate_paper_guidance(paper)
 
-@app.post("/roadmap/paper/cache-status")
-async def paper_roadmap_cache_status(paper: Paper):
-    """Return whether a single-paper roadmap is already cached."""
+
+@app.post("/paper-guidance/cache-status")
+async def paper_guidance_cache_status(paper: Paper):
+    """Return whether single-paper guidance is already cached."""
     try:
-        status = get_paper_roadmap_cache_status(paper.model_dump(), model=model_for_mode(paper.generation_mode))
+        status = get_paper_guidance_cache_status(paper.model_dump(), model=model_for_mode(paper.generation_mode))
         logger.info(
-            "Paper roadmap cache status paper_id=%r cache=%s cached=%s",
+            "Paper guidance cache status paper_id=%r cache=%s cached=%s",
             paper.paper_id,
             status.get("cache"),
             status.get("cached"),
@@ -150,19 +171,25 @@ async def paper_roadmap_cache_status(paper: Paper):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/roadmap/cache-status")
-async def roadmap_cache_status(request: PapersRequest):
-    """Return whether the selected roadmap is already cached."""
+
+@app.post("/roadmap/paper/cache-status")
+async def paper_roadmap_cache_status(paper: Paper):
+    return await paper_guidance_cache_status(paper)
+
+
+@app.post("/research-plan/cache-status")
+async def research_plan_cache_status(request: PapersRequest):
+    """Return whether the selected Research Plan is already cached."""
     try:
         papers = [paper.model_dump() for paper in request.papers]
-        status = get_roadmap_cache_status(
+        status = get_research_plan_cache_status(
             papers,
             request.summaries,
             request.query,
             model=model_for_mode(request.generation_mode),
         )
         logger.info(
-            "Mixed roadmap cache status paper_count=%d cache=%s cached=%s",
+            "Research Plan cache status paper_count=%d cache=%s cached=%s",
             len(request.papers),
             status.get("cache"),
             status.get("cached"),
@@ -171,14 +198,20 @@ async def roadmap_cache_status(request: PapersRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/roadmap/stream")
-async def stream_roadmap(request: PapersRequest):
-    """Stream an implementation roadmap as it is generated."""
+
+@app.post("/roadmap/cache-status")
+async def roadmap_cache_status(request: PapersRequest):
+    return await research_plan_cache_status(request)
+
+
+@app.post("/research-plan/stream")
+async def stream_research_plan(request: PapersRequest):
+    """Stream a Research Plan as it is generated."""
     try:
-        logger.info("Mixed roadmap stream requested paper_count=%d", len(request.papers))
+        logger.info("Research Plan stream requested paper_count=%d", len(request.papers))
         papers = [paper.model_dump() for paper in request.papers]
         return StreamingResponse(
-            stream_ai_roadmap(
+            stream_ai_research_plan(
                 papers,
                 request.summaries,
                 request.query,
@@ -187,5 +220,10 @@ async def stream_roadmap(request: PapersRequest):
             media_type="text/plain",
         )
     except Exception as e:
-        logger.exception("Mixed roadmap stream failed")
+        logger.exception("Research Plan stream failed")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/roadmap/stream")
+async def stream_roadmap(request: PapersRequest):
+    return await stream_research_plan(request)

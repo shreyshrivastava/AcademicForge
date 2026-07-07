@@ -36,7 +36,7 @@ Default local model settings:
 export LOCAL_LLM_PROVIDER=mlx
 export LOCAL_LLM_MODEL=mlx-community/Qwen3-4B-4bit
 export LOCAL_LLM_SUMMARY_MODEL=mlx-community/Qwen3-4B-4bit
-export LOCAL_LLM_ROADMAP_MODEL=mlx-community/Qwen3-4B-4bit
+export LOCAL_LLM_RESEARCH_PLAN_MODEL=mlx-community/Qwen3-4B-4bit
 ```
 
 ## Future GPU Backends
@@ -74,7 +74,7 @@ http://127.0.0.1:8501
 ## 5. Run Tests
 
 ```bash
-python -m py_compile backend/app.py backend/cache.py backend/llm.py backend/summarizer.py backend/roadmap_generator.py frontend/streamlit_app.py backend/retrieval/*.py scripts/*.py tests/*.py
+python -m py_compile backend/app.py backend/cache.py backend/llm.py backend/summarizer.py backend/research_plan_generator.py backend/roadmap_generator.py frontend/streamlit_app.py backend/retrieval/*.py scripts/*.py tests/*.py
 python tests/test_cache.py
 python tests/test_generation_pipeline.py
 python tests/test_llm_routing.py
@@ -103,7 +103,7 @@ export ACADEMICFORGE_BACKEND_URL=http://127.0.0.1:8000
 
 ### First generation is slow
 
-The first run may download or load local MLX model weights. Repeated summaries and roadmaps are cached.
+The first run may download or load local MLX model weights. Repeated summaries and Research Plans are cached.
 
 ### Dense retrieval model warning
 

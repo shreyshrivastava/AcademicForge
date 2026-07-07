@@ -17,6 +17,7 @@ def test_config_endpoint_returns_model_info():
     assert payload["llm_provider"]
     assert payload["llm_models"]["default"]
     assert payload["llm_models"]["summary"]
+    assert payload["llm_models"]["research_plan"]
     assert payload["llm_models"]["roadmap"]
     assert payload["generation_modes"]["fast"]["model"]
     assert payload["generation_modes"]["deep"]["model"]
@@ -76,10 +77,10 @@ def test_search_endpoint_treats_balanced_as_exclusive():
         backend_app.retrieve_and_rank_papers = original_retrieve
 
 
-def test_roadmap_cache_status_endpoint_returns_status():
+def test_research_plan_cache_status_endpoint_returns_status():
     client = TestClient(app)
     response = client.post(
-        "/roadmap/cache-status",
+        "/research-plan/cache-status",
         json={
             "papers": [
                 {
@@ -100,18 +101,18 @@ def test_roadmap_cache_status_endpoint_returns_status():
     assert payload["cache"] in {"memory", "disk", "miss"}
 
 
-def test_paper_roadmap_endpoint_returns_roadmap():
-    original_generate = backend_app.generate_ai_paper_roadmap
+def test_paper_guidance_endpoint_returns_guidance():
+    original_generate = backend_app.generate_ai_paper_guidance
 
     def fake_generate(paper, model=None):
         assert model == backend_app.DEEP_MODE_MODEL
-        return f"roadmap for {paper['title']}"
+        return f"guidance for {paper['title']}"
 
-    backend_app.generate_ai_paper_roadmap = fake_generate
+    backend_app.generate_ai_paper_guidance = fake_generate
     try:
         client = TestClient(app)
         response = client.post(
-            "/roadmap/paper",
+            "/paper-guidance",
             json={
                 "title": "Paper",
                 "authors": [],
@@ -122,15 +123,18 @@ def test_paper_roadmap_endpoint_returns_roadmap():
             },
         )
         assert response.status_code == 200
-        assert response.json() == {"roadmap": "roadmap for Paper"}
+        assert response.json() == {
+            "guidance": "guidance for Paper",
+            "roadmap": "guidance for Paper",
+        }
     finally:
-        backend_app.generate_ai_paper_roadmap = original_generate
+        backend_app.generate_ai_paper_guidance = original_generate
 
 
-def test_paper_roadmap_cache_status_endpoint_returns_status():
+def test_paper_guidance_cache_status_endpoint_returns_status():
     client = TestClient(app)
     response = client.post(
-        "/roadmap/paper/cache-status",
+        "/paper-guidance/cache-status",
         json={
             "title": "Paper",
             "authors": [],
@@ -145,21 +149,21 @@ def test_paper_roadmap_cache_status_endpoint_returns_status():
     assert payload["cache"] in {"memory", "disk", "miss"}
 
 
-def test_roadmap_stream_endpoint_streams_text():
-    original_stream = backend_app.stream_ai_roadmap
+def test_research_plan_stream_endpoint_streams_text():
+    original_stream = backend_app.stream_ai_research_plan
 
     def fake_stream(papers, summaries=None, query="", model=None):
         assert query == "build a prototype"
         assert model == backend_app.DEEP_MODE_MODEL
         yield "hello "
-        yield "roadmap"
+        yield "research plan"
 
-    backend_app.stream_ai_roadmap = fake_stream
+    backend_app.stream_ai_research_plan = fake_stream
     try:
         client = TestClient(app)
         with client.stream(
             "POST",
-            "/roadmap/stream",
+            "/research-plan/stream",
             json={
                 "papers": [
                     {
@@ -176,16 +180,39 @@ def test_roadmap_stream_endpoint_streams_text():
             },
         ) as response:
             assert response.status_code == 200
-            assert response.read().decode("utf-8") == "hello roadmap"
+            assert response.read().decode("utf-8") == "hello research plan"
     finally:
-        backend_app.stream_ai_roadmap = original_stream
+        backend_app.stream_ai_research_plan = original_stream
+
+
+def test_legacy_roadmap_routes_remain_available():
+    client = TestClient(app)
+    response = client.post(
+        "/roadmap/cache-status",
+        json={
+            "papers": [
+                {
+                    "title": "Paper",
+                    "authors": [],
+                    "abstract": "Abstract",
+                    "link": "https://example.com",
+                    "date": "2026-06-30",
+                }
+            ],
+            "summaries": ["Core idea\nA test."],
+            "query": "build a prototype",
+        },
+    )
+    assert response.status_code == 200
+    assert "cached" in response.json()
 
 
 if __name__ == "__main__":
     test_config_endpoint_returns_model_info()
     test_search_endpoint_passes_research_focus()
-    test_roadmap_cache_status_endpoint_returns_status()
-    test_paper_roadmap_endpoint_returns_roadmap()
-    test_paper_roadmap_cache_status_endpoint_returns_status()
-    test_roadmap_stream_endpoint_streams_text()
+    test_research_plan_cache_status_endpoint_returns_status()
+    test_paper_guidance_endpoint_returns_guidance()
+    test_paper_guidance_cache_status_endpoint_returns_status()
+    test_research_plan_stream_endpoint_streams_text()
+    test_legacy_roadmap_routes_remain_available()
     print("api contract tests passed")
