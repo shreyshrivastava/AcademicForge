@@ -24,9 +24,9 @@ Streamlit UI
 
 `backend/app.py` exposes the main API:
 
-- `GET /config` - active local model configuration
+- `GET /config` - active model configurations
 - `POST /search` - arXiv collection plus hybrid retrieval
-- `POST /summarize` - local paper summary generation
+- `POST /summarize` - paper summary generation
 - `POST /research-plan` - non-streaming Research Plan generation
 - `POST /research-plan/stream` - streaming Research Plan generation
 - `POST /research-plan/cache-status` - cache status for selected Research Plan inputs
@@ -54,8 +54,7 @@ Supported provider:
 
 - `mlx`
 
-Current default model:
-
+Current default model (Fast Mode):
 - `mlx-community/Qwen3-4B-4bit`
 
 Task-specific model routing:

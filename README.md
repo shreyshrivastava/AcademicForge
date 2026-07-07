@@ -1,374 +1,241 @@
 # AcademicForge
 
-AcademicForge is an AI research-to-build workbench for finding, comparing, summarizing, and turning academic papers into Research Plans.
+AcademicForge is a local-first, AI-powered research-to-implementation engine that translates academic papers into production-ready system architectures and engineering blueprints.
 
-Instead of returning only keyword matches, AcademicForge combines arXiv search, BM25 keyword retrieval, dense semantic retrieval, reciprocal rank fusion, local and cloud-ready LLM summarization, and streamed Research Plan generation to help builders move from:
+Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicForge acts as an explainable, self-hosted research copilot. It combines hybrid document retrieval, Reciprocal Rank Fusion (RRF), local vector embeddings, and streamed local LLM inference to compile multiple research papers into structured **Research Plans** and **Builder Guidance**.
 
-```text
-What should I read?
-```
+---
 
-to:
+## 🚀 Hero Section
 
-```text
-What should I build next, and how?
-```
+### Tech Stack
+*   **Backend:** FastAPI, Uvicorn, Python 3.11+
+*   **Frontend:** Streamlit
+*   **Retrieval:** BM25 (Rank-BM25), Dense Vector Embeddings (`BAAI/bge-small-en-v1.5`), Reciprocal Rank Fusion (RRF)
+*   **Inference Backends:** 
+    *   `mlx` (Native Apple Silicon acceleration via `mlx-lm`)
+    *   `transformers` (PyTorch backend supporting **AMD ROCm** and NVIDIA CUDA architectures)
+*   **Default Models:** `mlx-community/Qwen3-4B-4bit` (Fast Mode), `mlx-community/gemma-4-e2b-it-OptiQ-4bit` (Deep Mode)
 
-## AMD Developer Challenge Positioning
+---
 
-AcademicForge is being built for the AMD Developer Challenge as a product-oriented AI application that connects research discovery with practical implementation planning.
+## 📋 Problem Statement
 
-The current project is intentionally split into two layers:
+Research-minded developers, engineers, and startup founders face three primary friction points when dealing with scientific literature:
 
-- **Product layer:** a usable research assistant that turns papers into summaries and Research Plans.
-- **Inference layer:** a provider-aware backend that can run locally with MLX today and move to AMD Cloud, ROCm, vLLM, Fireworks, or Gemma-hosted inference later.
+1.  **Information Overload:** A simple search on arXiv yields hundreds of pages. Sorting through abstracts, introduction chapters, and mathematical notation is incredibly slow.
+2.  **Fragmented Workflows:** Builders must jump between academic databases, PDF viewers, search engines, and generic chat inputs to collect ideas, compare models, and translate them into code.
+3.  **The Jargon-to-Code Gap:** Academic papers are optimized for publication metrics, not execution. Converting a theoretical mathematical formula into a database schema, component list, or system architecture is a highly manual, error-prone translation task.
 
-This matters because MLX is excellent for fast local iteration on Apple Silicon, but AMD hardware is the natural path for a hosted, scalable, hackathon-ready deployment.
+---
 
-Current model strategy:
+## 💡 The Solution: A Research-to-Implementation Copilot
 
-| Role | Current choice | Reason |
-| --- | --- | --- |
-| Best local default | `mlx-community/Qwen3-4B-4bit` | Best speed/quality balance in local tests. |
-| Lightweight sponsor-aligned baseline | `mlx-community/gemma-3-1b-it-4bit` | Easy local smoke tests and routing experiments. |
-| Gemma 4 local experiment | `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | Works locally and gives clearer Gemma 4 output, but slower than Qwen on this Mac. |
-| Future hosted model | Gemma 4 on Fireworks or AMD Cloud | Stronger sponsor/AMD story and better deployment fit. |
-
-The product direction is not "one model wins forever." The stronger architecture is:
+AcademicForge is not a generic conversation bot; it is a developer-centric RAG pipeline designed to automate the research-to-build workflow:
 
 ```text
-Local development: MLX + Qwen for quality and fast iteration
-Hackathon deployment: AMD Cloud / Fireworks + Gemma 4
-Future optimization: router chooses the cheapest model that preserves answer quality
+Scientific Literature (arXiv & Semantic Scholar)
+  ──[Hybrid Retrieval & RRF Fusion]──>
+    Curated Evidence Set & Explanable Ranks
+      ──[Local LLM Pipeline Routing]──>
+        Structured, Actionable Research & Build Plans
 ```
 
-## What We Tested
+It fetches candidate papers live, merges their rankings, filters out weak associations, allows the user to select the exact evidence to ground the synthesis, and generates a structured, streamable **Research Plan** and **Builder Guidance** tailored directly for code implementation.
 
-Local tests were run on the AcademicForge summary and Research Plan workflow, not generic chatbot prompts. The benchmark uses `scripts/benchmark_llm.py` and measures tiny generation, paper summaries, Research Plan generation, output length, latency, and simple quality flags.
+---
 
-| Model | Local runtime | Total benchmark time | Tiny generation | Summary behavior | Research Plan behavior | Current verdict |
-| --- | --- | ---: | ---: | --- | --- | --- |
-| `mlx-community/gemma-3-1b-it-4bit` | MLX / `mlx-lm` | `26.399s` | `3.846s` | More verbose; sometimes invented details in earlier tests. | Usable but more generic. | Useful as a small router/smoke-test model, not the main demo model. |
-| `mlx-community/Qwen3-4B-4bit` | MLX / `mlx-lm` | `23.870s` to `35.890s` | `1.595s` to `1.787s` | Concise, cleaner, more faithful to abstracts. | Best speed/quality balance for AcademicForge today. | Default local model. |
-| `mlx-community/gemma-4-e2b-it-4bit` | MLX / `mlx-lm` and `mlx-vlm` | Did not complete | n/a | Failed local load with a Gemma 4 weight mismatch. | n/a | Not used. |
-| `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | MLX / `mlx-lm` | `49.140s` | `4.607s` | Good and clear; more detailed than Gemma 3. | Stronger than Gemma 3 but slower and more verbose than Qwen. | Keep as Gemma 4 compatibility proof and future AMD/Fireworks candidate. |
+## 🤖 Why Not Just Use ChatGPT Deep Research?
 
-Benchmark command:
+While ChatGPT is an excellent generalist search agent, AcademicForge offers significant engineering and workflow advantages for developer applications:
 
+| Feature | AcademicForge | ChatGPT Deep Research |
+| :--- | :--- | :--- |
+| **Explainable Retrieval** | Explicitly displays BM25 lexical rank, dense semantic rank, and Reciprocal Rank Fusion (RRF) scores in the UI. | Black box search selection with no rank transparency. |
+| **Strict Context Grounding** | Prompts are injected *only* with retrieved paper metadata and summary abstracts. No hallucinated citations. | Relies on web crawls and parametric memory, which frequently invent paper details. |
+| **Data Privacy & IP Control** | Can run 100% locally on your own hardware (AMD ROCm / Apple Silicon). No corporate code or unpublished ideas leave your machine. | Requires uploading proprietary concepts and queries to third-party OpenAI endpoints. |
+| **Local Cache Performance** | Multi-tiered disk and memory caching ensures repeat queries or identical evidence runs load instantly. | Re-runs search queries and synthesis scripts from scratch, costing time and API limits. |
+| **Targeted Engineering Output** | Structured specifically to output project names, component architectures, difficulty levels, and tradeoffs. | Outputs generic literature reviews or academic summaries. |
+
+---
+
+## ✨ Features
+
+*   **Multi-Source Candidate Search:** Live query ingestion fetching candidate matches from both **arXiv** and **Semantic Scholar**.
+*   **Query Rewrite Engine:** Preprocesses casual user input into academic-friendly keywords.
+*   **Dual-Engine Hybrid Retrieval:** Lexical matching (BM25) combined with dense vector semantic search (`BAAI/bge-small-en-v1.5` embeddings).
+*   **Reciprocal Rank Fusion (RRF):** Merges rank lists mathematically to prevent score-distribution bias.
+*   **Structured Research Lenses:** Dynamic candidate weighting (Balanced, Foundational, Survey, Implementation Focused, Evaluation Focused, Alternative Approach, Contrarian View).
+*   **Task-Specific Model Routing:** Routes queries to distinct models for fast summarization vs. deep research plans.
+*   **Streamed Generation:** High-performance, incremental token streaming for real-time UI rendering.
+*   **Multi-Tiered Local Cache:** Persistent JSON cache stores summaries and research plans locally to eliminate LLM latency.
+*   **Explainable Ranks:** Cards display raw search scores and metadata chips directly.
+*   **Builder Guidance:** Single-click practical guidance generated for individual papers.
+*   **Automated Benchmarking:** Command-line suite to measure LLM generation speed, output lengths, and quality flags.
+
+---
+
+## 📐 System Architecture
+
+The following diagram maps the query-to-build pipeline:
+
+```mermaid
+graph TD
+    Question[User Question] --> QR[Query Rewrite Engine]
+    QR -->|arXiv API| ArXiv[arXiv Search]
+    QR -->|Semantic Scholar API| SemScholar[Semantic Scholar Search]
+    ArXiv --> Pool[Candidate Pool]
+    SemScholar --> Pool
+    Pool --> BM25[BM25 Lexical Ranker]
+    Pool --> Dense[Dense Semantic Embeddings]
+    BM25 --> RRF[Reciprocal Rank Fusion]
+    Dense --> RRF
+    RRF --> Filter[Relevance Filtering & Lens Selection]
+    Filter --> Ev[Evidence Selection]
+    Ev --> Summary[Concise Paper Summaries]
+    Ev --> Plan[Research Plan Generation]
+    Ev --> Guidance[Single-Paper Builder Guidance]
+    Summary --> Cache[(Persistent Disk Cache)]
+    Plan --> Cache
+```
+
+---
+
+## 🔍 Retrieval Pipeline
+
+### 1. BM25 Lexical Ranker
+Matches exact keyword overlap across titles, abstracts, categories, and tags. This ensures that specific model names, algorithms, or technical terms are surfaced accurately.
+
+### 2. Dense Semantic Search
+Uses `BAAI/bge-small-en-v1.5` (a 384-dimensional dense vector embedding model) to calculate cosine similarity. This surfaces papers that discuss similar concepts using different terminology.
+*   *Fallback Behavior:* If `sentence-transformers` is not installed, the dense search module falls back to a lexical cosine-similarity vectorizer, keeping the app functional.
+
+### 3. Reciprocal Rank Fusion (RRF)
+Fuses the rankings from BM25 and Dense search using the standard formula:
+$$RRF(d) = \sum_{m \in M} \frac{1}{k + r_m(d)}$$
+(where $k = 60$). RRF does not require score normalization, which prevents dense search scores from dominating lexical matches.
+
+---
+
+## 🤖 AI Models
+
+AcademicForge routes generation requests dynamically to optimize quality and speed:
+
+| Model Role | Default Model | Configurable Environment Variable | Inference Backend | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Fast Mode (Default)** | `mlx-community/Qwen3-4B-4bit` | `LOCAL_LLM_MODEL` | `mlx` or `transformers` | Model used for query routing, paper summarization, and quick plans in Fast Mode. |
+| **Deep Mode** | `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | `LOCAL_LLM_RESEARCH_PLAN_MODEL` | `mlx` or `transformers` | Used for comprehensive Research Plans, system design, and tradeoffs. |
+| **Summarizer** | `mlx-community/Qwen3-4B-4bit` | `LOCAL_LLM_SUMMARY_MODEL` | `mlx` or `transformers` | Generates plain-English paper summaries. |
+| **Dense Embeddings** | `BAAI/bge-small-en-v1.5` | *(Built-in)* | `transformers` (PyTorch) | Computes 384-dimensional query and abstract dense vectors. |
+| **Dense Fallback** | Cosine Similarity Vectorizer | *(Automatic Fallback)* | Pure Python / `numpy` | Local cosine-similarity fallback if `sentence-transformers` is missing. |
+
+---
+
+## ⚙️ Backend Architecture (FastAPI)
+
+The FastAPI server (`backend/app.py`) is structured to expose clean, stateless API contracts:
+
+*   `GET /config` - Serves current local configurations, models, and cache paths.
+*   `POST /search` - Ingests queries, calls arXiv/Semantic Scholar, merges and ranks candidates.
+*   `POST /summarize` - Runs the local LLM summarization pipeline for a selected paper.
+*   `POST /research-plan` - Generates a structured research plan synchronously.
+*   `POST /research-plan/stream` - High-performance streaming endpoint returning plan tokens chunk-by-chunk.
+*   `POST /research-plan/cache-status` - Checks if the requested query/evidence configuration is cached on disk.
+*   `POST /paper-guidance` - Exposes single-paper implementation guidance.
+
+*Note: For backwards compatibility, the legacy `/roadmap/*` routes remain active and redirect directly to the `/research-plan/*` and `/paper-guidance/*` endpoints.*
+
+---
+
+## 🖥️ Frontend (Streamlit)
+
+The web client (`frontend/streamlit_app.py`) implements a card-based research lens dashboard:
+1.  **Search Console:** Input research goals and select Category Filters (e.g., Balanced, Foundational, Implementation Focused).
+2.  **Ranking Panel:** Lists cards for each paper showing its source, author list, BM25/Dense ranks, and abstract snippets.
+3.  **Synthesis Controller:** Trigger summarization for papers, select specific papers to load into context, select Generation Mode (Fast or Deep), and stream the generated Research Plan directly.
+4.  **Download Bundle:** Exposes a single-click Markdown export button to save the entire generated plan locally.
+
+---
+
+## 🔴 AMD Integration (ROCm)
+
+AcademicForge provides full compatibility with AMD GPU platforms through the PyTorch-based `transformers` provider:
+
+1.  **ROCm PyTorch Integration:** By setting `LOCAL_LLM_PROVIDER=transformers`, the app switches its inference engine to PyTorch. When run inside a ROCm-capable environment, the model automatically offloads weights to AMD GPUs via `device_map="auto"`.
+2.  **Model Loading Optimization:** Models are loaded using `torch_dtype="auto"` to automatically leverage FP16 or BF16 precision depending on the target AMD Instinct or Radeon GPU hardware.
+3.  **In-Memory Dense Search:** Sentence-Transformers runs natively on ROCm devices for ultra-fast vector embedding generation.
+4.  **Local-First MLX Mode:** On Apple Silicon development hardware, the app defaults to native MLX (`mlx-lm`) to allow fast local prototyping.
+
+---
+
+## 🛠️ Local Development
+
+### 1. Setup Environment
 ```bash
-python scripts/benchmark_llm.py \
-  --model mlx-community/gemma-4-e2b-it-OptiQ-4bit,mlx-community/Qwen3-4B-4bit \
-  --json-out benchmark-results.json \
-  --markdown-out benchmark-results.md
-```
-
-Key local conclusion:
-
-```text
-Qwen is the best local default for the current user experience.
-Gemma 4 is strategically important for AMD/Gemma deployment and sponsor alignment.
-```
-
-## AMD Hardware Advantage
-
-The local Mac tests are useful for development, but they are not the final deployment target. AMD hardware can make AcademicForge a stronger product in three ways:
-
-1. **Hosted inference:** run a larger Gemma or Qwen model on AMD Cloud instead of relying on local MLX.
-2. **Benchmark credibility:** compare latency, throughput, and output quality between local MLX and AMD-hosted inference.
-3. **Router/fine-tuning path:** train or tune a routing/evaluation layer that decides when a small model is enough and when a larger hosted model is worth the cost.
-
-Planned AMD comparison:
-
-| Experiment | Local baseline | AMD Cloud / Fireworks target | What we measure |
-| --- | --- | --- | --- |
-| Paper summary | Qwen3 4B MLX | Gemma 4 or Qwen on ROCm/vLLM | Latency, faithfulness, concision. |
-| Research Plan generation | Qwen3 4B MLX | Gemma 4 on AMD/Fireworks | Completeness, implementation usefulness, hallucination rate. |
-| Router decision | Gemma 3 1B MLX | Hosted larger model fallback | Token cost saved without quality loss. |
-| Batch benchmarking | Local single-user run | AMD GPU endpoint | Throughput and scalability. |
-
-## Fine-Tuning And Routing Plan
-
-Fine-tuning is not required for the current MVP, but it is an important next step for making AcademicForge feel more specialized than a generic chatbot.
-
-Near-term tuning plan:
-
-1. Collect AcademicForge examples: paper abstract, expected summary, expected Research Plan, and quality labels.
-2. Create a small evaluation set for summary faithfulness and Research Plan usefulness.
-3. Fine-tune or prompt-tune a small router/evaluator model to decide:
-   - summarize locally
-   - Research Plan locally
-   - call hosted Gemma 4 / AMD model
-   - ask the user for a narrower goal
-4. Compare prompt-only routing vs fine-tuned routing using the same benchmark harness.
-
-The intended advantage is not just better generation. It is token-efficient routing:
-
-```text
-Use the cheapest model that can solve the task well.
-Escalate only when the task requires stronger reasoning.
-```
-
-## Problem
-
-Researchers, students, and hackathon builders often lose time moving between search engines, PDFs, paper abstracts, project ideas, and implementation plans. Normal search is useful, but it usually:
-
-- over-ranks exact keyword matches and misses semantically relevant papers
-- gives little help comparing why papers matter
-- does not separate methods, benchmarks, theory, datasets, and implementation ideas
-- leaves users to manually synthesize a Research Plan from several papers
-
-AcademicForge focuses on the early research-to-build workflow: discover candidates, compare them, select the best papers, summarize them, and generate a practical implementation direction.
-
-## Solution
-
-AcademicForge uses a hybrid retrieval and local generation pipeline:
-
-1. Search arXiv for candidate papers.
-2. Rank candidates with BM25 for exact technical terms.
-3. Rank candidates with dense semantic search for meaning-level similarity.
-4. Fuse rankings with reciprocal rank fusion.
-5. Re-rank the top evidence pool.
-6. Select a balanced 8-10 paper evidence set.
-7. Let the user inspect and select papers.
-8. Summarize selected papers with a local MLX model.
-9. Generate a streamed Research Plan from compact paper notes.
-10. Cache summaries and Research Plan outputs locally for fast repeat runs.
-
-## Evidence Selection Strategy
-
-AcademicForge does not send every retrieved paper to the model. The retrieval funnel is:
-
-```text
-Retrieve 20-30 papers
-  -> re-rank with hybrid retrieval signals
-  -> select the best 8-10 evidence papers
-  -> synthesize for the user's specific goal
-```
-
-The selected evidence set aims for this balance:
-
-| Evidence type | Target count | Why it matters |
-| --- | ---: | --- |
-| Foundational papers | 2-3 | Gives the Research Plan stable concepts and established methods. |
-| Recent papers | 2-3 | Keeps the answer current and aligned with newer work. |
-| Implementation-focused papers | 2-3 | Helps convert research into buildable systems. |
-| Evaluation-focused papers | 1-2 | Provides benchmarks, datasets, or metrics. |
-| Contrarian or alternative papers | 1-2 | Surfaces limitations, tradeoffs, and non-obvious directions. |
-
-The current selector uses transparent heuristics from titles, abstracts, and dates.
-Future versions can replace this with a learned router or cross-encoder reranker.
-
-## Key Features
-
-- arXiv search by topic or direct arXiv URL.
-- Hybrid retrieval: BM25 + dense embeddings + reciprocal rank fusion.
-- Optional reranker placeholder for future cross-encoder reranking.
-- Paper selection before expensive LLM calls.
-- Local MLX summarization and Research Plan generation.
-- Task-specific model routing for summaries and Research Plans.
-- Streamed Research Plan output so users see progress quickly.
-- Persistent disk cache for summaries and Research Plans.
-- Streamlit UI for hackathon-friendly demos.
-- FastAPI backend with testable retrieval and generation layers.
-
-## Architecture
-
-```text
-User query
-  -> FastAPI /search
-  -> arXiv candidate collection
-  -> BM25 ranking
-  -> dense semantic ranking
-  -> reciprocal rank fusion
-  -> optional reranker placeholder
-  -> Streamlit paper comparison UI
-  -> selected papers
-  -> local MLX summaries
-  -> compact Research Plan context
-  -> streamed local MLX Research Plan
-  -> local cache
-```
-
-More detail: [docs/architecture.md](docs/architecture.md)
-
-## Technology Stack
-
-- **Frontend:** Streamlit
-- **Backend:** FastAPI
-- **Paper source:** arXiv API
-- **Keyword retrieval:** in-memory BM25
-- **Dense retrieval:** `sentence-transformers` with `BAAI/bge-small-en-v1.5` when available
-- **Rank fusion:** reciprocal rank fusion
-- **Local LLM runtime:** MLX via `mlx-lm`
-- **Default local model:** `mlx-community/Qwen3-4B-4bit`
-- **Caching:** local JSON cache under `.academicforge_cache/`
-
-## Repository Structure
-
-```text
-AcademicForge/
-  backend/
-    app.py                  # FastAPI routes
-    cache.py                # local disk cache helpers
-    llm.py                  # local LLM provider wrapper
-    retrieval/              # BM25, dense search, RRF, hybrid search
-    research_plan_generator.py    # Research Plan prompt, cache, streaming generation
-    roadmap_generator.py         # compatibility aliases for old imports
-    summarizer.py           # paper summarization and cache
-  frontend/
-    streamlit_app.py        # Streamlit UI
-  scripts/
-    benchmark_llm.py        # local model benchmark utility
-    run_local.py            # one-command backend/frontend runner
-  tests/
-    test_*.py               # lightweight script-style tests
-  docs/
-    architecture.md
-    setup.md
-    roadmap.md
-```
-
-## Installation
-
-Recommended: Python 3.11+ on macOS with Apple Silicon for MLX.
-
-```bash
+# Clone the repository
 git clone https://github.com/shreyshrivastava/AcademicForge.git
 cd AcademicForge
+
+# Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
+
+# Install requirements
 pip install -r requirements.txt
-cp .env.example .env
 ```
 
-Optional dense retrieval dependency:
-
+### 2. Optional: Install Dense Embeddings Support
 ```bash
 pip install sentence-transformers
 ```
 
-Full setup guide: [docs/setup.md](docs/setup.md)
-
-## Future GPU Backends
-
-AcademicForge uses a provider-aware LLM service in `backend/llm.py`. MLX is the default and tested local runtime. `cuda`, `rocm`, `roc`, `torch`, and `transformers` are accepted as provider aliases for the Transformers backend, so the same app surface can run in future GPU-capable environments without changing the API or frontend.
-
-On this Mac, keep using MLX. In an AMD/ROCm environment, install a compatible PyTorch/Transformers stack and set:
-
+### 3. Configure Environments
+Copy the example config file to initialize your settings:
 ```bash
-export LOCAL_LLM_PROVIDER=rocm
-export LOCAL_LLM_MODEL=<a-compatible-hugging-face-causal-lm>
+cp .env.example .env
 ```
 
-For a hosted hackathon demo, the preferred path is to run the UI/API as the product surface and connect the generation layer to an AMD Cloud or Fireworks-hosted model endpoint. Local MLX remains the development baseline; AMD Cloud becomes the shipping and benchmarking target.
+---
 
-## Configuration
+## 📋 Environment Variables
 
-The app is local-first. By default it uses MLX and Qwen:
+| Variable | Default | Allowed Values | Description |
+| :--- | :--- | :--- | :--- |
+| `LOCAL_LLM_PROVIDER` | `mlx` | `mlx`, `transformers`, `torch`, `cuda`, `rocm` | The local inference engine backend to use. |
+| `LOCAL_LLM_MODEL` | `mlx-community/Qwen3-4B-4bit` | Any MLX/HuggingFace model | Default model used for general tasks and fast mode. |
+| `LOCAL_LLM_SUMMARY_MODEL` | `mlx-community/Qwen3-4B-4bit` | Any MLX/HuggingFace model | Model used to generate plain-English summaries. |
+| `LOCAL_LLM_RESEARCH_PLAN_MODEL`| `mlx-community/Qwen3-4B-4bit` | Any MLX/HuggingFace model | Model used for Research Plans (Deep Mode overrides this to Gemma 4). |
+| `LOCAL_LLM_MAX_TOKENS` | `700` | Positive integer | The token budget limit for LLM generation. |
+| `LOCAL_LLM_TEMPERATURE` | `0.2` | Float `0.0 - 1.0` | Temperature setting (lower = more deterministic). |
+| `ACADEMICFORGE_CACHE_DIR` | `.academicforge_cache` | Path string | Target directory to store disk cache. |
+| `ACADEMICFORGE_BACKEND_URL` | `http://localhost:8000` | URL string | The API backend URL used by the Streamlit app. |
 
-```bash
-export LOCAL_LLM_PROVIDER=mlx
-export LOCAL_LLM_MODEL=mlx-community/Qwen3-4B-4bit
-export LOCAL_LLM_SUMMARY_MODEL=mlx-community/Qwen3-4B-4bit
-export LOCAL_LLM_RESEARCH_PLAN_MODEL=mlx-community/Qwen3-4B-4bit
-```
+---
 
-Useful environment variables:
+## ⚡ Running the Project
 
-```bash
-LOCAL_LLM_PROVIDER=mlx
-# LLM_BACKEND is also accepted as a compatibility alias.
-# Accepted provider values: mlx, transformers, torch, cuda, rocm, roc
-LOCAL_LLM_MODEL=mlx-community/Qwen3-4B-4bit
-LOCAL_LLM_SUMMARY_MODEL=mlx-community/Qwen3-4B-4bit
-LOCAL_LLM_RESEARCH_PLAN_MODEL=mlx-community/Qwen3-4B-4bit
-LOCAL_LLM_MAX_TOKENS=900
-LOCAL_LLM_TEMPERATURE=0.2
-ACADEMICFORGE_CACHE_DIR=.academicforge_cache
-ACADEMICFORGE_CACHE_TTL_SECONDS=604800
-ACADEMICFORGE_CACHE_MAX_FILES=500
-ACADEMICFORGE_BACKEND_URL=http://localhost:8000
-```
-
-## Running Locally
-
-The easiest local runner starts both FastAPI and Streamlit with the selected model:
-
-```bash
-source venv/bin/activate
-python scripts/run_local.py --model mlx-community/Qwen3-4B-4bit --reload
-```
-
-Then open:
-
-```text
-http://127.0.0.1:8501
-```
-
-Manual backend/frontend startup is also supported.
-
-Start the backend:
-
+### 1. Start the Backend API
 ```bash
 source venv/bin/activate
 uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
 ```
+Check health:
+```bash
+curl http://127.0.0.1:8000/config
+```
 
-Start the frontend in another terminal:
-
+### 2. Start the Streamlit Frontend
+In a separate terminal window:
 ```bash
 source venv/bin/activate
 streamlit run frontend/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 ```
+Open [http://127.0.0.1:8501](http://127.0.0.1:8501) in your browser.
 
-## Usage
-
-1. Enter a research query, such as `reduce ai hallucination`.
-2. Review the ranked paper candidates.
-3. Inspect BM25 rank, dense rank, RRF score, source, authors, URL, and abstract snippet.
-4. Select 2-3 papers for a focused Research Plan.
-5. Generate summaries and a streamed Research Plan.
-6. Download the Research Plan as Markdown.
-
-## Demo Script
-
-Suggested live demo query:
-
-```text
-reduce ai hallucination
-```
-
-Recommended paper selection for a text/RAG hallucination Research Plan:
-
-- `First Hallucination Tokens Are Different from Conditional Ones`
-- `OpenHalDet: A Unified Benchmark for Hallucination Detection across Diverse Generation Scenarios`
-- `Probabilistic distances-based hallucination detection in LLMs with RAG`
-
-What to point out to judges:
-
-- Hybrid retrieval surfaces papers that keyword-only search may miss.
-- Dense and BM25 ranks are visible for explainability.
-- Users choose papers before LLM generation.
-- Research Plan output streams from a local MLX model.
-- Repeated summaries and Research Plans load instantly from cache.
-
-## Evaluation
-
-Current validation includes:
-
-- BM25 returns relevant ranked results.
-- Dense search returns ranked results and falls back cleanly if embeddings are unavailable.
-- RRF deduplicates papers and promotes overlap between rankers.
-- Summary and Research Plan caches reuse previous generations.
-- Research Plan generation uses compact paper notes.
-- Streaming Research Plan endpoint returns incremental text.
-- FastAPI contract tests cover config, cache status, and streaming routes.
-
-Run checks:
-
+### 3. Run Automated Tests
+AcademicForge maintains a test suite checking local logic, cache integrity, model config, and API contracts. Run all tests with:
 ```bash
 source venv/bin/activate
-python -m py_compile backend/app.py backend/cache.py backend/llm.py backend/summarizer.py backend/research_plan_generator.py backend/roadmap_generator.py frontend/streamlit_app.py backend/retrieval/*.py scripts/*.py tests/*.py
 python tests/test_cache.py
 python tests/test_generation_pipeline.py
 python tests/test_llm_routing.py
@@ -377,113 +244,96 @@ python tests/test_benchmark_script.py
 python tests/test_retrieval.py
 ```
 
-## Local Model Benchmarking
-
-Run the app with a specific local model:
-
-```bash
-python scripts/run_local.py --model mlx-community/Qwen3-4B-4bit --reload
-```
-
-Run only the backend, useful when Streamlit is already open:
-
-```bash
-python scripts/run_local.py --backend-only --model mlx-community/Qwen3-4B-4bit --reload
-```
-
-Benchmark the current local MLX setup:
-
-```bash
-python scripts/benchmark_llm.py --skip-summary
-```
-
-Benchmark Gemma 4 against Qwen:
-
+### 4. Running Benchmarks
+Evaluate generation performance, accuracy, and output flags on your local device:
 ```bash
 python scripts/benchmark_llm.py \
-  --model mlx-community/gemma-4-e2b-it-OptiQ-4bit,mlx-community/Qwen3-4B-4bit
-```
-
-Benchmark multiple models and write reports:
-
-```bash
-python scripts/benchmark_llm.py \
-  --model mlx-community/gemma-3-1b-it-4bit,mlx-community/Qwen3-4B-4bit \
-  --runs 2 \
-  --skip-summary \
+  --model mlx-community/Qwen3-4B-4bit \
   --json-out benchmark-results.json \
   --markdown-out benchmark-results.md
 ```
 
-For timing comparisons, the benchmark isolates its cache by default. Add
-`--use-cache` when you want to measure warm-cache app behavior.
+---
 
-Earlier local benchmark notes:
+## 📝 Demo Scripts
 
-| Model | Tiny generation | Research Plan generation | Notes |
-| --- | ---: | ---: | --- |
-| `mlx-community/Qwen3-4B-4bit` | 3.41s | 13.11s | Best current balance of speed and instruction following. |
-| `mlx-community/Llama-3.2-3B-Instruct-4bit` | 4.12s | 10.67s | Faster Research Plan generation, but less precise on implementation/runtime details. |
-| `mlx-community/Qwen3-4B-Instruct-2507-4bit` | 3.36s | 30.92s | Stronger writing and scope control, but too slow for current UX. |
+### Recommended Search Queries:
+1.  `reduce AI hallucination` (AI Domain)
+2.  `photovoltaic solar grid forecasting` (Energy Domain)
+3.  `automated test suite code debugging` (Software Domain)
+4.  `diet exercise calorie restriction lipid metabolism` (Health Domain)
 
-Gemma 4 local note:
+### Standard Demo Flow:
+1.  Type `reduce AI hallucination` into the search box.
+2.  Review the cards: highlight how **BM25 Rank** captures exact phrases and **Dense Rank** finds conceptual matches.
+3.  Select three relevant papers.
+4.  Generate summaries to show local cache speed.
+5.  Switch mode to **Deep Mode (Gemma)** and generate a streamed **Research Plan**. Note the structural breakdown (Core Architecture, Component details, difficulty levels).
+6.  Click **Download Markdown** to show final file delivery.
 
-```bash
-pip install -U mlx-vlm
-```
+---
 
-The standard `mlx-community/gemma-4-e2b-it-4bit` conversion failed locally with a weight-loading mismatch. The OptiQ text-generation build worked:
-
-```bash
-python scripts/run_local.py --model mlx-community/gemma-4-e2b-it-OptiQ-4bit --reload
-```
-
-## Limitations
-
-- arXiv is currently the only paper source.
-- Dense retrieval is in-memory and intended for MVP-scale candidate sets.
-- Reranking is a placeholder; no cross-encoder reranker is enabled yet.
-- Local MLX generation speed depends on hardware and model size.
-- The Research Plan is only as good as the selected papers and available abstracts.
-- No user accounts, saved projects, or hosted deployment are included yet.
-
-## Future Work
-
-- Add GitHub repository/project discovery.
-- Add dataset discovery from Papers with Code, Hugging Face, or Kaggle.
-- Add cross-encoder reranking.
-- Add saved research sessions.
-- Add export bundles for hackathon implementation plans.
-- Add code-generation mode with a coder model separate from the Research Plan model.
-- Add hosted demo instructions or a lightweight Docker path.
-
-More detail: [docs/roadmap.md](docs/roadmap.md)
-
-## GitHub Repository Recommendations
-
-Suggested repository description:
+## 📂 Repository Structure
 
 ```text
-AI-powered academic discovery platform with hybrid retrieval, local MLX summaries, and streamed Research Plans.
+AcademicForge/
+├── .academicforge_cache/    # Local JSON cache directory
+├── .agents/                 # Workspace customizations (skills)
+├── backend/
+│   ├── retrieval/
+│   │   ├── __init__.py
+│   │   ├── bm25.py          # Local lexical keyword ranker
+│   │   ├── dense.py         # Local dense vector retriever (BGE / cosine)
+│   │   ├── hybrid.py        # Combines BM25 & dense retrievals
+│   │   ├── models.py        # Retrieval data schemas
+│   │   ├── reranker.py      # Cross-encoder placeholder
+│   │   └── rrf.py           # Reciprocal Rank Fusion implementation
+│   ├── app.py               # FastAPI backend exposing search/generation routes
+│   ├── cache.py             # Memory + disk caching implementation
+│   ├── config.py            # Environment-aware application configuration
+│   ├── data_pipeline.py     # Main search & ranking orchestration
+│   ├── llm.py               # Local-first LLM facade (MLX/Transformers)
+│   ├── pdf_parser.py        # PDF parser placeholder
+│   └── research_plan_generator.py # Streamed Research Plan & Guidance prompts
+├── docs/
+│   ├── architecture.md      # High-level architecture documentation
+│   ├── repository-audit.md  # Audit notes
+│   ├── roadmap.md           # Product roadmap and known limitations
+│   └── setup.md             # Detailed installation and launch instructions
+├── frontend/
+│   └── streamlit_app.py     # Streamlit web interface
+├── scripts/
+│   ├── benchmark_llm.py     # Automatic LLM latency & accuracy evaluator
+│   └── run_local.py         # Multi-process orchestrator script
+├── tests/
+│   ├── test_api_contract.py # FastAPI contract verification tests
+│   ├── test_benchmark_script.py # Benchmark script runner tests
+│   ├── test_cache.py        # Caching logic tests
+│   ├── test_generation_pipeline.py # Core LLM generation flow tests
+│   ├── test_llm_routing.py  # LLM model routing config tests
+│   └── test_retrieval.py    # BM25/Dense/RRF verification tests
+├── requirements.txt         # Package dependencies
+└── README.md                # Main project description & judge guide
 ```
 
-Suggested topics:
+---
 
-```text
-academic-search, research-assistant, ai-search, hybrid-retrieval, bm25, dense-retrieval, reciprocal-rank-fusion, arxiv, fastapi, streamlit, mlx, local-llm, hackathon
-```
+## 🔮 Future Roadmap
 
-Recommended assets to add before final submission:
+*   **Full-PDF Parsing:** Move from abstract-only metadata extraction to reading full scientific PDFs dynamically using `pypdf`.
+*   **Cross-Encoder Reranking:** Enable deep post-retrieval reranking using cross-encoders (`BAAI/bge-reranker-base`) inside `backend/retrieval/reranker.py`.
+*   **Multi-Paper File Upload:** Allow users to upload their own research PDFs to be ingested into the local vector space alongside live arXiv/Semantic Scholar downloads.
+*   **Enterprise Document Pools:** Add support for indexing proprietary enterprise manuals, specs, or documents.
+*   **Direct AMD Developer Cloud Deployment:** Provide Docker Compose files optimized for one-click template deployments on ROCm-capable virtual hosts.
 
-- short demo GIF or screenshots in `docs/assets/`
-- 2-minute demo video link
-- architecture diagram image
-- example generated Research Plan
+---
 
-## Contributing
+## 📄 License
+This project is licensed under the MIT License - see the `LICENSE` file for details.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+---
 
-## License
-
-MIT License. See [LICENSE](LICENSE).
+## 🤝 Acknowledgements
+*   **arXiv API** and **Semantic Scholar API** for search candidate indices.
+*   **AMD Developer Hackathon** sponsors and organizers.
+*   **mlx-lm** and **Hugging Face Transformers** teams for model serving utilities.

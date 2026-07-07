@@ -1,80 +1,136 @@
-# Setup Guide
+# Setup & Installation Guide
 
-This guide gets AcademicForge running locally.
+This guide walks you through setting up, configuring, and running AcademicForge locally or deploying it to cloud platforms like Render.
 
-## Requirements
+---
 
-- Python 3.11+
-- macOS with Apple Silicon recommended for MLX
-- Internet access for arXiv search and initial model downloads
+## 📋 Prerequisites
 
-## 1. Create Environment
+Before setting up AcademicForge, ensure your environment meets the following requirements:
+
+*   **Python:** Version `3.11` or higher.
+*   **Git:** Installed and configured.
+*   **Operating System Support:**
+    *   **macOS (Apple Silicon):** Native MLX hardware acceleration (`mlx-lm`) is supported out-of-the-box.
+    *   **Windows & Linux:** Run using the standard PyTorch (`transformers`) backend.
+*   **Hardware Acceleration (GPU Support):**
+    *   **AMD GPUs (ROCm):** Supported via PyTorch/Transformers inside a ROCm-configured container or environment.
+    *   **NVIDIA GPUs (CUDA):** Supported natively via CUDA-enabled PyTorch.
+    *   **CPU Fallback:** The app runs on standard CPUs if no GPU is detected (highly recommended to use smaller models like Qwen 1.5B/4B in CPU-only setups).
+
+---
+
+## 🚀 Step 1: Clone the Repository
+
+Clone the project from GitHub and navigate into the workspace directory:
 
 ```bash
 git clone https://github.com/shreyshrivastava/AcademicForge.git
 cd AcademicForge
+```
+
+---
+
+## 💻 Step 2: Create a Virtual Environment
+
+Isolate your Python dependencies using a virtual environment:
+
+### macOS / Linux
+```bash
 python3 -m venv venv
 source venv/bin/activate
+```
+
+### Windows
+```cmd
+python -m venv venv
+venv\Scripts\activate
+```
+
+---
+
+## 📦 Step 3: Install Dependencies
+
+With the virtual environment active, install the required packages:
+
+```bash
 pip install -r requirements.txt
 ```
 
-Optional dense retrieval dependency:
+### Optional: Dense Semantic Search Support
+To enable semantic vector search (via `BAAI/bge-small-en-v1.5`), install the `sentence-transformers` package. If this is omitted, the app will fall back to a lexical cosine-similarity vectorizer:
 
 ```bash
 pip install sentence-transformers
 ```
 
-## 2. Configure Environment
+---
+
+## ⚙️ Step 4: Configure Environment Variables
+
+AcademicForge uses environment variables for configuration. Create your local config file by copying the template:
 
 ```bash
 cp .env.example .env
 ```
 
-Default local model settings:
+Open the `.env` file and customize the variables as needed.
 
-```bash
-export LOCAL_LLM_PROVIDER=mlx
-export LOCAL_LLM_MODEL=mlx-community/Qwen3-4B-4bit
-export LOCAL_LLM_SUMMARY_MODEL=mlx-community/Qwen3-4B-4bit
-export LOCAL_LLM_RESEARCH_PLAN_MODEL=mlx-community/Qwen3-4B-4bit
-```
+### Configuration Reference Table
 
-## Future GPU Backends
+| Variable | Purpose | Required? | Example Value | Default |
+| :--- | :--- | :---: | :--- | :--- |
+| `LOCAL_LLM_PROVIDER` | Defines the LLM inference engine backend. | No | `transformers` | `mlx` |
+| `LOCAL_LLM_MODEL` | Model used for Fast Mode. | No | `mlx-community/Qwen3-4B-4bit` | `mlx-community/Qwen3-4B-4bit` |
+| `LOCAL_LLM_SUMMARY_MODEL` | Model used exclusively for paper summaries. | No | `mlx-community/Qwen3-4B-4bit` | Matches `LOCAL_LLM_MODEL` |
+| `LOCAL_LLM_RESEARCH_PLAN_MODEL` | Model used for Research Plans and Guidance. | No | `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | Matches `LOCAL_LLM_MODEL` |
+| `LOCAL_LLM_MAX_TOKENS` | Token budget limit for text generation. | No | `900` | `700` |
+| `LOCAL_LLM_TEMPERATURE` | Generation creativity temperature. | No | `0.2` | `0.2` |
+| `ACADEMICFORGE_CACHE_DIR` | Local folder where JSON caches are saved. | No | `.academicforge_cache` | `.academicforge_cache` |
+| `ACADEMICFORGE_CACHE_TTL_SECONDS` | Cache expiration time (in seconds). | No | `604800` (7 days) | `604800` |
+| `ACADEMICFORGE_CACHE_MAX_FILES` | Cache cleanup threshold (file count). | No | `500` | `500` |
+| `ACADEMICFORGE_BACKEND_URL` | Endpoint of the running FastAPI backend server. | No | `http://127.0.0.1:8000` | `http://localhost:8000` |
 
-AcademicForge currently supports MLX as the active local LLM runtime. CUDA and ROCm are future migration targets, but they are not wired into the application yet.
+---
 
-## 3. Start Backend
+## 🤖 Choosing Models & Runtimes
 
+### Inference Modes
+*   **Fast Mode:** Uses a smaller model (default `mlx-community/Qwen3-4B-4bit`). Select this for quick search checks, fast summaries, and lower latency.
+*   **Deep Mode:** Uses a larger model (default `mlx-community/gemma-4-e2b-it-OptiQ-4bit`). Select this for detailed synthesis, system architectures, and tradeoff analysis.
+
+### Local Runtimes
+*   **MLX Backend (`mlx`):** Native hardware-accelerated serving on macOS (Apple Silicon). Highly efficient memory consumption and fast token speeds.
+*   **Transformers Backend (`transformers`):** Uses Hugging Face PyTorch implementation. Offloads tasks automatically to GPUs (`device_map="auto"`) on **AMD ROCm** or **NVIDIA CUDA** machines. It is the default runtime when running on Linux/Windows.
+
+---
+
+## ⚡ Running the Project Locally
+
+### 1. Launch the FastAPI Backend
+Start the FastAPI server on port 8000:
 ```bash
 source venv/bin/activate
 uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Check backend health:
-
+Verify backend health by calling the config route:
 ```bash
 curl http://127.0.0.1:8000/config
 ```
 
-## 4. Start Frontend
-
-In a second terminal:
-
+### 2. Launch the Streamlit Web Client
+In a separate terminal window, start the frontend UI:
 ```bash
 source venv/bin/activate
 streamlit run frontend/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 ```
+Open your browser and navigate to **[http://127.0.0.1:8501](http://127.0.0.1:8501)**.
 
-Open:
-
-```text
-http://127.0.0.1:8501
-```
-
-## 5. Run Tests
-
+### 3. Running the Test Suite
+Ensure code correctness by running the tests:
 ```bash
-python -m py_compile backend/app.py backend/cache.py backend/llm.py backend/summarizer.py backend/research_plan_generator.py backend/roadmap_generator.py frontend/streamlit_app.py backend/retrieval/*.py scripts/*.py tests/*.py
+source venv/bin/activate
 python tests/test_cache.py
 python tests/test_generation_pipeline.py
 python tests/test_llm_routing.py
@@ -83,32 +139,37 @@ python tests/test_benchmark_script.py
 python tests/test_retrieval.py
 ```
 
-## Troubleshooting
+---
 
-### Backend is not running
+## ☁️ Deploying to Render
 
-Start it:
+AcademicForge is configured to support rapid cloud deployment on Render via the blueprint file [render.yaml](file:///Users/shreyshrivastava/Projects/AcademicForge/render.yaml).
 
-```bash
-uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
-```
+### How to Deploy:
+1.  Push your code to a GitHub repository.
+2.  Log into your **Render** dashboard, click **New +**, and select **Blueprint**.
+3.  Connect your GitHub repository containing the AcademicForge codebase.
+4.  Render will auto-detect `render.yaml` and create two Web Services:
+    *   `academicforge-backend` (exposing the FastAPI backend)
+    *   `academicforge-frontend` (exposing the Streamlit frontend)
+5.  *Important:* Under your Streamlit service settings, modify the environment variable `ACADEMICFORGE_BACKEND_URL` to point to the public web URL of your newly deployed FastAPI backend service.
 
-### Frontend cannot reach backend
+---
 
-Set the backend URL:
+## 🔍 Troubleshooting
 
-```bash
-export ACADEMICFORGE_BACKEND_URL=http://127.0.0.1:8000
-```
+### 1. Wrong Python Version
+*   **Problem:** Uvicorn or Streamlit fails to start, throwing syntax errors.
+*   **Solution:** Ensure you are running Python `3.11` or higher. Check your version with `python3 --version`. Recreate the virtual environment using the correct executable.
 
-### First generation is slow
+### 2. Streamlit Connection Error
+*   **Problem:** Streamlit loads, but displays a message saying it cannot reach the backend.
+*   **Solution:** Verify that the FastAPI backend service is running on port 8000. If you are running the backend on a different port, set the matching URL in `ACADEMICFORGE_BACKEND_URL` before launching Streamlit.
 
-The first run may download or load local MLX model weights. Repeated summaries and Research Plans are cached.
+### 3. Missing Models
+*   **Problem:** LLM generation fails with `LocalLLMError` or Hugging Face model loading errors.
+*   **Solution:** Ensure your machine has internet access during the first generation. The backend automatically downloads model weights from Hugging Face if they are not cached locally. If using MLX, ensure the model name matches a valid MLX community weight repository.
 
-### Dense retrieval model warning
-
-If `sentence-transformers` is not installed, dense retrieval falls back to a lexical cosine scorer. Install it for BGE embeddings:
-
-```bash
-pip install sentence-transformers
-```
+### 4. Package Installation Failures
+*   **Problem:** `pip install` fails on compiling numpy or PyTorch.
+*   **Solution:** Ensure your `pip` is up to date (`pip install --upgrade pip`) and that you have appropriate build tools installed on your operating system (e.g., Xcode Command Line Tools on Mac, or Build Tools on Windows).
