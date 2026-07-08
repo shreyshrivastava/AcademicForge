@@ -70,6 +70,10 @@ class AppConfig:
                 default_model = "gpt-4o-mini"
             elif provider == "fireworks":
                 default_model = "accounts/fireworks/models/qwen2p5-8b-instruct"
+            elif provider == "transformers":
+                default_model = "Qwen/Qwen2.5-7B-Instruct"
+            elif provider in {"qwen", "dashscope"}:
+                default_model = "qwen-plus"
             else:
                 default_model = DEFAULT_MODEL
 
@@ -79,7 +83,6 @@ class AppConfig:
             llm_summary_model=os.getenv("LOCAL_LLM_SUMMARY_MODEL", default_model).strip(),
             llm_research_plan_model=(
                 os.getenv("LOCAL_LLM_RESEARCH_PLAN_MODEL")
-                or os.getenv("LOCAL_LLM_ROADMAP_MODEL")
                 or default_model
             ).strip(),
             llm_max_tokens=_env_int("LOCAL_LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS),
@@ -92,7 +95,7 @@ class AppConfig:
     def model_for_task(self, task: str | None = None) -> str:
         if task == "summary":
             return self.llm_summary_model
-        if task in {"research_plan", "roadmap"}:
+        if task == "research_plan":
             return self.llm_research_plan_model
         return self.llm_model
 
@@ -103,7 +106,6 @@ class AppConfig:
                 "default": self.llm_model,
                 "summary": self.llm_summary_model,
                 "research_plan": self.llm_research_plan_model,
-                "roadmap": self.llm_research_plan_model,
             },
             "llm_max_tokens": self.llm_max_tokens,
             "llm_temperature": self.llm_temperature,

@@ -1,13 +1,10 @@
 import logging
 
 from backend.cache import cache_get, cache_set, make_cache_key
-from backend.llm import generate_text
-from backend.llm import generate_text_stream
-from backend.llm import model_name
+from backend.llm import generate_text, generate_text_stream, model_name
 
 
 RESEARCH_PLAN_CACHE = {}
-PAPER_GUIDANCE_CACHE = {}
 logger = logging.getLogger(__name__)
 
 
@@ -80,7 +77,7 @@ Limitations or verification needs: {_truncate(sections.get("limitations or unkno
 
 
 def generate_research_plan(papers, summaries=None, query="", model=None):
-    """Generate a Research Plan from paper metadata and summaries."""
+    """Generate a Research Plan based on selected papers and summaries."""
     paper_context = build_research_plan_context(papers, summaries)
     cache_key = research_plan_cache_key(papers, summaries, paper_context, query, model=model)
     cached_research_plan = _get_cached_research_plan(cache_key)
@@ -93,22 +90,6 @@ def generate_research_plan(papers, summaries=None, query="", model=None):
     RESEARCH_PLAN_CACHE[cache_key] = research_plan
     cache_set("research_plans", cache_key, research_plan)
     logger.info("Research Plan generation completed paper_count=%d", len(papers))
-    return research_plan
-
-
-def generate_paper_guidance(paper, model=None):
-    """Generate practical guidance for understanding and applying one paper."""
-    cache_key = paper_guidance_cache_key(paper, model=model)
-    cached_guidance = _get_cached_paper_guidance(cache_key)
-    if cached_guidance:
-        return cached_guidance
-
-    logger.info("Paper guidance generation started paper_id=%r", _paper_identity(paper))
-    system_prompt, user_prompt = build_paper_guidance_prompt(paper)
-    research_plan = generate_text(system_prompt, user_prompt, token_budget=1100, task="research_plan", model=model)
-    PAPER_GUIDANCE_CACHE[cache_key] = research_plan
-    cache_set("paper_guidance", cache_key, research_plan)
-    logger.info("Paper guidance generation completed paper_id=%r", _paper_identity(paper))
     return research_plan
 
 
@@ -146,7 +127,7 @@ def _get_cached_research_plan(cache_key):
         logger.info("Mixed Research Plan cache hit cache=memory")
         return RESEARCH_PLAN_CACHE[cache_key]
 
-    cached_research_plan = cache_get("research_plans", cache_key) or cache_get("roadmaps", cache_key)
+    cached_research_plan = cache_get("research_plans", cache_key)
     if cached_research_plan:
         logger.info("Mixed Research Plan cache hit cache=disk")
         RESEARCH_PLAN_CACHE[cache_key] = cached_research_plan
@@ -155,29 +136,10 @@ def _get_cached_research_plan(cache_key):
     return cached_research_plan
 
 
-def _get_cached_paper_guidance(cache_key):
-    if cache_key in PAPER_GUIDANCE_CACHE:
-        logger.info("Paper guidance cache hit cache=memory")
-        return PAPER_GUIDANCE_CACHE[cache_key]
-
-    cached_guidance = cache_get("paper_guidance", cache_key) or cache_get("paper_roadmaps", cache_key)
-    if cached_guidance:
-        logger.info("Paper guidance cache hit cache=disk")
-        PAPER_GUIDANCE_CACHE[cache_key] = cached_guidance
-    else:
-        logger.info("Paper guidance cache miss")
-    return cached_guidance
-
-
-def _paper_identity(paper):
-    return paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title")
-
-
 def _clean_streamed_markdown(chunks):
     """Strip common wrapping fences while preserving incremental output."""
     pending = ""
     started = False
-    tail_size = 16
 
     for chunk in chunks:
         pending += chunk
@@ -188,15 +150,13 @@ def _clean_streamed_markdown(chunks):
                 if newline_index == -1:
                     continue
                 pending = stripped[newline_index + 1:]
-            started = True
+                started = True
+            elif len(stripped) >= 8:
+                started = True
 
-        if len(pending) > tail_size:
-            yield pending[:-tail_size]
-            pending = pending[-tail_size:]
-
-    closing_index = pending.rfind("```")
-    if closing_index != -1 and pending[closing_index:].strip() == "```":
-        pending = pending[:closing_index].rstrip()
+        if started and len(pending) > 16:
+            yield pending[:-16]
+            pending = pending[-16:]
 
     if pending:
         yield pending
@@ -204,8 +164,7 @@ def _clean_streamed_markdown(chunks):
 
 def build_research_plan_prompt(paper_context, query=""):
     system_prompt = (
-        "You are AcademicForge's AI Research Engineer. Your mission is not to "
-        "summarize papers or write a literature review. Your mission is to help "
+        "You are AcademicForge's AI Research Engineer. Your mission is to help "
         "the user move from Question to Research to Decision to Prototype. "
         "Analyze all selected papers collectively, propose one coherent build "
         "direction, prioritize architecture, tradeoffs, implementation strategy, "
@@ -215,7 +174,7 @@ def build_research_plan_prompt(paper_context, query=""):
     )
     user_prompt = f"""
 USER GOAL:
-{query or "No explicit question was provided. Infer the goal from the selected papers."}
+{query or "No explicit question was provided."}
 
 RETRIEVED PAPERS:
 
@@ -223,142 +182,61 @@ RETRIEVED PAPERS:
 
 INSTRUCTIONS:
 
-1. Infer the user's real engineering objective. Do not simply repeat the query.
-2. Analyze all papers collectively rather than individually.
-3. Extract transferable engineering knowledge:
-   - common themes across selected papers
-   - frequently occurring approaches
-   - implementation patterns
-   - limitations and research gaps
-   - how the selected research mode should influence the plan
-4. Determine the approach that has the strongest support from the selected papers.
-5. Recommend one practical implementation that a builder, engineer, researcher,
-   student, or startup founder could realistically create.
-6. Prioritize actionable recommendations over academic discussion.
-7. Ground all conclusions in the provided papers.
-8. Never invent evidence not present in the literature.
-9. Add citations like [1], [2], [3] for major recommendations and claims.
-   Citation numbers must match the Evidence numbers above.
-10. If the evidence does not support a recommendation, say what needs to be
-    verified instead of guessing.
-11. Do not repeat paper summaries. Assume the user has already read Summary and
-    Guidance panels.
-12. Do not output Evidence Used, Supporting Evidence, or a separate evidence
-    grounding section.
+1. Base all recommendations and plans strictly on the evidence found in the retrieved papers.
+2. Never infer the user's goals or output any User Goal Analysis or User Intent Analysis.
+3. Every recommendation (including datasets, frameworks, or architectures) must be traceable to the evidence. Do not suggest anything not present in the papers unless clearly labeled as an example.
+4. Keep the 'Research Focus' concise, maximum 150 words. Explain the main technical direction emerging from the literature.
+5. Under 'Key Findings', output a maximum of 5 bullets. Each finding must be directly supported by retrieved evidence.
+6. Under 'Research Gaps', output a maximum of 5 bullets focusing on limitations, unanswered questions, and deployment challenges.
+7. Under 'Recommended Build', structure your engineering recommendations exactly with these sections:
+   - Recommended Architecture
+   - Core Components
+   - Deployment Considerations
+   - Evaluation Strategy
+8. Under 'Builder Guidance', provide practical implementation advice. Avoid exact vendor lock-in, exact model recommendations, or exact dataset recommendations unless explicitly supported by evidence.
+9. Never expose reasoning, internal thoughts, chain of thought, or reasoning processes. Only output final conclusions.
 
 OUTPUT FORMAT:
 
 # Research Plan
 
-# User Goal Analysis
-
-2-3 sentences explaining the real engineering objective. Do not simply repeat
-the query.
-
 # Research Focus
 
-Concise synthesis of common themes, frequently occurring approaches,
-implementation patterns, relevant evidence, and how the selected research mode
-influences the plan. Do not use bullet dumps.
+(Concise synthesis, max 150 words, explaining the main technical direction emerging from the literature. Do not use bullets.)
 
 # Key Findings
 
-Transferable engineering insights from the selected papers. Avoid obvious
-statements and extract what matters for system design.
+(Max 5 bullets, each directly supported by retrieved evidence. Include citations like [1], [2].)
 
 # Research Gaps
 
-What remains unresolved, weakly supported, or risky.
+(Max 5 bullets focusing on limitations, unanswered questions, and deployment challenges.)
 
 # Recommended Build
 
-Project Name:
-
-Objective:
-
 Recommended Architecture:
+(Explain the architectural pattern traceable to the papers or labeled as an example.)
 
 Core Components:
-List concrete architecture components. Each component must include a short
-explanation. Avoid generic names such as Processing Engine, Monitoring Module,
-or Optimization Component.
+(List concrete architecture components from the papers.)
 
-Implementation Difficulty:
-(Beginner / Intermediate / Advanced)
+Deployment Considerations:
+(Explain deployment considerations supported by the papers.)
 
-Estimated Build Time:
-
-Why This Approach:
-Explain why the evidence supports this recommendation.
-
-Expected Benefits:
-
-Expected Tradeoffs:
+Evaluation Strategy:
+(Explain evaluation strategy supported by the papers.)
 
 # Builder Guidance
 
-Explain recommended implementation order, risks, tradeoffs, validation strategy,
-and next steps.
-
-Critical rules:
-- Do not output a paper-by-paper summary.
-- Do not output a literature review.
-- Do not output Evidence Used.
-- Do not output Supporting Evidence.
-- Do not output "What this paper is about".
-- Do not output "Step-by-step reading plan".
-- Do not output "Estimated learning path".
-- Do not output generic AI advice.
-- Keep the answer concise enough for a builder to act on immediately.
-""".strip()
-    return system_prompt, user_prompt
-
-
-def build_paper_guidance_prompt(paper):
-    authors = ", ".join(paper.get("authors", []))
-    categories = ", ".join(paper.get("metadata", {}).get("categories", []))
-    system_prompt = (
-        "You are AcademicForge. Your job is to give short, practical guidance "
-        "for how a builder can use one paper. Guidance answers only: how can I "
-        "use this paper? Use only the paper title, abstract, and metadata. Do "
-        "not include conversational prefaces and do not invent implementation "
-        "details."
-    )
-    user_prompt = f"""
-Evidence [1]
-Paper title: {paper.get("title", "")}
-Authors: {authors}
-Date: {paper.get("date") or paper.get("published") or "unknown"}
-Source: {paper.get("source", "arxiv")}
-URL: {paper.get("url") or paper.get("link") or ""}
-Categories: {categories}
-
-Abstract:
-{_truncate(paper.get("abstract", ""), 2500)}
-
-Requirements:
-- Return exactly three short paragraphs.
-- Paragraph 1: why this paper matters.
-- Paragraph 2: how to use it in a project.
-- Paragraph 3: what to watch out for or verify.
-- Do not use headings.
-- Do not use bullet lists.
-- Do not summarize the full paper.
-- Only name benchmarks, datasets, models, algorithms, or libraries if they appear in the title, abstract, or metadata.
-- Do not invent training steps, fine-tuning requirements, reward model designs, or evaluation names.
-- If an implementation detail is missing, say briefly what to verify in the full paper.
-- Never output "What this paper is about".
-- Never output "Step-by-step reading plan".
-- Never output "Difficulty level".
-- Never output "Estimated learning path".
-""".strip()
+(Provide practical implementation advice. Avoid exact vendor/model/dataset recommendations unless supported by evidence.)
+"""
     return system_prompt, user_prompt
 
 
 def research_plan_cache_key(papers, summaries=None, paper_context=None, query="", model=None):
     paper_context = paper_context or build_research_plan_context(papers, summaries)
     return make_cache_key(
-        "roadmap-v7-ai-research-engineer-plan",
+        "research-plan-v7-ai-research-engineer-plan",
         model or model_name("research_plan"),
         query or "",
         [
@@ -370,36 +248,10 @@ def research_plan_cache_key(papers, summaries=None, paper_context=None, query=""
     )
 
 
-def paper_guidance_cache_key(paper, model=None):
-    metadata = paper.get("metadata", {}) or {}
-    return make_cache_key(
-        "paper-guidance-v2-short-practical",
-        model or model_name("research_plan"),
-        paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title"),
-        paper.get("title"),
-        paper.get("abstract"),
-        paper.get("authors", []),
-        paper.get("date") or paper.get("published"),
-        paper.get("source"),
-        paper.get("url") or paper.get("link"),
-        metadata.get("categories") or [],
-        metadata.get("primary_category"),
-    )
-
-
 def research_plan_cache_status(papers, summaries=None, query="", model=None):
     cache_key = research_plan_cache_key(papers, summaries, query=query, model=model)
     if cache_key in RESEARCH_PLAN_CACHE:
         return {"cached": True, "cache": "memory"}
-    if cache_get("research_plans", cache_key) or cache_get("roadmaps", cache_key):
-        return {"cached": True, "cache": "disk"}
-    return {"cached": False, "cache": "miss"}
-
-
-def paper_guidance_cache_status(paper, model=None):
-    cache_key = paper_guidance_cache_key(paper, model=model)
-    if cache_key in PAPER_GUIDANCE_CACHE:
-        return {"cached": True, "cache": "memory"}
-    if cache_get("paper_guidance", cache_key) or cache_get("paper_roadmaps", cache_key):
+    if cache_get("research_plans", cache_key):
         return {"cached": True, "cache": "disk"}
     return {"cached": False, "cache": "miss"}

@@ -18,7 +18,6 @@ def test_config_endpoint_returns_model_info():
     assert payload["llm_models"]["default"]
     assert payload["llm_models"]["summary"]
     assert payload["llm_models"]["research_plan"]
-    assert payload["llm_models"]["roadmap"]
     assert payload["generation_modes"]["fast"]["model"]
     assert payload["generation_modes"]["deep"]["model"]
 
@@ -125,7 +124,6 @@ def test_paper_guidance_endpoint_returns_guidance():
         assert response.status_code == 200
         assert response.json() == {
             "guidance": "guidance for Paper",
-            "roadmap": "guidance for Paper",
         }
     finally:
         backend_app.generate_ai_paper_guidance = original_generate
@@ -185,28 +183,6 @@ def test_research_plan_stream_endpoint_streams_text():
         backend_app.stream_ai_research_plan = original_stream
 
 
-def test_legacy_roadmap_routes_remain_available():
-    client = TestClient(app)
-    response = client.post(
-        "/roadmap/cache-status",
-        json={
-            "papers": [
-                {
-                    "title": "Paper",
-                    "authors": [],
-                    "abstract": "Abstract",
-                    "link": "https://example.com",
-                    "date": "2026-06-30",
-                }
-            ],
-            "summaries": ["Core idea\nA test."],
-            "query": "build a prototype",
-        },
-    )
-    assert response.status_code == 200
-    assert "cached" in response.json()
-
-
 if __name__ == "__main__":
     test_config_endpoint_returns_model_info()
     test_search_endpoint_passes_research_focus()
@@ -214,5 +190,4 @@ if __name__ == "__main__":
     test_paper_guidance_endpoint_returns_guidance()
     test_paper_guidance_cache_status_endpoint_returns_status()
     test_research_plan_stream_endpoint_streams_text()
-    test_legacy_roadmap_routes_remain_available()
     print("api contract tests passed")

@@ -9,11 +9,11 @@ import os
 from backend.config import get_config as get_app_config
 from backend.data_pipeline import extract_arxiv_id, not_enough_relevant_message, retrieve_and_rank_papers
 from backend.llm import provider_name, task_model_config
-from backend.research_plan_generator import generate_paper_guidance as generate_ai_paper_guidance
 from backend.research_plan_generator import generate_research_plan as generate_ai_research_plan
-from backend.research_plan_generator import paper_guidance_cache_status as get_paper_guidance_cache_status
 from backend.research_plan_generator import research_plan_cache_status as get_research_plan_cache_status
 from backend.research_plan_generator import stream_research_plan as stream_ai_research_plan
+from backend.guidance_generator import generate_paper_guidance as generate_ai_paper_guidance
+from backend.guidance_generator import paper_guidance_cache_status as get_paper_guidance_cache_status
 from backend.summarizer import summarize_paper as summarize_paper_with_ai
 
 load_dotenv()
@@ -23,8 +23,34 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
-FAST_MODE_MODEL = os.getenv("ACADEMICFORGE_FAST_MODEL", "mlx-community/Qwen3-4B-4bit")
-DEEP_MODE_MODEL = os.getenv("ACADEMICFORGE_DEEP_MODEL", "mlx-community/gemma-4-e2b-it-OptiQ-4bit")
+def _default_fast_model():
+    provider = get_app_config().llm_provider
+    if provider == "fireworks":
+        return "accounts/fireworks/models/qwen2p5-8b-instruct"
+    if provider == "openai":
+        return "gpt-4o-mini"
+    if provider in {"qwen", "dashscope"}:
+        return "qwen-plus"
+    if provider == "transformers":
+        return "google/gemma-4-e2b-it"
+    return "mlx-community/gemma-4-e2b-it-OptiQ-4bit"
+
+
+def _default_deep_model():
+    provider = get_app_config().llm_provider
+    if provider == "fireworks":
+        return "accounts/fireworks/models/gemma2-9b-it"
+    if provider == "openai":
+        return "gpt-4o"
+    if provider in {"qwen", "dashscope"}:
+        return "qwen-max"
+    if provider == "transformers":
+        return "google/gemma-4-31b-it"
+    return "mlx-community/gemma-4-e2b-it-OptiQ-4bit"
+
+
+FAST_MODE_MODEL = os.getenv("ACADEMICFORGE_FAST_MODEL") or _default_fast_model()
+DEEP_MODE_MODEL = os.getenv("ACADEMICFORGE_DEEP_MODEL") or _default_deep_model()
 
 class SearchRequest(BaseModel):
     query: str
@@ -70,12 +96,12 @@ async def get_config():
     payload["llm_models"] = task_model_config()
     payload["generation_modes"] = {
         "fast": {
-            "label": "Fast Mode (Qwen)",
+            "label": "Fast Mode (Gemma 4 2B)",
             "model": FAST_MODE_MODEL,
             "purpose": "Quick insights and shorter responses.",
         },
         "deep": {
-            "label": "Deep Mode (Gemma)",
+            "label": "Deep Mode (Gemma 4 31B)",
             "model": DEEP_MODE_MODEL,
             "purpose": "Detailed analysis and prototype guidance.",
         },
@@ -109,11 +135,11 @@ async def summarize_paper(paper: Paper):
         raise HTTPException(status_code=500, detail=str(e))
 
 def research_plan_response(text: str) -> dict:
-    return {"research_plan": text, "roadmap": text}
+    return {"research_plan": text}
 
 
 def paper_guidance_response(text: str) -> dict:
-    return {"guidance": text, "roadmap": text}
+    return {"guidance": text}
 
 
 @app.post("/research-plan")
@@ -134,11 +160,6 @@ async def generate_research_plan(request: PapersRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/roadmap")
-async def generate_roadmap(request: PapersRequest):
-    return await generate_research_plan(request)
-
-
 @app.post("/paper-guidance")
 async def generate_paper_guidance(paper: Paper):
     """Generate practical guidance for one paper."""
@@ -149,11 +170,6 @@ async def generate_paper_guidance(paper: Paper):
     except Exception as e:
         logger.exception("Paper guidance failed paper_id=%r", paper.paper_id)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/roadmap/paper")
-async def generate_paper_roadmap(paper: Paper):
-    return await generate_paper_guidance(paper)
 
 
 @app.post("/paper-guidance/cache-status")
@@ -170,11 +186,6 @@ async def paper_guidance_cache_status(paper: Paper):
         return status
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/roadmap/paper/cache-status")
-async def paper_roadmap_cache_status(paper: Paper):
-    return await paper_guidance_cache_status(paper)
 
 
 @app.post("/research-plan/cache-status")
@@ -199,11 +210,6 @@ async def research_plan_cache_status(request: PapersRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/roadmap/cache-status")
-async def roadmap_cache_status(request: PapersRequest):
-    return await research_plan_cache_status(request)
-
-
 @app.post("/research-plan/stream")
 async def stream_research_plan(request: PapersRequest):
     """Stream a Research Plan as it is generated."""
@@ -222,8 +228,3 @@ async def stream_research_plan(request: PapersRequest):
     except Exception as e:
         logger.exception("Research Plan stream failed")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/roadmap/stream")
-async def stream_roadmap(request: PapersRequest):
-    return await stream_research_plan(request)

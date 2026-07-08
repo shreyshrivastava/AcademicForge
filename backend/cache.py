@@ -86,6 +86,10 @@ def check_and_increment_usage(limit: int = 10) -> int:
 
     If the count meets or exceeds the limit, raises a RuntimeError.
     """
+    import os
+    if os.getenv("DISABLE_DEMO_LIMIT", "").lower() == "true" or os.getenv("DISABLE_USAGE_LIMIT", "").lower() == "true":
+        return 0
+
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     counter_path = CACHE_DIR / "usage_counter.json"
 

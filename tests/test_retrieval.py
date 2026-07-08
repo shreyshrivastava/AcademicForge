@@ -316,6 +316,40 @@ def test_retrieve_and_rank_papers_uses_live_relevant_candidates_across_domains()
         data_pipeline.search_live_candidates = original_search
 
 
+def test_rerank_results_cross_encoder():
+    from backend.retrieval.reranker import rerank_results
+    from backend.retrieval.models import RetrievalResult
+
+    results = [
+        RetrievalResult(
+            paper_id="1",
+            title="Transformer Retrieval for Multilingual Fact Checking",
+            abstract="A dense retrieval system for claim verification across languages.",
+            authors=["Ada"],
+            source="test",
+            url="https://example.com/a",
+            published="2025-01-01",
+        ),
+        RetrievalResult(
+            paper_id="2",
+            title="Graph Neural Networks for Molecules",
+            abstract="Message passing models for molecular property prediction.",
+            authors=["Bert"],
+            source="test",
+            url="https://example.com/b",
+            published="2025-01-02",
+        ),
+    ]
+
+    # Rerank with query related to fact checking
+    reranked = rerank_results("fact checking claims verification", results, top_k=2)
+    assert len(reranked) == 2
+    assert reranked[0].paper_id == "1"
+
+    # Test empty list
+    assert rerank_results("test", []) == []
+
+
 if __name__ == "__main__":
     test_bm25_returns_results()
     test_dense_returns_results()
@@ -326,4 +360,5 @@ if __name__ == "__main__":
     test_select_evidence_set_prefers_requested_categories()
     test_filter_relevant_papers_removes_domain_mismatch_for_fat_loss()
     test_retrieve_and_rank_papers_uses_live_relevant_candidates_across_domains()
+    test_rerank_results_cross_encoder()
     print("retrieval tests passed")

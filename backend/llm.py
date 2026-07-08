@@ -55,7 +55,6 @@ def task_model_config():
         "default": config.llm_model,
         "summary": config.llm_summary_model,
         "research_plan": config.llm_research_plan_model,
-        "roadmap": config.llm_research_plan_model,
     }
 
 
@@ -135,7 +134,7 @@ class LLMService:
 
     def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        if self.provider in {"openai", "fireworks"}:
+        if self.provider in {"openai", "fireworks", "qwen", "dashscope"}:
             from backend.cache import check_and_increment_usage
             check_and_increment_usage(limit=10)
             return _clean_response(
@@ -151,12 +150,12 @@ class LLMService:
             )
         raise LocalLLMError(
             f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. "
-            "Use 'mlx', 'transformers', 'openai', or 'fireworks'."
+            "Use 'mlx', 'transformers', 'openai', 'fireworks', 'qwen', or 'dashscope'."
         )
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        if self.provider in {"openai", "fireworks"}:
+        if self.provider in {"openai", "fireworks", "qwen", "dashscope"}:
             from backend.cache import check_and_increment_usage
             check_and_increment_usage(limit=10)
             yield from _generate_api_stream(self.provider, system_prompt, user_prompt, token_budget, selected_model)
@@ -169,7 +168,7 @@ class LLMService:
             return
         raise LocalLLMError(
             f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. "
-            "Use 'mlx', 'transformers', 'openai', or 'fireworks'."
+            "Use 'mlx', 'transformers', 'openai', 'fireworks', 'qwen', or 'dashscope'."
         )
 
 
@@ -186,16 +185,66 @@ def _clean_response(text):
     text = re.sub(r"^<think>.*", "", text, flags=re.DOTALL | re.IGNORECASE)
     text = re.split(r"<end_of_turn>|<eos>|</s>", text, maxsplit=1, flags=re.IGNORECASE)[0]
     text = text.strip()
-    text = re.sub(
-        r"^(okay|sure),?\s+here(?:['\u2019]s|\s+is)\s+(a|an|the)?\s*",
-        "",
-        text,
-        flags=re.IGNORECASE,
-    )
+
+    # Strip raw headers like "Summary\n" or "Guidance\n" at the start
+    text = re.sub(r"^(summary|guidance|research\s+plan):?\s*\n+", "", text, flags=re.IGNORECASE)
+
+    # Process line-by-line to filter out echoes, planning, and constraint discussion
+    cleaned_lines = []
+    for line in text.splitlines():
+        trimmed = line.strip()
+        # Strip common robotic planning/thinking prefixes from the beginning of any line
+        trimmed = re.sub(
+            r"^(?:need\s+to\s+summarize|i['\u2019]ll\s+extract|we\s+need\s+to|so\s+the\s+paper|the\s+summary\s+should|i\s+need\s+to|let['\u2019]s\s+extract|we\s+are\s+asked|the\s+user\s+(?:wants|is\s+asking|requested)).*?:\s*",
+            "",
+            trimmed,
+            flags=re.IGNORECASE
+        )
+
+        # Skip echoed prompt metadata blocks
+        if re.match(r"^(?:the\s+)?paper\s+title:|^authors:|^abstract:|^evidence\s+\[\d+\]", trimmed, re.IGNORECASE):
+            continue
+
+        # Skip lines containing typical meta-commentary, reasoning, or prompt echo phrases
+        if re.search(
+            r"(?:the\s+summary\s+should|we\s+need\s+to|paper\s+says\s+that\s+i|so\s+the\s+paper|"
+            r"no\s+bullet\s+points|just\s+what\s+the\s+paper\s+says|write\s+a\s+concise\s+summary|"
+            r"avoid\s+hype|avoid\s+abstract-like|do\s+not\s+invent|do\s+not\s+use|do\s+not\s+give|"
+            r"builder\s+recommendations|2-4\s+sentences|be\s+specific)",
+            trimmed,
+            re.IGNORECASE
+        ):
+            continue
+
+        # Skip reasoning comments or constraint discussion
+        if re.match(r"^(?:we\s+are\s+asked|the\s+user\s+(?:wants|is\s+asking|requested)|based\s+on\s+the\s+title\s+and\s+abstract|so\s+the\s+paper\s+proposes|the\s+summary\s+should\s+capture\s+that)", trimmed, re.IGNORECASE):
+            continue
+        # Skip short constraint notes / meta disclaimers
+        if re.match(r"^\(that['\u2019]s|i\s+need\s+\d|i['\u2019]ll\s+mention|avoid\s+abstract-like|i['\u2019]ll\s+be", trimmed, re.IGNORECASE):
+            continue
+
+        # Strip transitional indicators like "I'll craft a summary: " or "Here is the summary: "
+        trimmed = re.sub(
+            r"^(?:i['\u2019]ll\s+craft\s+a\s+(?:concise\s+)?summary|i\s+will\s+craft\s+a\s+(?:concise\s+)?summary|here\s+is\s+a\s+(?:concise\s+)?summary|here(?:['\u2019]s|\s+is)\s+the\s+summary|summary):?\s*",
+            "",
+            trimmed,
+            flags=re.IGNORECASE,
+        )
+        trimmed = re.sub(
+            r"^(okay|sure|here(?:['\u2019]s|\s+is)),?\s+(?:a|an|the)?\s*",
+            "",
+            trimmed,
+            flags=re.IGNORECASE,
+        )
+        if trimmed:
+            cleaned_lines.append(trimmed)
+
+    text = "\n".join(cleaned_lines).strip()
+
     heading_match = re.search(r"(\*\*[^*\n]+:\*\*|##\s+)", text)
     if heading_match and heading_match.start() < 280:
         preface = text[:heading_match.start()].lower()
-        if any(marker in preface for marker in ("summary", "roadmap", "research plan", "formatted", "requested", "provided")):
+        if any(marker in preface for marker in ("summary", "research plan", "formatted", "requested", "provided")):
             text = text[heading_match.start():].lstrip()
     fence_match = re.fullmatch(r"```(?:markdown|md)?\s*(.*?)\s*```", text, re.DOTALL)
     if fence_match:
@@ -260,11 +309,17 @@ def _generate_api(provider, system_prompt, user_prompt, token_budget, selected_m
     import requests
 
     if provider == "openai":
-        url = "https://api.openai.com/v1/chat/completions"
+        base_url = os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE") or "https://api.openai.com/v1"
+        url = f"{base_url.rstrip('/')}/chat/completions"
         api_key = os.getenv("OPENAI_API_KEY")
     elif provider == "fireworks":
-        url = "https://api.fireworks.ai/inference/v1/chat/completions"
+        base_url = os.getenv("FIREWORKS_BASE_URL") or os.getenv("FIREWORKS_API_BASE") or "https://api.fireworks.ai/inference/v1"
+        url = f"{base_url.rstrip('/')}/chat/completions"
         api_key = os.getenv("FIREWORKS_API_KEY")
+    elif provider in {"qwen", "dashscope"}:
+        base_url = os.getenv("QWEN_BASE_URL") or os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        url = f"{base_url.rstrip('/')}/chat/completions"
+        api_key = os.getenv("QWEN_API_KEY") or os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY")
     else:
         raise LocalLLMError(f"Unsupported API provider: {provider}")
 
@@ -283,11 +338,11 @@ def _generate_api(provider, system_prompt, user_prompt, token_budget, selected_m
             {"role": "user", "content": user_prompt}
         ],
         "temperature": temperature(),
-        "max_tokens": token_budget or max_tokens()
+        "max_tokens": (token_budget or max_tokens()) + (600 if provider in {"fireworks", "openai"} else 0)
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=30)
+        response = requests.post(url, headers=headers, json=data, timeout=120)
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
@@ -300,11 +355,17 @@ def _generate_api_stream(provider, system_prompt, user_prompt, token_budget, sel
     import requests
 
     if provider == "openai":
-        url = "https://api.openai.com/v1/chat/completions"
+        base_url = os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE") or "https://api.openai.com/v1"
+        url = f"{base_url.rstrip('/')}/chat/completions"
         api_key = os.getenv("OPENAI_API_KEY")
     elif provider == "fireworks":
-        url = "https://api.fireworks.ai/inference/v1/chat/completions"
+        base_url = os.getenv("FIREWORKS_BASE_URL") or os.getenv("FIREWORKS_API_BASE") or "https://api.fireworks.ai/inference/v1"
+        url = f"{base_url.rstrip('/')}/chat/completions"
         api_key = os.getenv("FIREWORKS_API_KEY")
+    elif provider in {"qwen", "dashscope"}:
+        base_url = os.getenv("QWEN_BASE_URL") or os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        url = f"{base_url.rstrip('/')}/chat/completions"
+        api_key = os.getenv("QWEN_API_KEY") or os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY")
     else:
         raise LocalLLMError(f"Unsupported API provider: {provider}")
 
@@ -323,12 +384,12 @@ def _generate_api_stream(provider, system_prompt, user_prompt, token_budget, sel
             {"role": "user", "content": user_prompt}
         ],
         "temperature": temperature(),
-        "max_tokens": token_budget or max_tokens(),
+        "max_tokens": (token_budget or max_tokens()) + (600 if provider in {"fireworks", "openai"} else 0),
         "stream": True
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data, stream=True, timeout=30)
+        response = requests.post(url, headers=headers, json=data, stream=True, timeout=120)
         response.raise_for_status()
 
         for line in response.iter_lines():

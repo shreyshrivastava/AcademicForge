@@ -39,27 +39,14 @@ def summarize_paper(paper, model=None):
 
     system_prompt = (
         "You are AcademicForge, a careful academic research assistant. "
-        "Write concise plain-English paper summaries for builders. A summary "
-        "answers only: what does this paper say? Be specific, avoid hype, "
-        "avoid abstract-like phrasing, and do not invent details not supported "
-        "by the title and abstract. Do not include conversational prefaces."
+        "Write concise plain-English paper summaries for builders. "
+        "The summary must be 2-4 sentences, avoid headings, bullet lists, hype, and abstract-like phrasing. "
+        "Do not invent details not supported by the title and abstract. "
+        "Do not include conversational prefaces or builder recommendations. "
+        "If a key detail is missing, briefly note it should be verified in the full paper."
     )
-    user_prompt = f"""
-Paper title: {title}
-Authors: {authors}
-Abstract:
-{abstract}
-
-Write a concise summary in 2-4 sentences.
-
-Rules:
-- Do not use headings.
-- Do not use bullet lists.
-- Do not give builder recommendations or implementation advice.
-- Do not restate the abstract.
-- Do not mention benchmarks, datasets, libraries, or implementation details unless the abstract says them.
-- If a key detail is missing, mention briefly that it should be verified in the full paper.
-""".strip()
+    user_prompt = f"""\
+Paper title: {title}\nAuthors: {authors}\nAbstract:\n{abstract}\n\nWrite a concise summary in 2-4 sentences.\n""".strip()
 
     summary = generate_text(system_prompt, user_prompt, token_budget=360, task="summary", model=model)
     SUMMARY_CACHE[cache_key] = summary

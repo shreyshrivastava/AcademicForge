@@ -34,7 +34,7 @@ streamlit run frontend/streamlit_app.py --server.address 127.0.0.1 --server.port
 ## Test Before Submitting
 
 ```bash
-python -m py_compile backend/app.py backend/cache.py backend/llm.py backend/summarizer.py backend/roadmap_generator.py frontend/streamlit_app.py backend/retrieval/*.py scripts/*.py tests/*.py
+python -m py_compile backend/app.py backend/cache.py backend/llm.py backend/summarizer.py backend/guidance_generator.py backend/research_plan_generator.py frontend/streamlit_app.py backend/retrieval/*.py scripts/*.py tests/*.py
 python tests/test_cache.py
 python tests/test_generation_pipeline.py
 python tests/test_llm_routing.py

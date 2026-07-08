@@ -10,12 +10,12 @@ import streamlit as st
 BACKEND_URL = os.getenv("ACADEMICFORGE_BACKEND_URL", "http://localhost:8000")
 MODE_OPTIONS = {
     "fast": {
-        "label": "Fast Mode (Qwen)",
+        "label": "Fast Mode (Gemma 4 2B)",
         "short": "Fast",
         "purpose": "Quick insights, shorter responses.",
     },
     "deep": {
-        "label": "Deep Mode (Gemma)",
+        "label": "Deep Mode (Gemma 4 31B)",
         "short": "Deep",
         "purpose": "Detailed analysis, prototype guidance.",
     },
@@ -61,7 +61,6 @@ CATEGORY_ACCENTS = {
 
 
 RESEARCH_PLAN_SECTION_ORDER = [
-    "User Goal Analysis",
     "Research Focus",
     "Key Findings",
     "Research Gaps",
@@ -70,29 +69,20 @@ RESEARCH_PLAN_SECTION_ORDER = [
 ]
 
 RECOMMENDED_BUILD_FIELDS = [
-    "Project Name",
-    "Objective",
     "Recommended Architecture",
     "Core Components",
-    "Implementation Difficulty",
-    "Estimated Build Time",
-    "Why This Approach",
-    "Expected Benefits",
-    "Expected Tradeoffs",
+    "Deployment Considerations",
+    "Evaluation Strategy",
 ]
 
 RECOMMENDED_BUILD_LABELS = {
-    "Project Name": "Project name",
-    "Objective": "Objective",
     "Recommended Architecture": "Architecture",
     "Core Components": "Core components",
-    "Why This Approach": "Why this approach",
-    "Expected Benefits": "Expected benefits",
-    "Expected Tradeoffs": "Expected tradeoffs",
+    "Deployment Considerations": "Deployment considerations",
+    "Evaluation Strategy": "Evaluation strategy",
 }
 
 RESEARCH_PLAN_SECTION_LABELS = {
-    "User Goal Analysis": "User goal analysis",
     "Research Focus": "Research focus",
     "Key Findings": "Key findings",
     "Research Gaps": "Research gaps",
@@ -340,7 +330,7 @@ def generate_paper_guidance(paper, generation_mode):
     payload = dict(paper)
     payload["generation_mode"] = generation_mode
     response = post_json("/paper-guidance", payload)
-    return response.get("guidance") or response.get("roadmap", "")
+    return response.get("guidance", "")
 
 
 def stream_research_plan(papers, summaries, query, generation_mode):
@@ -925,7 +915,7 @@ def render_technical_dashboard(papers, config=None):
             metric_cols[1].metric("Summary model", llm_models.get("summary", "unknown"))
             metric_cols[2].metric(
                 "Research Plan model",
-                llm_models.get("research_plan") or llm_models.get("roadmap", "unknown"),
+                llm_models.get("research_plan", "unknown"),
             )
 
         category_counts = {}
@@ -1133,15 +1123,15 @@ if "selected_labels" not in st.session_state:
 if "summaries" not in st.session_state:
     st.session_state.summaries = []
 if "research_plan" not in st.session_state:
-    st.session_state.research_plan = st.session_state.get("roadmap", "")
+    st.session_state.research_plan = ""
 if "research_plan_elapsed" not in st.session_state:
-    st.session_state.research_plan_elapsed = st.session_state.get("roadmap_elapsed")
+    st.session_state.research_plan_elapsed = None
 if "generated_labels" not in st.session_state:
     st.session_state.generated_labels = []
 if "generated_mode" not in st.session_state:
     st.session_state.generated_mode = ""
 if "paper_guidance" not in st.session_state:
-    st.session_state.paper_guidance = st.session_state.get("paper_roadmaps", {})
+    st.session_state.paper_guidance = {}
 if "on_demand_summaries" not in st.session_state:
     st.session_state.on_demand_summaries = {}
 if "generation_mode" not in st.session_state:
@@ -1177,8 +1167,8 @@ with st.container(border=True, key="search_shell"):
     manual_search = search_cols[1].button("Search", type="primary", width="stretch")
 
     mode_labels = {
-        "fast": "Fast Mode · Qwen",
-        "deep": "Deep Mode · Gemma",
+        "fast": "Fast Mode · Gemma 4 2B",
+        "deep": "Deep Mode · Gemma 4 31B",
     }
     selected_mode_label = st.pills(
         "Analysis Mode",

@@ -78,12 +78,12 @@ def test_generate_research_plan_uses_compact_context():
     assert captured["token_budget"] == 1900
     assert captured["task"] == "research_plan"
     assert "AI Research Engineer" in captured["system_prompt"]
-    assert "User Goal Analysis" in captured["user_prompt"]
+    assert "# User Goal Analysis" not in captured["user_prompt"]
     assert "Research Focus" in captured["user_prompt"]
     assert "Key Findings" in captured["user_prompt"]
     assert "Research Gaps" in captured["user_prompt"]
     assert "Recommended Build" in captured["user_prompt"]
-    assert "Do not output Evidence Used" in captured["user_prompt"]
+    assert "Evaluation Strategy" in captured["user_prompt"]
     assert "Paper Relevance Analysis" not in captured["user_prompt"]
     assert "Implementation Roadmap" not in captured["user_prompt"]
     assert "build a RAG hallucination detector" in captured["user_prompt"]
