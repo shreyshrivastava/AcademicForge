@@ -13,7 +13,7 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 - local MLX summarization
 - streamed local MLX Research Plan generation
 - persistent summary and Research Plan cache
-- model benchmark script
+
 - lightweight tests for retrieval, generation, cache, and API contracts
 
 ## Near-Term

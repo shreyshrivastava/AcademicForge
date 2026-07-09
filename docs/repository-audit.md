@@ -9,7 +9,7 @@ This audit summarizes the repository state after the hackathon-readiness pass.
 - Local-first LLM wrapper with MLX as the default provider.
 - Summary and Research Plan generation are cached locally.
 - Research Plan generation streams output to improve perceived latency.
-- Tests cover retrieval, cache, model routing, generation pipeline, API contracts, and the benchmark helper.
+- Tests cover retrieval, cache, model routing, generation pipeline, and API contracts.
 
 ## Issues Found
 

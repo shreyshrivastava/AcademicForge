@@ -135,7 +135,6 @@ python tests/test_cache.py
 python tests/test_generation_pipeline.py
 python tests/test_llm_routing.py
 python tests/test_api_contract.py
-python tests/test_benchmark_script.py
 python tests/test_retrieval.py
 ```
 

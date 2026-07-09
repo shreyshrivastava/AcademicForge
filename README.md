@@ -71,7 +71,6 @@ While ChatGPT is an excellent generalist search agent, AcademicForge offers sign
 *   **Multi-Tiered Local Cache:** Persistent JSON cache stores summaries and research plans locally to eliminate LLM latency.
 *   **Explainable Ranks:** Cards display raw search scores and metadata chips directly.
 *   **Builder Guidance:** Single-click practical guidance generated for individual papers.
-*   **Automated Benchmarking:** Command-line suite to measure LLM generation speed, output lengths, and quality flags.
 
 ---
 
@@ -240,20 +239,8 @@ python tests/test_cache.py
 python tests/test_generation_pipeline.py
 python tests/test_llm_routing.py
 python tests/test_api_contract.py
-python tests/test_benchmark_script.py
 python tests/test_retrieval.py
 ```
-
-### 4. Running Benchmarks
-Evaluate generation performance, accuracy, and output flags on your local device:
-```bash
-python scripts/benchmark_llm.py \
-  --model mlx-community/Qwen3-4B-4bit \
-  --json-out benchmark-results.json \
-  --markdown-out benchmark-results.md
-```
-
----
 
 ## 📝 Demo Scripts
 
@@ -303,11 +290,9 @@ AcademicForge/
 ├── frontend/
 │   └── streamlit_app.py     # Streamlit web interface
 ├── scripts/
-│   ├── benchmark_llm.py     # Automatic LLM latency & accuracy evaluator
 │   └── run_local.py         # Multi-process orchestrator script
 ├── tests/
 │   ├── test_api_contract.py # FastAPI contract verification tests
-│   ├── test_benchmark_script.py # Benchmark script runner tests
 │   ├── test_cache.py        # Caching logic tests
 │   ├── test_generation_pipeline.py # Core LLM generation flow tests
 │   ├── test_llm_routing.py  # LLM model routing config tests
