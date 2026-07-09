@@ -67,8 +67,8 @@ class AppConfig:
             logger.warning("Unsupported local LLM provider %r. Defaulting to 'mlx'.", provider)
             provider = "mlx"
 
-        default_model = "mlx-community/gemma-4-2b-it-4bit" if provider == "mlx" else "google/gemma-4-2b-it"
-        default_deep_model = "mlx-community/gemma-4-2b-it-OptiQ-4bit" if provider == "mlx" else "google/gemma-4-2b-it"
+        default_model = "mlx-community/gemma-4-e2b-it-4bit" if provider == "mlx" else "google/gemma-4-2b-it"
+        default_deep_model = "mlx-community/gemma-4-e2b-it-OptiQ-4bit" if provider == "mlx" else "google/gemma-4-2b-it"
         load_in_4bit = os.getenv("LOCAL_LLM_LOAD_IN_4BIT", "false").lower() == "true"
 
         return cls(
