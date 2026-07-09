@@ -12,7 +12,7 @@ class APIClient:
     Handles dynamic routing via BACKEND_API_URL and implements basic retry loops.
     """
     def __init__(self):
-        self.base_url = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+        self.base_url = os.getenv("VERCEL_API_URL", "http://localhost:8000")
         self.timeout_health = 5
         self.timeout_generation = 240
         self.max_retries = 3

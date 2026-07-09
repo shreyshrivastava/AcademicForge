@@ -1,12 +1,20 @@
 # AcademicForge Deployment Guide
 
-AcademicForge is designed as a fully local architecture. To expose the local API backend so your Streamlit frontend can securely access it over the public internet, we recommend using **Cloudflare Tunnels**.
+This guide outlines the production deployment architecture for AcademicForge, decoupling the frontend from the local LLM backend using a Vercel serverless proxy.
 
 ## Architecture
-`Streamlit Frontend` → `Cloudflare Tunnel (Public URL)` → `Local FastAPI Backend (Mac/AMD)`
+
+**Hosted Streamlit** → **Vercel API Proxy** → **ngrok / Local Backend** → **Gemma LLM (MLX/ROCm)**
+
+This architecture ensures:
+- The Streamlit frontend can be hosted anywhere (e.g., Streamlit Community Cloud).
+- Vercel acts purely as a fast proxy/mediator. It **does not** run model inference.
+- The actual AI computation remains local on your Mac/AMD machine.
+- We are prepared to hot-swap the backend URL to a dedicated AMD Developer Cloud or Render server in the future without changing the frontend or proxy code.
 
 ## 1. Run the Local Backend
-Start the FastAPI backend on your local machine (e.g., port 8000).
+
+Start the FastAPI backend on your local machine (e.g., Mac or AMD Linux) on port 8000.
 
 ```bash
 # Export your desired ML provider (mlx or transformers)
@@ -16,30 +24,38 @@ export LOCAL_LLM_PROVIDER="mlx"
 ./venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
 ```
 
-## 2. Expose with Cloudflare Tunnel
-Install `cloudflared` (Cloudflare's tunneling daemon).
+## 2. Expose the Backend via ngrok (or similar)
 
-**On macOS (Homebrew):**
+Since the Vercel proxy needs to reach your local backend over the internet, expose port 8000 using ngrok:
+
 ```bash
-brew install cloudflared
+ngrok http 8000
 ```
+Copy the resulting Forwarding URL (e.g., `https://1234-abcd.ngrok-free.app`).
 
-**Run the tunnel:**
-Point the tunnel to your local backend port:
+## 3. Deploy the Vercel Proxy
+
+The `api/index.py` file in this repository is a lightweight FastAPI proxy designed for Vercel Serverless Functions. 
+When deploying this repository to Vercel, set the following environment variable in your Vercel Project Settings:
+
+- `BACKEND_URL` = `https://1234-abcd.ngrok-free.app` (Your ngrok URL from Step 2)
+
+Vercel will automatically route traffic and forward it to your local machine.
+
+## 4. Deploy the Streamlit Frontend
+
+When deploying your Streamlit frontend (locally or hosted), configure it to talk to your new Vercel proxy by setting the following environment variable:
+
+- `VERCEL_API_URL` = `https://your-vercel-project.vercel.app`
+
 ```bash
-cloudflared tunnel --url http://127.0.0.1:8000
-```
-Cloudflare will output a public URL in the terminal (e.g., `https://random-words.trycloudflare.com`).
-
-## 3. Connect Streamlit Frontend
-Provide the Cloudflare public URL to your Streamlit frontend by setting the `BACKEND_API_URL` environment variable.
-
-```bash
-# Set the backend URL to your Cloudflare Tunnel
-export BACKEND_API_URL="https://random-words.trycloudflare.com"
-
-# Run Streamlit
+export VERCEL_API_URL="https://your-vercel-project.vercel.app"
 ./venv/bin/python -m streamlit run frontend/streamlit_app.py
 ```
 
-The Streamlit interface will now route all LLM requests, searches, and streams through the Cloudflare tunnel securely to your local machine!
+## Future Expansions (AMD Cloud / Render)
+
+To migrate the backend from your local machine to a dedicated server (like AMD Developer Cloud or Render), simply:
+1. Deploy the FastAPI backend (`backend.app:app`) to the new server.
+2. Update the `BACKEND_URL` environment variable in your Vercel project to point to the new server's IP/Domain.
+3. No changes are required to the Streamlit frontend.

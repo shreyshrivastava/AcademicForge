@@ -4,6 +4,7 @@ streamlit>=1.20.0
 arxiv>=1.4.0
 python-dotenv>=1.0.0
 requests>=2.31.0
+httpx>=0.24.0
 uvicorn>=0.22.0
 
 # Native Apple Silicon Inference Backend (MLX GPU Acceleration)
