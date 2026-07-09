@@ -4,6 +4,10 @@ import re
 import time
 import requests
 
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 import streamlit as st
 from frontend.api_client import APIClient
 
