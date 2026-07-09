@@ -63,12 +63,20 @@ class AppConfig:
         provider = raw_provider.strip().lower()
         provider = PROVIDER_ALIASES.get(provider, provider)
 
-        if provider not in ("mlx", "transformers"):
+        if provider not in ("mlx", "transformers", "fireworks"):
             logger.warning("Unsupported local LLM provider %r. Defaulting to 'mlx'.", provider)
             provider = "mlx"
 
-        default_model = "mlx-community/gemma-4-e2b-it-4bit" if provider == "mlx" else "google/gemma-4-2b-it"
-        default_deep_model = "mlx-community/gemma-4-e2b-it-OptiQ-4bit" if provider == "mlx" else "google/gemma-4-2b-it"
+        if provider == "fireworks":
+            default_model = "accounts/fireworks/models/gemma-2-9b-it"
+            default_deep_model = "accounts/fireworks/models/gemma-2-9b-it"
+        elif provider == "mlx":
+            default_model = "mlx-community/gemma-4-e2b-it-4bit"
+            default_deep_model = "mlx-community/gemma-4-e2b-it-OptiQ-4bit"
+        else:
+            default_model = "google/gemma-4-2b-it"
+            default_deep_model = "google/gemma-4-2b-it"
+
         load_in_4bit = os.getenv("LOCAL_LLM_LOAD_IN_4BIT", "false").lower() == "true"
 
         return cls(

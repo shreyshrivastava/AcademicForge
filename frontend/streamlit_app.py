@@ -2,6 +2,7 @@ import html
 import os
 import re
 import time
+import requests
 
 import streamlit as st
 from frontend.api_client import APIClient
@@ -688,6 +689,7 @@ def apply_card_styles():
             font-size: 0.93rem;
             line-height: 1.5;
             margin-bottom: 0.6rem;
+            text-align: justify;
         }
         .paper-chip {
             display: inline-block;
@@ -1007,10 +1009,12 @@ def render_paper_cards(
                 <div class="paper-card-title">{title}</div>
                 <div class="paper-card-meta">{metadata_line}</div>
                 <span class="paper-chip paper-chip-category" style="border-color: {accent_rgba(category_accent, 0.45)}; background: {accent_rgba(category_accent, 0.16)}; color: {category_accent};">{category}</span>
-                <div class="paper-card-abstract">{abstract}</div>
                 """,
                 unsafe_allow_html=True,
             )
+            # Render abstract natively as markdown so LaTeX math equations are processed
+            # The newlines ensure Streamlit parses the markdown inside the HTML block
+            st.markdown(f"<div class='paper-card-abstract'>\n\n{paper.get('abstract', '')}\n\n</div>", unsafe_allow_html=True)
             if selectable:
                 action_cols = st.columns([1.1, 0.9, 1.05, 1.05, 2.9])
                 select_col, open_col, summary_col, guidance_col = (
@@ -1181,18 +1185,7 @@ with st.container(border=True, key="search_shell"):
     )
     manual_search = search_cols[1].button("Search", type="primary", width="stretch")
 
-    mode_labels = {
-        "fast": "Fast Mode · Gemma 4 2B",
-        "deep": "Deep Mode · Gemma 4 31B",
-    }
-    selected_mode_label = st.pills(
-        "Analysis Mode",
-        list(mode_labels.values()),
-        selection_mode="single",
-        default=mode_labels[st.session_state.generation_mode],
-        help="Fast Mode gives quicker insights. Deep Mode gives more detailed planning.",
-    )
-    st.session_state.generation_mode = "deep" if selected_mode_label == mode_labels["deep"] else "fast"
+    st.session_state.generation_mode = "fast"
 
     st.markdown(
         """
