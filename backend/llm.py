@@ -162,10 +162,6 @@ class LLMService:
 
     def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        if self.provider == "fireworks":
-            return _clean_response(
-                _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model)
-            )
         if self.provider == "mlx":
             return _clean_response(
                 _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
@@ -175,14 +171,11 @@ class LLMService:
                 _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
             )
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx' or 'transformers'."
         )
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        if self.provider == "fireworks":
-            yield from _stream_fireworks(system_prompt, user_prompt, token_budget, selected_model)
-            return
         if self.provider == "mlx":
             yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
             return
@@ -190,7 +183,7 @@ class LLMService:
             yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
             return
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx' or 'transformers'."
         )
 
 
@@ -274,62 +267,7 @@ def _clean_response(text):
     return text.strip()
 
 
-def _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model):
-    import requests
-    import json
-    url = "https://api.fireworks.ai/inference/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {os.getenv('FIREWORKS_API_KEY', '')}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": selected_model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        "max_tokens": token_budget or max_tokens(),
-        "temperature": temperature(),
-    }
-    start_time = time.perf_counter()
-    response = requests.post(url, headers=headers, json=payload)
-    response.raise_for_status()
-    infer_time = time.perf_counter() - start_time
-    logger.info("Fireworks model %r generated in %.2fs.", selected_model, infer_time)
-    return response.json()["choices"][0]["message"]["content"].strip()
 
-
-def _stream_fireworks(system_prompt, user_prompt, token_budget, selected_model):
-    import requests
-    import json
-    url = "https://api.fireworks.ai/inference/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {os.getenv('FIREWORKS_API_KEY', '')}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": selected_model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        "max_tokens": token_budget or max_tokens(),
-        "temperature": temperature(),
-        "stream": True
-    }
-    response = requests.post(url, headers=headers, json=payload, stream=True)
-    response.raise_for_status()
-    for line in response.iter_lines():
-        if line:
-            decoded_line = line.decode("utf-8")
-            if decoded_line.startswith("data: ") and decoded_line != "data: [DONE]":
-                try:
-                    data = json.loads(decoded_line[6:])
-                    content = data["choices"][0]["delta"].get("content")
-                    if content:
-                        yield content
-                except Exception:
-                    pass
 
 
 def _generate_mlx(system_prompt, user_prompt, token_budget, selected_model):

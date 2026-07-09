@@ -9,25 +9,16 @@ logger = logging.getLogger(__name__)
 class APIClient:
     """
     Centralized API client for Streamlit frontend.
-    Handles dynamic backend routing via BACKEND_MODE and implements basic retry loops.
+    Handles dynamic routing via BACKEND_API_URL and implements basic retry loops.
     """
     def __init__(self):
-        self.mode = os.getenv("BACKEND_MODE", "mac").lower()
-        self.base_url = self._resolve_base_url()
+        self.base_url = os.getenv("BACKEND_API_URL", "http://localhost:8000")
         self.timeout_health = 5
         self.timeout_generation = 240
         self.max_retries = 3
 
-    def _resolve_base_url(self) -> str:
-        if self.mode == "amd":
-            return os.getenv("AMD_API_URL", "http://localhost:8000")
-        elif self.mode == "fireworks":
-            return os.getenv("FIREWORKS_API_URL", "https://api.fireworks.ai")
-        else:
-            return os.getenv("MAC_API_URL", "http://localhost:8000")
-
     def get_active_backend(self) -> str:
-        return self.mode
+        return "remote" if "localhost" not in self.base_url and "127.0.0.1" not in self.base_url else "local"
 
     def health_check(self) -> Dict[str, Any]:
         """Check if backend is healthy and return provider/model info."""
@@ -37,7 +28,7 @@ class APIClient:
             return response.json()
         except Exception as e:
             logger.warning(f"Health check failed for {self.base_url}: {e}")
-            return {"status": "error", "backend": self.mode, "message": str(e)}
+            return {"status": "error", "backend": self.get_active_backend(), "message": str(e)}
 
     def get_config(self) -> Dict[str, Any]:
         response = self._request_with_retry("GET", "/config", timeout=self.timeout_health)

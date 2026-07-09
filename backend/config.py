@@ -1,6 +1,9 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_PROVIDER = "mlx"
@@ -63,14 +66,11 @@ class AppConfig:
         provider = raw_provider.strip().lower()
         provider = PROVIDER_ALIASES.get(provider, provider)
 
-        if provider not in ("mlx", "transformers", "fireworks"):
+        if provider not in ("mlx", "transformers"):
             logger.warning("Unsupported local LLM provider %r. Defaulting to 'mlx'.", provider)
             provider = "mlx"
 
-        if provider == "fireworks":
-            default_model = "accounts/fireworks/models/gemma-2-9b-it"
-            default_deep_model = "accounts/fireworks/models/gemma-2-9b-it"
-        elif provider == "mlx":
+        if provider == "mlx":
             default_model = "mlx-community/gemma-4-e2b-it-4bit"
             default_deep_model = "mlx-community/gemma-4-e2b-it-OptiQ-4bit"
         else:
