@@ -6,13 +6,27 @@ from typing import Dict, Any, Generator
 
 logger = logging.getLogger(__name__)
 
+import streamlit as st
+
 class APIClient:
     """
     Centralized API client for Streamlit frontend.
-    Handles dynamic routing via BACKEND_API_URL and implements basic retry loops.
+    Handles dynamic routing via VERCEL_API_URL and implements basic retry loops.
     """
     def __init__(self):
-        self.base_url = os.getenv("VERCEL_API_URL", "http://localhost:8000")
+        # 1. Try OS environment variable
+        url = os.getenv("VERCEL_API_URL")
+        
+        # 2. Try Streamlit Secrets (Community Cloud)
+        if not url:
+            try:
+                url = st.secrets.get("VERCEL_API_URL")
+            except Exception:
+                pass
+                
+        # 3. Fallback to localhost
+        self.base_url = url if url else "http://localhost:8000"
+        
         self.timeout_health = 5
         self.timeout_generation = 240
         self.max_retries = 3
