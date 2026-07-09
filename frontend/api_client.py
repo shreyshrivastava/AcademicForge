@@ -24,8 +24,8 @@ class APIClient:
             except Exception:
                 pass
                 
-        # 3. Fallback to localhost
-        self.base_url = url if url else "http://localhost:8000"
+        # 3. Fallback to the live Vercel Proxy instead of localhost
+        self.base_url = url if url else "https://academic-forge-icme.vercel.app"
         
         self.timeout_health = 5
         self.timeout_generation = 240
