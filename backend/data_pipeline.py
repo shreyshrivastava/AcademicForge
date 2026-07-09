@@ -435,12 +435,6 @@ def select_evidence_set(
                 _append_unique(selected, selected_ids, paper)
                 if len(selected) >= target:
                     return selected
-
-        for paper in annotated:
-            paper["metadata"]["category_focus_matched"] = False
-            _append_unique(selected, selected_ids, paper)
-            if len(selected) >= target:
-                break
         return selected
 
     for category, quota in CORE_CATEGORY_QUOTAS.items():

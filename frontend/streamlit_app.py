@@ -1251,20 +1251,19 @@ if papers:
     st.subheader("Paper Results")
     labels = [paper_label(index, paper) for index, paper in enumerate(papers, start=1)]
 
-    filtered_papers = papers
+    if focus_categories:
+        filtered_papers = [
+            p for p in papers
+            if p.get("metadata", {}).get("academicforge_category") in focus_categories
+        ]
+    else:
+        filtered_papers = papers
     st.caption(f"{len(papers)} papers retrieved. Select papers to generate a Research Plan.")
 
-    action_cols = st.columns([1, 1, 4])
     filtered_labels = [
         paper_label(papers.index(paper) + 1, paper)
         for paper in filtered_papers
     ]
-    if action_cols[0].button("Select visible"):
-        merged = set(st.session_state.selected_labels)
-        merged.update(filtered_labels)
-        st.session_state.selected_labels = [label for label in labels if label in merged]
-    if action_cols[1].button("Clear selection"):
-        st.session_state.selected_labels = []
 
     render_paper_cards(
         filtered_papers,
