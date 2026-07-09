@@ -180,7 +180,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Install requirements
-pip install -r requirements.txt
+pip install -r requirements-local.txt
 ```
 
 ### 2. Optional: Install Dense Embeddings Support
@@ -294,7 +294,7 @@ AcademicForge/
 │   ├── test_generation_pipeline.py # Core LLM generation flow tests
 │   ├── test_llm_routing.py  # LLM model routing config tests
 │   └── test_retrieval.py    # BM25/Dense/RRF verification tests
-├── requirements.txt         # Package dependencies
+├── requirements-local.txt   # Package dependencies
 └── README.md                # Main project description & judge guide
 ```
 

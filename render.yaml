@@ -4,7 +4,7 @@ services:
     name: academicforge-backend
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements-local.txt
     startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: LOCAL_LLM_PROVIDER
@@ -21,7 +21,7 @@ services:
     name: academicforge-frontend
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements-local.txt
     startCommand: streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: ACADEMICFORGE_BACKEND_URL

@@ -15,7 +15,7 @@ Thanks for helping improve AcademicForge.
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-local.txt
 cp .env.example .env
 ```
 

@@ -53,7 +53,7 @@ venv\Scripts\activate
 With the virtual environment active, install the required packages:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-local.txt
 ```
 
 ### Optional: Dense Semantic Search Support
