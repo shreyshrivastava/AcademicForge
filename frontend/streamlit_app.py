@@ -3,11 +3,10 @@ import os
 import re
 import time
 
-import requests
 import streamlit as st
+from frontend.api_client import APIClient
 
-
-BACKEND_URL = os.getenv("ACADEMICFORGE_BACKEND_URL", "http://localhost:8000")
+api_client = APIClient()
 MODE_OPTIONS = {
     "fast": {
         "label": "Fast Mode (Gemma 4 2B)",
@@ -317,15 +316,11 @@ def accent_rgba(hex_color, alpha):
 
 
 def post_json(path, payload):
-    response = requests.post(f"{BACKEND_URL}{path}", json=payload, timeout=240)
-    response.raise_for_status()
-    return response.json()
+    return api_client.post_json(path, payload)
 
 
 def get_config():
-    response = requests.get(f"{BACKEND_URL}/config", timeout=5)
-    response.raise_for_status()
-    return response.json()
+    return api_client.get_config()
 
 
 def search_papers(query, categories=None):
@@ -346,21 +341,15 @@ def generate_paper_guidance(paper, generation_mode):
 
 
 def stream_research_plan(papers, summaries, query, generation_mode):
-    response = requests.post(
-        f"{BACKEND_URL}/research-plan/stream",
-        json={
+    yield from api_client.stream_post(
+        "/research-plan/stream",
+        {
             "papers": papers,
             "summaries": summaries,
             "query": query,
             "generation_mode": generation_mode,
-        },
-        stream=True,
-        timeout=240,
+        }
     )
-    response.raise_for_status()
-    for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
-        if chunk:
-            yield chunk
 
 
 def research_plan_cache_status(papers, summaries, query, generation_mode):
@@ -1121,6 +1110,17 @@ st.markdown(
     '<div class="af-subtitle">Question → Papers → Plan</div>',
     unsafe_allow_html=True,
 )
+
+with st.sidebar:
+    st.header("Backend Config")
+    health = api_client.health_check()
+    st.write(f"**Mode:** {api_client.mode.upper()}")
+    if health.get("status") == "ok":
+        st.success("Backend: Online")
+        st.write(f"**Provider:** {health.get('provider')}")
+        st.write(f"**Model:** {health.get('model')}")
+    else:
+        st.error(f"Backend: Offline\\n\\n{health.get('message', 'Unknown error')}")
 
 try:
     config = get_config()

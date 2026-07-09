@@ -67,6 +67,17 @@ def model_for_guidance(mode: str | None) -> str:
 def model_for_research_plan(mode: str | None) -> str:
     return get_app_config().model_for_task_and_mode("research_plan", mode)
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint returning model and provider details."""
+    config = get_app_config()
+    return {
+        "status": "ok",
+        "backend": os.getenv("BACKEND_MODE", "unknown"),
+        "provider": provider_name(),
+        "model": config.llm_model
+    }
+
 @app.get("/config")
 async def get_config():
     """Return the active local model configuration for display/debugging."""

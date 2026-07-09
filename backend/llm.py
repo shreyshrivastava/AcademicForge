@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import time
 from functools import lru_cache
 
 from backend.config import get_config
@@ -303,9 +304,14 @@ def _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_mode
 
 
 def _generate_transformers(system_prompt, user_prompt, token_budget, selected_model):
+    start_load = time.perf_counter()
     model, tokenizer, torch = _load_transformers_model(selected_model)
+    load_time = time.perf_counter() - start_load
+
     prompt = _chat_prompt(tokenizer, system_prompt, user_prompt)
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+    
+    start_infer = time.perf_counter()
     with torch.no_grad():
         output_ids = model.generate(
             **inputs,
@@ -314,6 +320,10 @@ def _generate_transformers(system_prompt, user_prompt, token_budget, selected_mo
             do_sample=temperature() > 0,
             pad_token_id=tokenizer.eos_token_id,
         )
+    infer_time = time.perf_counter() - start_infer
+    
+    logger.info("Model %r loaded in %.2fs. Inference completed in %.2fs.", selected_model, load_time, infer_time)
+    
     new_tokens = output_ids[0][inputs["input_ids"].shape[-1]:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
