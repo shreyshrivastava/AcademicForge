@@ -28,10 +28,13 @@ async def _proxy_request(request: Request, path: str):
     # Vercel serverless has execution limits, but we stream the response for SSE
     client = httpx.AsyncClient(timeout=300.0)
     
+    forward_headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
+    forward_headers["ngrok-skip-browser-warning"] = "true"
+    
     req = client.build_request(
         method=request.method,
         url=url,
-        headers={k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")},
+        headers=forward_headers,
         content=body
     )
     
