@@ -103,8 +103,8 @@ def test_research_plan_cache_status_endpoint_returns_status():
 def test_paper_guidance_endpoint_returns_guidance():
     original_generate = backend_app.generate_ai_paper_guidance
 
-    def fake_generate(paper, model=None):
-        assert model == backend_app.DEEP_MODE_MODEL
+    def fake_generate(paper, model=None, mode=None):
+        assert model == backend_app.get_app_config().llm_guidance_deep_model
         return f"guidance for {paper['title']}"
 
     backend_app.generate_ai_paper_guidance = fake_generate
@@ -150,9 +150,9 @@ def test_paper_guidance_cache_status_endpoint_returns_status():
 def test_research_plan_stream_endpoint_streams_text():
     original_stream = backend_app.stream_ai_research_plan
 
-    def fake_stream(papers, summaries=None, query="", model=None):
+    def fake_stream(papers, summaries=None, query="", model=None, mode=None):
         assert query == "build a prototype"
-        assert model == backend_app.DEEP_MODE_MODEL
+        assert model == backend_app.get_app_config().llm_research_plan_model
         yield "hello "
         yield "research plan"
 

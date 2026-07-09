@@ -10,9 +10,12 @@ from backend.retrieval import hybrid_search, rerank_results
 from backend.retrieval.bm25 import bm25_search
 from backend.retrieval.dense import dense_search
 from backend.retrieval.models import result_to_paper
+from backend.cache import cache_get, cache_set, make_cache_key
 
 
 logger = logging.getLogger(__name__)
+
+SEARCH_CACHE = {}
 
 INITIAL_CANDIDATE_COUNT = 30
 EXPANDED_CANDIDATE_COUNT = 100
@@ -465,6 +468,18 @@ def select_evidence_set(
 def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None = None) -> list[dict]:
     """End-to-end retrieval pipeline used by the API."""
     original_query = query.strip()
+    cache_key = make_cache_key("search-v1", original_query, preferred_categories or [])
+
+    if cache_key in SEARCH_CACHE:
+        logger.info("Search cache hit cache=memory query=%r", original_query)
+        return SEARCH_CACHE[cache_key]
+
+    cached_results = cache_get("searches", cache_key)
+    if cached_results:
+        logger.info("Search cache hit cache=disk query=%r", original_query)
+        SEARCH_CACHE[cache_key] = cached_results
+        return cached_results
+
     search_query = rewrite_search_query(original_query)
     logger.info(
         "Retrieval query original_query=%r rewritten_query=%r source_query=%r",
@@ -474,7 +489,10 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
     )
     candidates, direct_id = search_live_candidates(search_query)
     if direct_id:
-        return select_evidence_set(candidates, target=1)
+        selected = select_evidence_set(candidates, target=1)
+        SEARCH_CACHE[cache_key] = selected
+        cache_set("searches", cache_key, selected)
+        return selected
     papers = filter_relevant_papers(original_query, candidates)
     if len(papers) < FINAL_EVIDENCE_TARGET:
         logger.info(
@@ -500,6 +518,9 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
     ranked = rank_papers(query, papers)
     selected = select_evidence_set(ranked, preferred_categories=preferred_categories)
     _log_final_selection(original_query, selected)
+
+    SEARCH_CACHE[cache_key] = selected
+    cache_set("searches", cache_key, selected)
     return selected
 
 

@@ -14,8 +14,8 @@ Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicF
 *   **Retrieval:** BM25 (Rank-BM25), Dense Vector Embeddings (`BAAI/bge-small-en-v1.5`), Reciprocal Rank Fusion (RRF)
 *   **Inference Backends:** 
     *   `mlx` (Native Apple Silicon acceleration via `mlx-lm`)
-    *   `transformers` (PyTorch backend supporting **AMD ROCm** and NVIDIA CUDA architectures)
-*   **Default Models:** `mlx-community/Qwen3-4B-4bit` (Fast Mode), `mlx-community/gemma-4-e2b-it-OptiQ-4bit` (Deep Mode)
+    *   `transformers` (PyTorch backend)
+*   **Models:** `mlx-community/gemma-4-e2b-it-4bit` (Fast Mode), `mlx-community/gemma-4-e2b-it-OptiQ-4bit` (Deep Mode)
 
 ---
 
@@ -118,15 +118,15 @@ $$RRF(d) = \sum_{m \in M} \frac{1}{k + r_m(d)}$$
 
 ## 🤖 AI Models
 
-AcademicForge routes generation requests dynamically to optimize quality and speed:
+AcademicForge routes generation requests to optimize quality and speed:
 
-| Model Role | Default Model | Configurable Environment Variable | Inference Backend | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| **Fast Mode (Default)** | `mlx-community/Qwen3-4B-4bit` | `LOCAL_LLM_MODEL` | `mlx` or `transformers` | Model used for query routing, paper summarization, and quick plans in Fast Mode. |
-| **Deep Mode** | `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | `LOCAL_LLM_RESEARCH_PLAN_MODEL` | `mlx` or `transformers` | Used for comprehensive Research Plans, system design, and tradeoffs. |
-| **Summarizer** | `mlx-community/Qwen3-4B-4bit` | `LOCAL_LLM_SUMMARY_MODEL` | `mlx` or `transformers` | Generates plain-English paper summaries. |
-| **Dense Embeddings** | `BAAI/bge-small-en-v1.5` | *(Built-in)* | `transformers` (PyTorch) | Computes 384-dimensional query and abstract dense vectors. |
-| **Dense Fallback** | Cosine Similarity Vectorizer | *(Automatic Fallback)* | Pure Python / `numpy` | Local cosine-similarity fallback if `sentence-transformers` is missing. |
+| Model Role | Model | Inference Backend | Description |
+| :--- | :--- | :--- | :--- |
+| **Fast Mode (Default)** | `mlx-community/gemma-4-e2b-it-4bit` | `mlx` or `transformers` | Model used for query routing, paper summarization, and quick plans in Fast Mode. |
+| **Deep Mode** | `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | `mlx` or `transformers` | Used for comprehensive Research Plans, system design, and tradeoffs. |
+| **Summarizer** | `mlx-community/gemma-4-e2b-it-4bit` | `mlx` or `transformers` | Generates plain-English paper summaries. |
+| **Dense Embeddings** | `BAAI/bge-small-en-v1.5` | `transformers` (PyTorch) | Computes 384-dimensional query and abstract dense vectors. |
+| **Dense Fallback** | Cosine Similarity Vectorizer | Pure Python / `numpy` | Local cosine-similarity fallback if `sentence-transformers` is missing. |
 
 ---
 
@@ -200,10 +200,7 @@ cp .env.example .env
 
 | Variable | Default | Allowed Values | Description |
 | :--- | :--- | :--- | :--- |
-| `LOCAL_LLM_PROVIDER` | `mlx` | `mlx`, `transformers`, `torch`, `cuda`, `rocm` | The local inference engine backend to use. |
-| `LOCAL_LLM_MODEL` | `mlx-community/Qwen3-4B-4bit` | Any MLX/HuggingFace model | Default model used for general tasks and fast mode. |
-| `LOCAL_LLM_SUMMARY_MODEL` | `mlx-community/Qwen3-4B-4bit` | Any MLX/HuggingFace model | Model used to generate plain-English summaries. |
-| `LOCAL_LLM_RESEARCH_PLAN_MODEL`| `mlx-community/Qwen3-4B-4bit` | Any MLX/HuggingFace model | Model used for Research Plans (Deep Mode overrides this to Gemma 4). |
+| `LOCAL_LLM_PROVIDER` | `mlx` | `mlx`, `transformers` | The local inference engine backend to use. |
 | `LOCAL_LLM_MAX_TOKENS` | `700` | Positive integer | The token budget limit for LLM generation. |
 | `LOCAL_LLM_TEMPERATURE` | `0.2` | Float `0.0 - 1.0` | Temperature setting (lower = more deterministic). |
 | `ACADEMICFORGE_CACHE_DIR` | `.academicforge_cache` | Path string | Target directory to store disk cache. |

@@ -13,12 +13,13 @@ def _paper_cache_key(paper):
     return paper.get("paper_id") or paper.get("url") or paper.get("link") or paper["title"]
 
 
-def summarize_paper(paper, model=None):
+def summarize_paper(paper, model=None, mode=None):
     """Generate a concise, useful research summary for one paper."""
     paper_id = _paper_cache_key(paper)
     cache_key = make_cache_key(
         "summary-v5-concise-paper-say",
         model or model_name("summary"),
+        mode or "fast",
         paper_id,
         paper.get("title"),
         paper.get("abstract"),

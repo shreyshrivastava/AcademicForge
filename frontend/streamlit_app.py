@@ -192,15 +192,25 @@ def pulse_loading_html(label):
 
 
 def render_research_plan_heading(label, top=False):
-    st.markdown(
-        f"""
-        <div class="syn-heading" style="{'' if top else 'margin-top: 1.6rem;'}">
-            <span class="syn-marker"></span>
-            <span class="syn-heading-label">{html.escape(label)}</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    if top:
+        st.markdown(
+            f"""
+            <div style="font-family: var(--af-font); font-size: 1.35rem; font-weight: 800; color: var(--af-text-hi); margin-bottom: 1.2rem; border-bottom: 2px solid var(--af-border); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                {html.escape(label)}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"""
+            <div class="syn-heading" style="margin-top: 1.6rem;">
+                <span class="syn-marker"></span>
+                <span class="syn-heading-label">{html.escape(label)}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def render_research_plan(research_plan_text):
@@ -322,8 +332,10 @@ def search_papers(query, categories=None):
     return post_json("/search", {"query": query, "categories": categories or []})
 
 
-def summarize_paper(paper):
-    return post_json("/summarize", paper).get("summary", "")
+def summarize_paper(paper, generation_mode="fast"):
+    payload = dict(paper)
+    payload["generation_mode"] = generation_mode
+    return post_json("/summarize", payload).get("summary", "")
 
 
 def generate_paper_guidance(paper, generation_mode):
@@ -910,10 +922,11 @@ def render_technical_dashboard(papers, config=None):
         st.caption("Retrieval diagnostics and model/runtime details.")
         if config:
             llm_models = config.get("llm_models", {})
-            metric_cols = st.columns(3)
+            metric_cols = st.columns(4)
             metric_cols[0].metric("Provider", config.get("llm_provider", "unknown"))
             metric_cols[1].metric("Summary model", llm_models.get("summary", "unknown"))
-            metric_cols[2].metric(
+            metric_cols[2].metric("Guidance model", llm_models.get("guidance", "unknown"))
+            metric_cols[3].metric(
                 "Research Plan model",
                 llm_models.get("research_plan", "unknown"),
             )
@@ -1048,9 +1061,10 @@ def render_paper_cards(
                     unsafe_allow_html=True,
                 )
                 try:
-                    inline_summary = summarize_paper(paper)
+                    inline_summary = summarize_paper(paper, st.session_state.generation_mode)
                     st.session_state.on_demand_summaries[cache_id] = inline_summary
                     panel_placeholder.empty()
+                    st.rerun()
                 except requests.ConnectionError:
                     panel_placeholder.error(
                         "The backend is not running. Start it with: uvicorn backend.app:app --reload"
@@ -1074,6 +1088,7 @@ def render_paper_cards(
                         )
                     st.session_state.paper_guidance[guidance_id] = generate_paper_guidance(paper, generation_mode)
                     panel_placeholder.empty()
+                    st.rerun()
                 except requests.ConnectionError:
                     panel_placeholder.error(
                         "The backend is not running. Start it with: uvicorn backend.app:app --reload"
@@ -1103,7 +1118,7 @@ apply_card_styles()
 
 st.markdown('<div class="af-title">AcademicForge</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="af-subtitle">Question → Research → Decision → Prototype</div>',
+    '<div class="af-subtitle">Question → Papers → Plan</div>',
     unsafe_allow_html=True,
 )
 
@@ -1273,7 +1288,6 @@ if papers:
         scope="results",
         generation_mode=st.session_state.generation_mode,
     )
-    render_technical_dashboard(papers, config)
 
     selected_labels = [label for label in st.session_state.selected_labels if label in labels]
     st.session_state.selected_labels = selected_labels
@@ -1354,7 +1368,7 @@ if papers:
 
                 with plan_placeholder.container():
                     render_research_plan_loading_state("Summarizing selected evidence...")
-                summary = summarize_paper(paper)
+                summary = summarize_paper(paper, st.session_state.generation_mode)
                 selected_summaries.append(summary)
             st.session_state.summaries = selected_summaries
 

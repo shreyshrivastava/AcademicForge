@@ -23,25 +23,6 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
-_provider = get_app_config().llm_provider
-_fast_model_map = {
-    "fireworks": "accounts/fireworks/models/qwen2p5-8b-instruct",
-    "openai": "gpt-4o-mini",
-    "qwen": "qwen-plus",
-    "dashscope": "qwen-plus",
-    "transformers": "google/gemma-4-e2b-it"
-}
-_deep_model_map = {
-    "fireworks": "accounts/fireworks/models/gemma2-9b-it",
-    "openai": "gpt-4o",
-    "qwen": "qwen-max",
-    "dashscope": "qwen-max",
-    "transformers": "google/gemma-4-31b-it"
-}
-
-FAST_MODE_MODEL = os.getenv("ACADEMICFORGE_FAST_MODEL") or _fast_model_map.get(_provider, "mlx-community/gemma-4-e2b-it-OptiQ-4bit")
-DEEP_MODE_MODEL = os.getenv("ACADEMICFORGE_DEEP_MODEL") or _deep_model_map.get(_provider, "mlx-community/gemma-4-e2b-it-OptiQ-4bit")
-
 class SearchRequest(BaseModel):
     query: str
     categories: List[str] = []
@@ -75,24 +56,37 @@ def normalize_research_categories(categories: List[str] | None) -> List[str]:
         return []
     return cleaned
 
-def model_for_mode(mode: str | None) -> str:
-    return DEEP_MODE_MODEL if (mode or "").strip().lower() == "deep" else FAST_MODE_MODEL
+def model_for_summary(mode: str | None) -> str:
+    return get_app_config().model_for_task_and_mode("summary", mode)
+
+
+def model_for_guidance(mode: str | None) -> str:
+    return get_app_config().model_for_task_and_mode("guidance", mode)
+
+
+def model_for_research_plan(mode: str | None) -> str:
+    return get_app_config().model_for_task_and_mode("research_plan", mode)
 
 @app.get("/config")
 async def get_config():
     """Return the active local model configuration for display/debugging."""
-    payload = get_app_config().as_public_dict()
+    config = get_app_config()
+    payload = config.as_public_dict()
     payload["llm_provider"] = provider_name()
     payload["llm_models"] = task_model_config()
+    
+    fast_model_name = config.llm_model.split("/")[-1]
+    deep_model_name = config.llm_research_plan_model.split("/")[-1]
+    
     payload["generation_modes"] = {
         "fast": {
-            "label": "Fast Mode (Gemma 4 2B)",
-            "model": FAST_MODE_MODEL,
+            "label": f"Fast Mode ({fast_model_name})",
+            "model": config.llm_model,
             "purpose": "Quick insights and shorter responses.",
         },
         "deep": {
-            "label": "Deep Mode (Gemma 4 31B)",
-            "model": DEEP_MODE_MODEL,
+            "label": f"Deep Mode ({deep_model_name})",
+            "model": config.llm_research_plan_model,
             "purpose": "Detailed analysis and prototype guidance.",
         },
     }
@@ -119,7 +113,8 @@ async def summarize_paper(paper: Paper):
     """Generate a summary of a paper using the configured local model."""
     try:
         logger.info("Summary requested paper_id=%r title=%r", paper.paper_id, paper.title[:80])
-        return {"summary": summarize_paper_with_ai(paper.model_dump(), model=FAST_MODE_MODEL)}
+        model = model_for_summary(paper.generation_mode)
+        return {"summary": summarize_paper_with_ai(paper.model_dump(), model=model, mode=paper.generation_mode)}
     except Exception as e:
         logger.exception("Summary failed paper_id=%r", paper.paper_id)
         raise HTTPException(status_code=500, detail=str(e))
@@ -142,7 +137,8 @@ async def generate_research_plan(request: PapersRequest):
             papers,
             request.summaries,
             request.query,
-            model=model_for_mode(request.generation_mode),
+            model=model_for_research_plan(request.generation_mode),
+            mode=request.generation_mode,
         )
         return research_plan_response(research_plan)
     except Exception as e:
@@ -155,7 +151,11 @@ async def generate_paper_guidance(paper: Paper):
     """Generate practical guidance for one paper."""
     try:
         logger.info("Paper guidance requested paper_id=%r title=%r", paper.paper_id, paper.title[:80])
-        guidance = generate_ai_paper_guidance(paper.model_dump(), model=model_for_mode(paper.generation_mode))
+        guidance = generate_ai_paper_guidance(
+            paper.model_dump(),
+            model=model_for_guidance(paper.generation_mode),
+            mode=paper.generation_mode,
+        )
         return paper_guidance_response(guidance)
     except Exception as e:
         logger.exception("Paper guidance failed paper_id=%r", paper.paper_id)
@@ -166,7 +166,11 @@ async def generate_paper_guidance(paper: Paper):
 async def paper_guidance_cache_status(paper: Paper):
     """Return whether single-paper guidance is already cached."""
     try:
-        status = get_paper_guidance_cache_status(paper.model_dump(), model=model_for_mode(paper.generation_mode))
+        status = get_paper_guidance_cache_status(
+            paper.model_dump(),
+            model=model_for_guidance(paper.generation_mode),
+            mode=paper.generation_mode,
+        )
         logger.info(
             "Paper guidance cache status paper_id=%r cache=%s cached=%s",
             paper.paper_id,
@@ -187,7 +191,8 @@ async def research_plan_cache_status(request: PapersRequest):
             papers,
             request.summaries,
             request.query,
-            model=model_for_mode(request.generation_mode),
+            model=model_for_research_plan(request.generation_mode),
+            mode=request.generation_mode,
         )
         logger.info(
             "Research Plan cache status paper_count=%d cache=%s cached=%s",
@@ -211,7 +216,8 @@ async def stream_research_plan(request: PapersRequest):
                 papers,
                 request.summaries,
                 request.query,
-                model=model_for_mode(request.generation_mode),
+                model=model_for_research_plan(request.generation_mode),
+                mode=request.generation_mode,
             ),
             media_type="text/plain",
         )

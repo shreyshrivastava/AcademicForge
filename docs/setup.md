@@ -15,8 +15,7 @@ Before setting up AcademicForge, ensure your environment meets the following req
     *   **Windows & Linux:** Run using the standard PyTorch (`transformers`) backend.
 *   **Hardware Acceleration (GPU Support):**
     *   **AMD GPUs (ROCm):** Supported via PyTorch/Transformers inside a ROCm-configured container or environment.
-    *   **NVIDIA GPUs (CUDA):** Supported natively via CUDA-enabled PyTorch.
-    *   **CPU Fallback:** The app runs on standard CPUs if no GPU is detected (highly recommended to use smaller models like Qwen 1.5B/4B in CPU-only setups).
+    *   **CPU Fallback:** The app runs on standard CPUs if no GPU is detected (highly recommended to use smaller models in CPU-only setups).
 
 ---
 
@@ -81,9 +80,6 @@ Open the `.env` file and customize the variables as needed.
 | Variable | Purpose | Required? | Example Value | Default |
 | :--- | :--- | :---: | :--- | :--- |
 | `LOCAL_LLM_PROVIDER` | Defines the LLM inference engine backend. | No | `transformers` | `mlx` |
-| `LOCAL_LLM_MODEL` | Model used for Fast Mode. | No | `mlx-community/Qwen3-4B-4bit` | `mlx-community/Qwen3-4B-4bit` |
-| `LOCAL_LLM_SUMMARY_MODEL` | Model used exclusively for paper summaries. | No | `mlx-community/Qwen3-4B-4bit` | Matches `LOCAL_LLM_MODEL` |
-| `LOCAL_LLM_RESEARCH_PLAN_MODEL` | Model used for Research Plans and Guidance. | No | `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | Matches `LOCAL_LLM_MODEL` |
 | `LOCAL_LLM_MAX_TOKENS` | Token budget limit for text generation. | No | `900` | `700` |
 | `LOCAL_LLM_TEMPERATURE` | Generation creativity temperature. | No | `0.2` | `0.2` |
 | `ACADEMICFORGE_CACHE_DIR` | Local folder where JSON caches are saved. | No | `.academicforge_cache` | `.academicforge_cache` |
@@ -96,12 +92,12 @@ Open the `.env` file and customize the variables as needed.
 ## 🤖 Choosing Models & Runtimes
 
 ### Inference Modes
-*   **Fast Mode:** Uses a smaller model (default `mlx-community/Qwen3-4B-4bit`). Select this for quick search checks, fast summaries, and lower latency.
-*   **Deep Mode:** Uses a larger model (default `mlx-community/gemma-4-e2b-it-OptiQ-4bit`). Select this for detailed synthesis, system architectures, and tradeoff analysis.
+*   **Fast Mode:** Uses the smaller model `mlx-community/gemma-4-e2b-it-4bit` (2B parameters). Select this for quick search checks, fast summaries, and lower latency.
+*   **Deep Mode:** Uses the larger model `mlx-community/gemma-4-e2b-it-OptiQ-4bit` (31B parameters). Select this for detailed synthesis, system architectures, and tradeoff analysis.
 
 ### Local Runtimes
 *   **MLX Backend (`mlx`):** Native hardware-accelerated serving on macOS (Apple Silicon). Highly efficient memory consumption and fast token speeds.
-*   **Transformers Backend (`transformers`):** Uses Hugging Face PyTorch implementation. Offloads tasks automatically to GPUs (`device_map="auto"`) on **AMD ROCm** or **NVIDIA CUDA** machines. It is the default runtime when running on Linux/Windows.
+*   **Transformers Backend (`transformers`):** Uses Hugging Face PyTorch implementation. Offloads tasks automatically to GPUs (`device_map="auto"`) on **AMD ROCm** machines. It is the default runtime when running on Linux/Windows.
 
 ---
 

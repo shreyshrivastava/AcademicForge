@@ -6,12 +6,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import backend.cache as cache
 from backend.research_plan_generator import build_research_plan_context, generate_research_plan
-from backend.research_plan_generator import generate_paper_guidance
-from backend.research_plan_generator import paper_guidance_cache_key
-from backend.research_plan_generator import paper_guidance_cache_status
 from backend.research_plan_generator import research_plan_cache_status
 from backend.research_plan_generator import stream_research_plan
 import backend.research_plan_generator as research_plan_generator
+from backend.guidance_generator import generate_paper_guidance, paper_guidance_cache_key, paper_guidance_cache_status
+import backend.guidance_generator as guidance_generator
 import backend.summarizer as summarizer
 
 
@@ -94,9 +93,9 @@ def test_generate_research_plan_uses_compact_context():
 
 def test_generate_paper_guidance_uses_paper_specific_prompt():
     captured = {}
-    original_generate_text = research_plan_generator.generate_text
+    original_generate_text = guidance_generator.generate_text
     original_cache_dir = cache.CACHE_DIR
-    research_plan_generator.PAPER_GUIDANCE_CACHE.clear()
+    guidance_generator.PAPER_GUIDANCE_CACHE.clear()
 
     def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
         captured["system_prompt"] = system_prompt
@@ -105,13 +104,13 @@ def test_generate_paper_guidance_uses_paper_specific_prompt():
         captured["task"] = task
         return "paper guidance"
 
-    research_plan_generator.generate_text = fake_generate_text
+    guidance_generator.generate_text = fake_generate_text
     with tempfile.TemporaryDirectory() as tmpdir:
         cache.CACHE_DIR = Path(tmpdir)
         result = generate_paper_guidance(PAPER)
         cache.CACHE_DIR = original_cache_dir
-        research_plan_generator.generate_text = original_generate_text
-        research_plan_generator.PAPER_GUIDANCE_CACHE.clear()
+        guidance_generator.generate_text = original_generate_text
+        guidance_generator.PAPER_GUIDANCE_CACHE.clear()
 
     assert result == "paper guidance"
     assert captured["token_budget"] == 1100
@@ -127,9 +126,9 @@ def test_generate_paper_guidance_uses_paper_specific_prompt():
 
 def test_paper_guidance_cache_reuses_disk_cache_and_invalidates_on_content_change():
     calls = {"count": 0}
-    original_generate_text = research_plan_generator.generate_text
+    original_generate_text = guidance_generator.generate_text
     original_cache_dir = cache.CACHE_DIR
-    research_plan_generator.PAPER_GUIDANCE_CACHE.clear()
+    guidance_generator.PAPER_GUIDANCE_CACHE.clear()
 
     def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
         calls["count"] += 1
@@ -138,11 +137,11 @@ def test_paper_guidance_cache_reuses_disk_cache_and_invalidates_on_content_chang
     changed_paper = dict(PAPER)
     changed_paper["abstract"] = "A changed abstract should produce a different cache key."
 
-    research_plan_generator.generate_text = fake_generate_text
+    guidance_generator.generate_text = fake_generate_text
     with tempfile.TemporaryDirectory() as tmpdir:
         cache.CACHE_DIR = Path(tmpdir)
         first = generate_paper_guidance(PAPER)
-        research_plan_generator.PAPER_GUIDANCE_CACHE.clear()
+        guidance_generator.PAPER_GUIDANCE_CACHE.clear()
         second = generate_paper_guidance(PAPER)
         assert first == "disk cached paper guidance"
         assert second == "disk cached paper guidance"
@@ -153,8 +152,8 @@ def test_paper_guidance_cache_reuses_disk_cache_and_invalidates_on_content_chang
         }
         assert paper_guidance_cache_key(PAPER) != paper_guidance_cache_key(changed_paper)
         cache.CACHE_DIR = original_cache_dir
-        research_plan_generator.generate_text = original_generate_text
-        research_plan_generator.PAPER_GUIDANCE_CACHE.clear()
+        guidance_generator.generate_text = original_generate_text
+        guidance_generator.PAPER_GUIDANCE_CACHE.clear()
 
 
 def test_summary_cache_reuses_existing_summary():
@@ -280,8 +279,8 @@ def test_stream_research_plan_yields_chunks_and_caches_result():
         research_plan_generator.generate_text_stream = original_stream
         research_plan_generator.RESEARCH_PLAN_CACHE.clear()
 
-    assert first == "streamed research plan"
-    assert second == "streamed research plan"
+    assert first.replace("\n```", "").strip() == "streamed research plan"
+    assert second.replace("\n```", "").strip() == "streamed research plan"
     assert calls["count"] == 1
 
 

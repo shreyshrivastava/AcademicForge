@@ -76,10 +76,10 @@ Limitations or verification needs: {_truncate(sections.get("limitations or unkno
     return "\n\n".join(paper_blocks)
 
 
-def generate_research_plan(papers, summaries=None, query="", model=None):
+def generate_research_plan(papers, summaries=None, query="", model=None, mode=None):
     """Generate a Research Plan based on selected papers and summaries."""
     paper_context = build_research_plan_context(papers, summaries)
-    cache_key = research_plan_cache_key(papers, summaries, paper_context, query, model=model)
+    cache_key = research_plan_cache_key(papers, summaries, paper_context, query, model=model, mode=mode)
     cached_research_plan = _get_cached_research_plan(cache_key)
     if cached_research_plan:
         return cached_research_plan
@@ -93,10 +93,10 @@ def generate_research_plan(papers, summaries=None, query="", model=None):
     return research_plan
 
 
-def stream_research_plan(papers, summaries=None, query="", model=None):
+def stream_research_plan(papers, summaries=None, query="", model=None, mode=None):
     """Yield Research Plan text chunks while generating, then persist the completed Research Plan."""
     paper_context = build_research_plan_context(papers, summaries)
-    cache_key = research_plan_cache_key(papers, summaries, paper_context, query, model=model)
+    cache_key = research_plan_cache_key(papers, summaries, paper_context, query, model=model, mode=mode)
     cached_research_plan = _get_cached_research_plan(cache_key)
     if cached_research_plan:
         yield cached_research_plan
@@ -165,7 +165,7 @@ def _clean_streamed_markdown(chunks):
 def build_research_plan_prompt(paper_context, query=""):
     system_prompt = (
         "You are AcademicForge's AI Research Engineer. Your mission is to help "
-        "the user move from Question to Research to Decision to Prototype. "
+        "the user move from Question to Papers to Plan. "
         "Analyze all selected papers collectively, propose one coherent build "
         "direction, prioritize architecture, tradeoffs, implementation strategy, "
         "research gaps, and engineering recommendations, and never invent "
@@ -233,11 +233,12 @@ Evaluation Strategy:
     return system_prompt, user_prompt
 
 
-def research_plan_cache_key(papers, summaries=None, paper_context=None, query="", model=None):
+def research_plan_cache_key(papers, summaries=None, paper_context=None, query="", model=None, mode=None):
     paper_context = paper_context or build_research_plan_context(papers, summaries)
     return make_cache_key(
         "research-plan-v7-ai-research-engineer-plan",
         model or model_name("research_plan"),
+        mode or "fast",
         query or "",
         [
             paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title")
@@ -248,8 +249,8 @@ def research_plan_cache_key(papers, summaries=None, paper_context=None, query=""
     )
 
 
-def research_plan_cache_status(papers, summaries=None, query="", model=None):
-    cache_key = research_plan_cache_key(papers, summaries, query=query, model=model)
+def research_plan_cache_status(papers, summaries=None, query="", model=None, mode=None):
+    cache_key = research_plan_cache_key(papers, summaries, query=query, model=model, mode=mode)
     if cache_key in RESEARCH_PLAN_CACHE:
         return {"cached": True, "cache": "memory"}
     if cache_get("research_plans", cache_key):

@@ -42,15 +42,7 @@ class LocalLLMError(RuntimeError):
     pass
 
 
-# Global API Configurations
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE") or "https://api.openai.com/v1"
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-FIREWORKS_BASE_URL = os.getenv("FIREWORKS_BASE_URL") or os.getenv("FIREWORKS_API_BASE") or "https://api.fireworks.ai/inference/v1"
-FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
-
-QWEN_BASE_URL = os.getenv("QWEN_BASE_URL") or os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
-QWEN_API_KEY = os.getenv("QWEN_API_KEY") or os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY")
 
 
 def provider_name():
@@ -66,6 +58,9 @@ def task_model_config():
     return {
         "default": config.llm_model,
         "summary": config.llm_summary_model,
+        "summary_deep": config.llm_summary_deep_model,
+        "guidance": config.llm_guidance_model,
+        "guidance_deep": config.llm_guidance_deep_model,
         "research_plan": config.llm_research_plan_model,
     }
 
@@ -98,14 +93,34 @@ def _load_transformers_model(selected_model):
     except ImportError as exc:
         raise LocalLLMError(
             "Transformers backend is not installed. Install torch and transformers "
-            "in a ROCm/CUDA-capable environment before using this provider."
+            "before using this provider."
         ) from exc
 
     tokenizer = AutoTokenizer.from_pretrained(selected_model)
+
+    kwargs = {
+        "torch_dtype": "auto",
+        "device_map": "auto",
+    }
+
+    if get_config().llm_load_in_4bit:
+        try:
+            from transformers import BitsAndBytesConfig
+            kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
+                bnb_4bit_quant_type="nf4",
+            )
+            logger.info("Configured BitsAndBytes 4-bit quantization for %r", selected_model)
+        except Exception as e:
+            logger.warning(
+                "Could not configure BitsAndBytes 4-bit quantization: %s. Loading in default precision.",
+                e,
+            )
+
     model = AutoModelForCausalLM.from_pretrained(
         selected_model,
-        torch_dtype="auto",
-        device_map="auto",
+        **kwargs,
     )
     return model, tokenizer, torch
 
@@ -146,12 +161,6 @@ class LLMService:
 
     def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        if self.provider in {"openai", "fireworks", "qwen", "dashscope"}:
-            from backend.cache import check_and_increment_usage
-            check_and_increment_usage(limit=10)
-            return _clean_response(
-                _generate_api(self.provider, system_prompt, user_prompt, token_budget, selected_model)
-            )
         if self.provider == "mlx":
             return _clean_response(
                 _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
@@ -161,17 +170,11 @@ class LLMService:
                 _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
             )
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. "
-            "Use 'mlx', 'transformers', 'openai', 'fireworks', 'qwen', or 'dashscope'."
+            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx' or 'transformers'."
         )
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        if self.provider in {"openai", "fireworks", "qwen", "dashscope"}:
-            from backend.cache import check_and_increment_usage
-            check_and_increment_usage(limit=10)
-            yield from _generate_api_stream(self.provider, system_prompt, user_prompt, token_budget, selected_model)
-            return
         if self.provider == "mlx":
             yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
             return
@@ -179,8 +182,7 @@ class LLMService:
             yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
             return
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. "
-            "Use 'mlx', 'transformers', 'openai', 'fireworks', 'qwen', or 'dashscope'."
+            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx' or 'transformers'."
         )
 
 
@@ -316,100 +318,4 @@ def _generate_transformers(system_prompt, user_prompt, token_budget, selected_mo
     return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
 
-def _generate_api(provider, system_prompt, user_prompt, token_budget, selected_model):
-    import requests
 
-    if provider == "openai":
-        url = f"{OPENAI_BASE_URL.rstrip('/')}/chat/completions"
-        api_key = OPENAI_API_KEY
-    elif provider == "fireworks":
-        url = f"{FIREWORKS_BASE_URL.rstrip('/')}/chat/completions"
-        api_key = FIREWORKS_API_KEY
-    elif provider in {"qwen", "dashscope"}:
-        url = f"{QWEN_BASE_URL.rstrip('/')}/chat/completions"
-        api_key = QWEN_API_KEY
-    else:
-        raise LocalLLMError(f"Unsupported API provider: {provider}")
-
-    if not api_key:
-        raise LocalLLMError(f"API key missing for provider: {provider}. Please set the environment variable.")
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "model": selected_model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        "temperature": temperature(),
-        "max_tokens": (token_budget or max_tokens()) + (600 if provider in {"fireworks", "openai"} else 0)
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        raise LocalLLMError(f"API request failed for {provider}: {e}")
-
-
-def _generate_api_stream(provider, system_prompt, user_prompt, token_budget, selected_model):
-    import json
-    import requests
-
-    if provider == "openai":
-        url = f"{OPENAI_BASE_URL.rstrip('/')}/chat/completions"
-        api_key = OPENAI_API_KEY
-    elif provider == "fireworks":
-        url = f"{FIREWORKS_BASE_URL.rstrip('/')}/chat/completions"
-        api_key = FIREWORKS_API_KEY
-    elif provider in {"qwen", "dashscope"}:
-        url = f"{QWEN_BASE_URL.rstrip('/')}/chat/completions"
-        api_key = QWEN_API_KEY
-    else:
-        raise LocalLLMError(f"Unsupported API provider: {provider}")
-
-    if not api_key:
-        raise LocalLLMError(f"API key missing for provider: {provider}. Please set the environment variable.")
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "model": selected_model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        "temperature": temperature(),
-        "max_tokens": (token_budget or max_tokens()) + (600 if provider in {"fireworks", "openai"} else 0),
-        "stream": True
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=data, stream=True, timeout=120)
-        response.raise_for_status()
-
-        for line in response.iter_lines():
-            if not line:
-                continue
-            decoded_line = line.decode("utf-8").strip()
-            if decoded_line.startswith("data: "):
-                content = decoded_line[6:]
-                if content == "[DONE]":
-                    break
-                try:
-                    chunk = json.loads(content)
-                    delta = chunk["choices"][0]["delta"]
-                    if "content" in delta:
-                        yield delta["content"]
-                except Exception:
-                    continue
-    except Exception as e:
-        raise LocalLLMError(f"API stream failed for {provider}: {e}")

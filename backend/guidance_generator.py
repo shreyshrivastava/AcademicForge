@@ -59,11 +59,12 @@ Requirements:
     return system_prompt, user_prompt
 
 
-def paper_guidance_cache_key(paper, model=None):
+def paper_guidance_cache_key(paper, model=None, mode=None):
     metadata = paper.get("metadata", {}) or {}
     return make_cache_key(
         "paper-guidance-v2-short-practical",
         model or model_name("research_plan"),
+        mode or "fast",
         paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title"),
         paper.get("title"),
         paper.get("abstract"),
@@ -76,9 +77,9 @@ def paper_guidance_cache_key(paper, model=None):
     )
 
 
-def generate_paper_guidance(paper, model=None):
+def generate_paper_guidance(paper, model=None, mode=None):
     """Generate practical guidance for understanding and applying one paper."""
-    cache_key = paper_guidance_cache_key(paper, model=model)
+    cache_key = paper_guidance_cache_key(paper, model=model, mode=mode)
     cached_guidance = _get_cached_paper_guidance(cache_key)
     if cached_guidance:
         return cached_guidance
@@ -106,8 +107,8 @@ def _get_cached_paper_guidance(cache_key):
     return cached_guidance
 
 
-def paper_guidance_cache_status(paper, model=None):
-    cache_key = paper_guidance_cache_key(paper, model=model)
+def paper_guidance_cache_status(paper, model=None, mode=None):
+    cache_key = paper_guidance_cache_key(paper, model=model, mode=mode)
     if cache_key in PAPER_GUIDANCE_CACHE:
         return {"cached": True, "cache": "memory"}
     if cache_get("paper_guidance", cache_key):
