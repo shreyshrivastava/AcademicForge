@@ -23,34 +23,24 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
-def _default_fast_model():
-    provider = get_app_config().llm_provider
-    if provider == "fireworks":
-        return "accounts/fireworks/models/qwen2p5-8b-instruct"
-    if provider == "openai":
-        return "gpt-4o-mini"
-    if provider in {"qwen", "dashscope"}:
-        return "qwen-plus"
-    if provider == "transformers":
-        return "google/gemma-4-e2b-it"
-    return "mlx-community/gemma-4-e2b-it-OptiQ-4bit"
+_provider = get_app_config().llm_provider
+_fast_model_map = {
+    "fireworks": "accounts/fireworks/models/qwen2p5-8b-instruct",
+    "openai": "gpt-4o-mini",
+    "qwen": "qwen-plus",
+    "dashscope": "qwen-plus",
+    "transformers": "google/gemma-4-e2b-it"
+}
+_deep_model_map = {
+    "fireworks": "accounts/fireworks/models/gemma2-9b-it",
+    "openai": "gpt-4o",
+    "qwen": "qwen-max",
+    "dashscope": "qwen-max",
+    "transformers": "google/gemma-4-31b-it"
+}
 
-
-def _default_deep_model():
-    provider = get_app_config().llm_provider
-    if provider == "fireworks":
-        return "accounts/fireworks/models/gemma2-9b-it"
-    if provider == "openai":
-        return "gpt-4o"
-    if provider in {"qwen", "dashscope"}:
-        return "qwen-max"
-    if provider == "transformers":
-        return "google/gemma-4-31b-it"
-    return "mlx-community/gemma-4-e2b-it-OptiQ-4bit"
-
-
-FAST_MODE_MODEL = os.getenv("ACADEMICFORGE_FAST_MODEL") or _default_fast_model()
-DEEP_MODE_MODEL = os.getenv("ACADEMICFORGE_DEEP_MODEL") or _default_deep_model()
+FAST_MODE_MODEL = os.getenv("ACADEMICFORGE_FAST_MODEL") or _fast_model_map.get(_provider, "mlx-community/gemma-4-e2b-it-OptiQ-4bit")
+DEEP_MODE_MODEL = os.getenv("ACADEMICFORGE_DEEP_MODEL") or _deep_model_map.get(_provider, "mlx-community/gemma-4-e2b-it-OptiQ-4bit")
 
 class SearchRequest(BaseModel):
     query: str

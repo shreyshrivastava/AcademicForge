@@ -125,10 +125,10 @@ def test_qwen_provider_and_custom_base_url():
         assert cfg.llm_model == "qwen-plus"
 
         # Test custom base URL override for qwen
-        os.environ["QWEN_BASE_URL"] = "https://custom-qwen.com/v1"
-        os.environ["QWEN_API_KEY"] = "dummy-key"
-
-        with patch("requests.post") as mock_post:
+        with patch("backend.llm.QWEN_BASE_URL", "https://custom-qwen.com/v1"), \
+             patch("backend.llm.QWEN_API_KEY", "dummy-key"), \
+             patch("requests.post") as mock_post:
+            
             mock_post.return_value.status_code = 200
             mock_post.return_value.json.return_value = {
                 "choices": [{"message": {"content": "qwen reply"}}]
@@ -143,10 +143,11 @@ def test_qwen_provider_and_custom_base_url():
 
         # Test custom base URL override for openai
         os.environ["LOCAL_LLM_PROVIDER"] = "openai"
-        os.environ["OPENAI_BASE_URL"] = "https://custom-openai.com/v2"
-        os.environ["OPENAI_API_KEY"] = "dummy-openai-key"
 
-        with patch("requests.post") as mock_post:
+        with patch("backend.llm.OPENAI_BASE_URL", "https://custom-openai.com/v2"), \
+             patch("backend.llm.OPENAI_API_KEY", "dummy-openai-key"), \
+             patch("requests.post") as mock_post:
+
             mock_post.return_value.status_code = 200
             mock_post.return_value.json.return_value = {
                 "choices": [{"message": {"content": "openai reply"}}]
@@ -163,8 +164,6 @@ def test_qwen_provider_and_custom_base_url():
         _restore_env("LOCAL_LLM_PROVIDER", old_provider)
         _restore_env("OPENAI_BASE_URL", old_openai_base)
         _restore_env("QWEN_BASE_URL", old_qwen_base)
-        os.environ.pop("QWEN_API_KEY", None)
-        os.environ.pop("OPENAI_API_KEY", None)
 
 
 def test_clean_response_preamble_removal():

@@ -21,30 +21,27 @@ PROVIDER_ALIASES = {
     "rocm": "transformers",
     "roc": "transformers",
 }
+try:
+    LLM_MAX_TOKENS = int(os.getenv("LOCAL_LLM_MAX_TOKENS", str(DEFAULT_MAX_TOKENS)))
+except ValueError:
+    LLM_MAX_TOKENS = DEFAULT_MAX_TOKENS
 
+try:
+    LLM_TEMPERATURE = float(os.getenv("LOCAL_LLM_TEMPERATURE", str(DEFAULT_TEMPERATURE)))
+except ValueError:
+    LLM_TEMPERATURE = DEFAULT_TEMPERATURE
 
-def _env_int(name: str, default: int) -> int:
-    try:
-        return int(os.getenv(name, str(default)))
-    except ValueError:
-        return default
+CACHE_DIR = Path(os.getenv("ACADEMICFORGE_CACHE_DIR", ".academicforge_cache"))
 
+try:
+    CACHE_TTL_SECONDS = int(os.getenv("ACADEMICFORGE_CACHE_TTL_SECONDS", str(DEFAULT_CACHE_TTL_SECONDS)))
+except ValueError:
+    CACHE_TTL_SECONDS = DEFAULT_CACHE_TTL_SECONDS
 
-def _env_float(name: str, default: float) -> float:
-    try:
-        return float(os.getenv(name, str(default)))
-    except ValueError:
-        return default
-
-
-def _provider_from_env() -> str:
-    raw_provider = (
-        os.getenv("LOCAL_LLM_PROVIDER")
-        or os.getenv("LLM_BACKEND")
-        or DEFAULT_PROVIDER
-    )
-    provider = raw_provider.strip().lower()
-    return PROVIDER_ALIASES.get(provider, provider)
+try:
+    CACHE_MAX_FILES = int(os.getenv("ACADEMICFORGE_CACHE_MAX_FILES", str(DEFAULT_CACHE_MAX_FILES)))
+except ValueError:
+    CACHE_MAX_FILES = DEFAULT_CACHE_MAX_FILES
 
 
 @dataclass(frozen=True)
@@ -61,7 +58,10 @@ class AppConfig:
 
     @classmethod
     def from_env(cls) -> "AppConfig":
-        provider = _provider_from_env()
+        raw_provider = os.getenv("LOCAL_LLM_PROVIDER") or os.getenv("LLM_BACKEND") or DEFAULT_PROVIDER
+        provider = raw_provider.strip().lower()
+        provider = PROVIDER_ALIASES.get(provider, provider)
+
         raw_model = os.getenv("LOCAL_LLM_MODEL")
         if raw_model:
             default_model = raw_model.strip()
@@ -85,11 +85,11 @@ class AppConfig:
                 os.getenv("LOCAL_LLM_RESEARCH_PLAN_MODEL")
                 or default_model
             ).strip(),
-            llm_max_tokens=_env_int("LOCAL_LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS),
-            llm_temperature=_env_float("LOCAL_LLM_TEMPERATURE", DEFAULT_TEMPERATURE),
-            cache_dir=Path(os.getenv("ACADEMICFORGE_CACHE_DIR", ".academicforge_cache")),
-            cache_ttl_seconds=_env_int("ACADEMICFORGE_CACHE_TTL_SECONDS", DEFAULT_CACHE_TTL_SECONDS),
-            cache_max_files=_env_int("ACADEMICFORGE_CACHE_MAX_FILES", DEFAULT_CACHE_MAX_FILES),
+            llm_max_tokens=LLM_MAX_TOKENS,
+            llm_temperature=LLM_TEMPERATURE,
+            cache_dir=CACHE_DIR,
+            cache_ttl_seconds=CACHE_TTL_SECONDS,
+            cache_max_files=CACHE_MAX_FILES,
         )
 
     def model_for_task(self, task: str | None = None) -> str:

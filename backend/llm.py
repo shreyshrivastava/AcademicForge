@@ -1,3 +1,4 @@
+import os
 import re
 import logging
 from functools import lru_cache
@@ -39,6 +40,17 @@ _patch_transformers_auto_factory()
 
 class LocalLLMError(RuntimeError):
     pass
+
+
+# Global API Configurations
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE") or "https://api.openai.com/v1"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+FIREWORKS_BASE_URL = os.getenv("FIREWORKS_BASE_URL") or os.getenv("FIREWORKS_API_BASE") or "https://api.fireworks.ai/inference/v1"
+FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
+
+QWEN_BASE_URL = os.getenv("QWEN_BASE_URL") or os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+QWEN_API_KEY = os.getenv("QWEN_API_KEY") or os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY")
 
 
 def provider_name():
@@ -305,21 +317,17 @@ def _generate_transformers(system_prompt, user_prompt, token_budget, selected_mo
 
 
 def _generate_api(provider, system_prompt, user_prompt, token_budget, selected_model):
-    import os
     import requests
 
     if provider == "openai":
-        base_url = os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE") or "https://api.openai.com/v1"
-        url = f"{base_url.rstrip('/')}/chat/completions"
-        api_key = os.getenv("OPENAI_API_KEY")
+        url = f"{OPENAI_BASE_URL.rstrip('/')}/chat/completions"
+        api_key = OPENAI_API_KEY
     elif provider == "fireworks":
-        base_url = os.getenv("FIREWORKS_BASE_URL") or os.getenv("FIREWORKS_API_BASE") or "https://api.fireworks.ai/inference/v1"
-        url = f"{base_url.rstrip('/')}/chat/completions"
-        api_key = os.getenv("FIREWORKS_API_KEY")
+        url = f"{FIREWORKS_BASE_URL.rstrip('/')}/chat/completions"
+        api_key = FIREWORKS_API_KEY
     elif provider in {"qwen", "dashscope"}:
-        base_url = os.getenv("QWEN_BASE_URL") or os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
-        url = f"{base_url.rstrip('/')}/chat/completions"
-        api_key = os.getenv("QWEN_API_KEY") or os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY")
+        url = f"{QWEN_BASE_URL.rstrip('/')}/chat/completions"
+        api_key = QWEN_API_KEY
     else:
         raise LocalLLMError(f"Unsupported API provider: {provider}")
 
@@ -350,22 +358,18 @@ def _generate_api(provider, system_prompt, user_prompt, token_budget, selected_m
 
 
 def _generate_api_stream(provider, system_prompt, user_prompt, token_budget, selected_model):
-    import os
     import json
     import requests
 
     if provider == "openai":
-        base_url = os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE") or "https://api.openai.com/v1"
-        url = f"{base_url.rstrip('/')}/chat/completions"
-        api_key = os.getenv("OPENAI_API_KEY")
+        url = f"{OPENAI_BASE_URL.rstrip('/')}/chat/completions"
+        api_key = OPENAI_API_KEY
     elif provider == "fireworks":
-        base_url = os.getenv("FIREWORKS_BASE_URL") or os.getenv("FIREWORKS_API_BASE") or "https://api.fireworks.ai/inference/v1"
-        url = f"{base_url.rstrip('/')}/chat/completions"
-        api_key = os.getenv("FIREWORKS_API_KEY")
+        url = f"{FIREWORKS_BASE_URL.rstrip('/')}/chat/completions"
+        api_key = FIREWORKS_API_KEY
     elif provider in {"qwen", "dashscope"}:
-        base_url = os.getenv("QWEN_BASE_URL") or os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
-        url = f"{base_url.rstrip('/')}/chat/completions"
-        api_key = os.getenv("QWEN_API_KEY") or os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY")
+        url = f"{QWEN_BASE_URL.rstrip('/')}/chat/completions"
+        api_key = QWEN_API_KEY
     else:
         raise LocalLLMError(f"Unsupported API provider: {provider}")
 
