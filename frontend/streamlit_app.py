@@ -1118,7 +1118,7 @@ st.markdown(
 with st.sidebar:
     st.header("Backend Config")
     health = api_client.health_check()
-    st.write(f"**Mode:** {api_client.mode.upper()}")
+    st.write(f"**Mode:** VERCEL PROXY")
     if health.get("status") == "ok":
         st.success("Backend: Online")
         st.write(f"**Provider:** {health.get('provider')}")
