@@ -1,10 +1,8 @@
 import logging
 
-from backend.cache import cache_get, cache_set, make_cache_key
 from backend.llm import generate_text, generate_text_stream, model_name
 
 
-RESEARCH_PLAN_CACHE = {}
 logger = logging.getLogger(__name__)
 
 
@@ -75,20 +73,12 @@ Limitations or verification needs: {_truncate(sections.get("limitations or unkno
 
     return "\n\n".join(paper_blocks)
 
-
 def generate_research_plan(papers, summaries=None, query="", model=None, mode=None):
     """Generate a Research Plan based on selected papers and summaries."""
     paper_context = build_research_plan_context(papers, summaries)
-    cache_key = research_plan_cache_key(papers, summaries, paper_context, query, model=model, mode=mode)
-    cached_research_plan = _get_cached_research_plan(cache_key)
-    if cached_research_plan:
-        return cached_research_plan
-
     logger.info("Research Plan generation started paper_count=%d", len(papers))
     system_prompt, user_prompt = build_research_plan_prompt(paper_context, query)
     research_plan = generate_text(system_prompt, user_prompt, token_budget=1900, task="research_plan", model=model)
-    RESEARCH_PLAN_CACHE[cache_key] = research_plan
-    cache_set("research_plans", cache_key, research_plan)
     logger.info("Research Plan generation completed paper_count=%d", len(papers))
     return research_plan
 
@@ -96,12 +86,6 @@ def generate_research_plan(papers, summaries=None, query="", model=None, mode=No
 def stream_research_plan(papers, summaries=None, query="", model=None, mode=None):
     """Yield Research Plan text chunks while generating, then persist the completed Research Plan."""
     paper_context = build_research_plan_context(papers, summaries)
-    cache_key = research_plan_cache_key(papers, summaries, paper_context, query, model=model, mode=mode)
-    cached_research_plan = _get_cached_research_plan(cache_key)
-    if cached_research_plan:
-        yield cached_research_plan
-        return
-
     logger.info("Mixed Research Plan stream generation started paper_count=%d", len(papers))
     system_prompt, user_prompt = build_research_plan_prompt(paper_context, query)
     chunks = []
@@ -117,23 +101,7 @@ def stream_research_plan(papers, summaries=None, query="", model=None, mode=None
         yield chunk
 
     research_plan = "".join(chunks).strip()
-    RESEARCH_PLAN_CACHE[cache_key] = research_plan
-    cache_set("research_plans", cache_key, research_plan)
     logger.info("Mixed Research Plan stream generation completed paper_count=%d", len(papers))
-
-
-def _get_cached_research_plan(cache_key):
-    if cache_key in RESEARCH_PLAN_CACHE:
-        logger.info("Mixed Research Plan cache hit cache=memory")
-        return RESEARCH_PLAN_CACHE[cache_key]
-
-    cached_research_plan = cache_get("research_plans", cache_key)
-    if cached_research_plan:
-        logger.info("Mixed Research Plan cache hit cache=disk")
-        RESEARCH_PLAN_CACHE[cache_key] = cached_research_plan
-    else:
-        logger.info("Mixed Research Plan cache miss")
-    return cached_research_plan
 
 
 def _clean_streamed_markdown(chunks):
@@ -170,7 +138,8 @@ def build_research_plan_prompt(paper_context, query=""):
         "direction, prioritize architecture, tradeoffs, implementation strategy, "
         "research gaps, and engineering recommendations, and never invent "
         "evidence not present in the selected papers. Do not include "
-        "conversational prefaces."
+        "conversational prefaces.\n"
+        "CRITICAL: You must respond exclusively in English, regardless of the input language."
     )
     user_prompt = f"""
 USER GOAL:
@@ -231,28 +200,3 @@ Evaluation Strategy:
 (Provide practical implementation advice. Avoid exact vendor/model/dataset recommendations unless supported by evidence.)
 """
     return system_prompt, user_prompt
-
-
-def research_plan_cache_key(papers, summaries=None, paper_context=None, query="", model=None, mode=None):
-    paper_context = paper_context or build_research_plan_context(papers, summaries)
-    return make_cache_key(
-        "research-plan-v7-ai-research-engineer-plan",
-        model or model_name("research_plan"),
-        mode or "fast",
-        query or "",
-        [
-            paper.get("paper_id") or paper.get("url") or paper.get("link") or paper.get("title")
-            for paper in papers
-        ],
-        summaries or [],
-        paper_context,
-    )
-
-
-def research_plan_cache_status(papers, summaries=None, query="", model=None, mode=None):
-    cache_key = research_plan_cache_key(papers, summaries, query=query, model=model, mode=mode)
-    if cache_key in RESEARCH_PLAN_CACHE:
-        return {"cached": True, "cache": "memory"}
-    if cache_get("research_plans", cache_key):
-        return {"cached": True, "cache": "disk"}
-    return {"cached": False, "cache": "miss"}

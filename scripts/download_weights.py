@@ -1,12 +1,24 @@
 import os
 import argparse
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from huggingface_hub import snapshot_download
+from transformers import AutoTokenizer
 from sentence_transformers import SentenceTransformer, CrossEncoder
 
 def download_llm(model_name: str, token: str = None):
     print(f"Downloading LLM model: {model_name}...")
     AutoTokenizer.from_pretrained(model_name, token=token)
-    AutoModelForCausalLM.from_pretrained(model_name, token=token)
+    snapshot_download(
+        repo_id=model_name,
+        token=token,
+        allow_patterns=[
+            "*.json",
+            "*.model",
+            "*.safetensors",
+            "*.txt",
+            "tokenizer*",
+            "generation_config.json",
+        ],
+    )
     print("LLM model downloaded successfully.")
 
 def download_embedding(model_name: str):

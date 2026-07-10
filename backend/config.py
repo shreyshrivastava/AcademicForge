@@ -7,11 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_PROVIDER = "mlx"
-DEFAULT_MODEL = "mlx-community/gemma-4-e2b-it-4bit"
+DEFAULT_MLX_MODEL = "mlx-community/gemma-2-2b-it-4bit"
+DEFAULT_TRANSFORMERS_MODEL = "google/gemma-2-2b-it"
 DEFAULT_MAX_TOKENS = 2500
 DEFAULT_TEMPERATURE = 0.2
-DEFAULT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
-DEFAULT_CACHE_MAX_FILES = 500
 
 PROVIDER_ALIASES = {
     "mlx": "mlx",
@@ -31,19 +30,6 @@ try:
 except ValueError:
     LLM_TEMPERATURE = DEFAULT_TEMPERATURE
 
-CACHE_DIR = Path(os.getenv("ACADEMICFORGE_CACHE_DIR", ".academicforge_cache"))
-
-try:
-    CACHE_TTL_SECONDS = int(os.getenv("ACADEMICFORGE_CACHE_TTL_SECONDS", str(DEFAULT_CACHE_TTL_SECONDS)))
-except ValueError:
-    CACHE_TTL_SECONDS = DEFAULT_CACHE_TTL_SECONDS
-
-try:
-    CACHE_MAX_FILES = int(os.getenv("ACADEMICFORGE_CACHE_MAX_FILES", str(DEFAULT_CACHE_MAX_FILES)))
-except ValueError:
-    CACHE_MAX_FILES = DEFAULT_CACHE_MAX_FILES
-
-
 @dataclass(frozen=True)
 class AppConfig:
     llm_provider: str
@@ -55,9 +41,6 @@ class AppConfig:
     llm_research_plan_model: str
     llm_max_tokens: int
     llm_temperature: float
-    cache_dir: Path
-    cache_ttl_seconds: int
-    cache_max_files: int
     llm_load_in_4bit: bool
 
     @classmethod
@@ -71,30 +54,35 @@ class AppConfig:
             provider = "mlx"
 
         if provider == "mlx":
-            default_model = "mlx-community/gemma-4-e2b-it-4bit"
-            default_deep_model = "accounts/fireworks/models/deepseek-v4-pro"
+            default_model = DEFAULT_MLX_MODEL
         elif provider == "fireworks":
-            default_model = "accounts/fireworks/models/deepseek-v4-pro"
-            default_deep_model = "accounts/fireworks/models/deepseek-v4-pro"
+            default_model = os.getenv("FIREWORKS_MODEL", "accounts/fireworks/models/deepseek-v4-pro")
         else:
-            default_model = "google/gemma-4-2b-it"
-            default_deep_model = "accounts/fireworks/models/deepseek-v4-pro"
+            default_model = DEFAULT_TRANSFORMERS_MODEL
+
+        fast_model = os.getenv("LOCAL_LLM_MODEL", default_model)
+        
+        # Disable Fireworks Deep Mode if the API key is not present, fallback to local fast model
+        default_deep = default_model
+        if provider == "fireworks" and not os.getenv("FIREWORKS_API_KEY"):
+            logger.warning("FIREWORKS_API_KEY is missing. Falling back to local model for Deep Mode.")
+        else:
+            default_deep = os.getenv("LOCAL_LLM_DEEP_MODEL", fast_model)
+            
+        deep_model = default_deep
 
         load_in_4bit = os.getenv("LOCAL_LLM_LOAD_IN_4BIT", "false").lower() == "true"
 
         return cls(
             llm_provider=provider,
-            llm_model=default_model,
-            llm_summary_model=default_model,
-            llm_summary_deep_model=default_deep_model,
-            llm_guidance_model=default_model,
-            llm_guidance_deep_model=default_deep_model,
-            llm_research_plan_model=default_deep_model,
+            llm_model=fast_model,
+            llm_summary_model=os.getenv("LOCAL_LLM_SUMMARY_MODEL", fast_model),
+            llm_summary_deep_model=os.getenv("LOCAL_LLM_SUMMARY_DEEP_MODEL", deep_model),
+            llm_guidance_model=os.getenv("LOCAL_LLM_GUIDANCE_MODEL", fast_model),
+            llm_guidance_deep_model=os.getenv("LOCAL_LLM_GUIDANCE_DEEP_MODEL", deep_model),
+            llm_research_plan_model=os.getenv("LOCAL_LLM_RESEARCH_PLAN_MODEL", deep_model),
             llm_max_tokens=LLM_MAX_TOKENS,
             llm_temperature=LLM_TEMPERATURE,
-            cache_dir=CACHE_DIR,
-            cache_ttl_seconds=CACHE_TTL_SECONDS,
-            cache_max_files=CACHE_MAX_FILES,
             llm_load_in_4bit=load_in_4bit,
         )
 
@@ -125,11 +113,6 @@ class AppConfig:
             "llm_max_tokens": self.llm_max_tokens,
             "llm_temperature": self.llm_temperature,
             "llm_load_in_4bit": self.llm_load_in_4bit,
-            "cache": {
-                "dir": str(self.cache_dir),
-                "ttl_seconds": self.cache_ttl_seconds,
-                "max_files": self.cache_max_files,
-            },
         }
 
 

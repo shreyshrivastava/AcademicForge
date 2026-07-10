@@ -104,20 +104,9 @@ def _load_transformers_model(selected_model):
         "device_map": "auto",
     }
 
-    if get_config().llm_load_in_4bit:
-        try:
-            from transformers import BitsAndBytesConfig
-            kwargs["quantization_config"] = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
-                bnb_4bit_quant_type="nf4",
-            )
-            logger.info("Configured BitsAndBytes 4-bit quantization for %r", selected_model)
-        except Exception as e:
-            logger.warning(
-                "Could not configure BitsAndBytes 4-bit quantization: %s. Loading in default precision.",
-                e,
-            )
+    # Removed BitsAndBytes 4-bit quantization config because it causes issues on AMD ROCm setups.
+    # We will load the model in standard precision (BF16 or FP16), which is faster and higher quality
+    # given the VRAM available on the judging instances.
 
     model = AutoModelForCausalLM.from_pretrained(
         selected_model,

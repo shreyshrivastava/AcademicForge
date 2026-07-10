@@ -15,7 +15,7 @@ mlx-lm>=0.13.0
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.0
 transformers>=4.38.0
 accelerate>=0.26.0
-bitsandbytes>=0.46.1
+
 numpy>=1.24.0
 
 # Dense Vector Embeddings & Reranking Support (Required)

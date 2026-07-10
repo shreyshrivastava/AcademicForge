@@ -10,10 +10,9 @@ from backend.config import get_config as get_app_config
 from backend.data_pipeline import extract_arxiv_id, not_enough_relevant_message, retrieve_and_rank_papers
 from backend.llm import provider_name, task_model_config
 from backend.research_plan_generator import generate_research_plan as generate_ai_research_plan
-from backend.research_plan_generator import research_plan_cache_status as get_research_plan_cache_status
 from backend.research_plan_generator import stream_research_plan as stream_ai_research_plan
 from backend.guidance_generator import generate_paper_guidance as generate_ai_paper_guidance
-from backend.guidance_generator import paper_guidance_cache_status as get_paper_guidance_cache_status
+from backend.summarizer import summarize_paper as summarize_paper_with_ai
 from backend.summarizer import summarize_paper as summarize_paper_with_ai
 
 load_dotenv()
@@ -67,15 +66,51 @@ def model_for_guidance(mode: str | None) -> str:
 def model_for_research_plan(mode: str | None) -> str:
     return get_app_config().model_for_task_and_mode("research_plan", mode)
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Warming up models...")
+    try:
+        from backend.llm import _load_transformers_model, _load_mlx_model
+        config = get_app_config()
+        if config.llm_provider == "transformers":
+            _load_transformers_model(config.llm_model)
+        elif config.llm_provider == "mlx":
+            _load_mlx_model(config.llm_model)
+            
+        from backend.retrieval.dense import _load_sentence_transformer
+        _load_sentence_transformer()
+        
+        from backend.retrieval.reranker import get_reranker_model
+        get_reranker_model()
+        
+        logger.info("Models warmed up successfully.")
+    except Exception as e:
+        logger.error(f"Failed to warm up models: {e}")
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint returning model and provider details."""
     config = get_app_config()
+    
+    models_ready = False
+    try:
+        if config.llm_provider == "transformers":
+            from backend.llm import _load_transformers_model
+            models_ready = _load_transformers_model.cache_info().currsize > 0
+        elif config.llm_provider == "mlx":
+            from backend.llm import _load_mlx_model
+            models_ready = _load_mlx_model.cache_info().currsize > 0
+        else:
+            models_ready = True
+    except Exception:
+        pass
+
     return {
-        "status": "ok",
+        "status": "ok" if models_ready else "warming_up",
         "backend": os.getenv("BACKEND_MODE", "unknown"),
         "provider": provider_name(),
-        "model": config.llm_model
+        "model": config.llm_model,
+        "models_ready": models_ready
     }
 
 @app.get("/config")
@@ -175,45 +210,14 @@ async def generate_paper_guidance(paper: Paper):
 
 @app.post("/paper-guidance/cache-status")
 async def paper_guidance_cache_status(paper: Paper):
-    """Return whether single-paper guidance is already cached."""
-    try:
-        status = get_paper_guidance_cache_status(
-            paper.model_dump(),
-            model=model_for_guidance(paper.generation_mode),
-            mode=paper.generation_mode,
-        )
-        logger.info(
-            "Paper guidance cache status paper_id=%r cache=%s cached=%s",
-            paper.paper_id,
-            status.get("cache"),
-            status.get("cached"),
-        )
-        return status
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Always return cache miss since caching is disabled for judging."""
+    return {"cached": False, "cache": "miss"}
 
 
 @app.post("/research-plan/cache-status")
 async def research_plan_cache_status(request: PapersRequest):
-    """Return whether the selected Research Plan is already cached."""
-    try:
-        papers = [paper.model_dump() for paper in request.papers]
-        status = get_research_plan_cache_status(
-            papers,
-            request.summaries,
-            request.query,
-            model=model_for_research_plan(request.generation_mode),
-            mode=request.generation_mode,
-        )
-        logger.info(
-            "Research Plan cache status paper_count=%d cache=%s cached=%s",
-            len(request.papers),
-            status.get("cache"),
-            status.get("cached"),
-        )
-        return status
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Always return cache miss since caching is disabled for judging."""
+    return {"cached": False, "cache": "miss"}
 
 
 @app.post("/research-plan/stream")

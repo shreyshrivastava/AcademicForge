@@ -60,7 +60,7 @@ print("Installing dependencies...")
 
 # 3. Download the Weights (Gemma)
 print("Downloading model weights...")
-!python scripts/download_weights.py --llm google/gemma-2-2b-it --embed all-MiniLM-L6-v2
+!python scripts/download_weights.py --llm google/gemma-2-2b-it --embed BAAI/bge-small-en-v1.5 --reranker BAAI/bge-reranker-base
 
 # 4. Start the Backend (FastAPI)
 print("Starting backend...")
