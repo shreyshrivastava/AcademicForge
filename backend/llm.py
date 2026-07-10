@@ -170,8 +170,12 @@ class LLMService:
             return _clean_response(
                 _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
             )
+        if self.provider == "fireworks":
+            return _clean_response(
+                _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model)
+            )
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx' or 'transformers'."
+            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
         )
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
@@ -182,8 +186,11 @@ class LLMService:
         if self.provider == "transformers":
             yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
             return
+        if self.provider == "fireworks":
+            yield from _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model)
+            return
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx' or 'transformers'."
+            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
         )
 
 
@@ -331,4 +338,46 @@ def _generate_transformers(system_prompt, user_prompt, token_budget, selected_mo
     return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
 
+def _get_openai_client():
+    try:
+        from openai import OpenAI
+        return OpenAI(
+            base_url="https://api.fireworks.ai/inference/v1",
+            api_key=os.environ.get("FIREWORKS_API_KEY")
+        )
+    except ImportError as exc:
+        raise LocalLLMError(
+            "OpenAI client not installed. Run `pip install openai`."
+        ) from exc
 
+
+def _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model):
+    client = _get_openai_client()
+    response = client.chat.completions.create(
+        model=selected_model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        max_tokens=token_budget or max_tokens(),
+        temperature=temperature(),
+        stream=False,
+    )
+    return response.choices[0].message.content
+
+
+def _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model):
+    client = _get_openai_client()
+    response = client.chat.completions.create(
+        model=selected_model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        max_tokens=token_budget or max_tokens(),
+        temperature=temperature(),
+        stream=True,
+    )
+    for chunk in response:
+        if chunk.choices[0].delta.content is not None:
+            yield chunk.choices[0].delta.content

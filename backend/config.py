@@ -66,13 +66,16 @@ class AppConfig:
         provider = raw_provider.strip().lower()
         provider = PROVIDER_ALIASES.get(provider, provider)
 
-        if provider not in ("mlx", "transformers"):
+        if provider not in ("mlx", "transformers", "fireworks"):
             logger.warning("Unsupported local LLM provider %r. Defaulting to 'mlx'.", provider)
             provider = "mlx"
 
         if provider == "mlx":
             default_model = "mlx-community/gemma-4-e2b-it-4bit"
             default_deep_model = "mlx-community/gemma-4-e2b-it-OptiQ-4bit"
+        elif provider == "fireworks":
+            default_model = "accounts/fireworks/models/deepseek-v3"
+            default_deep_model = "accounts/fireworks/models/deepseek-v3"
         else:
             default_model = "google/gemma-4-2b-it"
             default_deep_model = "google/gemma-4-2b-it"

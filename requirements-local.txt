@@ -20,3 +20,6 @@ numpy>=1.24.0
 
 # Dense Vector Embeddings & Reranking Support (Required)
 sentence-transformers>=2.2.0
+
+# OpenAI API Client (used for Fireworks)
+openai>=1.0.0

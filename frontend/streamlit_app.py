@@ -23,6 +23,11 @@ MODE_OPTIONS = {
         "short": "Deep",
         "purpose": "Detailed analysis, prototype guidance.",
     },
+    "annotation": {
+        "label": "Annotation Mode (DeepSeek V3)",
+        "short": "Annotation",
+        "purpose": "High accuracy annotation via Fireworks.",
+    },
 }
 CATEGORY_OPTIONS = [
     "Balanced",
@@ -1128,7 +1133,18 @@ with st.sidebar:
         st.write(f"**Provider:** {health.get('provider')}")
         st.write(f"**Model:** {health.get('model')}")
     else:
-        st.error(f"Backend: Offline\\n\\n{health.get('message', 'Unknown error')}")
+        st.error(f"Backend: Offline\n\n{health.get('message', 'Unknown error')}")
+
+    st.markdown("---")
+    if "generation_mode" not in st.session_state:
+        st.session_state.generation_mode = "fast"
+        
+    st.session_state.generation_mode = st.radio(
+        "Analysis Mode",
+        options=["fast", "deep", "annotation"],
+        format_func=lambda x: MODE_OPTIONS[x]["label"],
+        index=["fast", "deep", "annotation"].index(st.session_state.generation_mode)
+    )
 
 try:
     config = get_config()
