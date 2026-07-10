@@ -13,9 +13,10 @@ Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicF
 *   **Frontend:** Streamlit
 *   **Retrieval:** BM25 (Rank-BM25), Dense Vector Embeddings (`BAAI/bge-small-en-v1.5`), Reciprocal Rank Fusion (RRF)
 *   **Inference Backends:** 
-    *   `mlx` (Native Apple Silicon acceleration via `mlx-lm`)
-    *   `transformers` (PyTorch backend)
-*   **Models:** `mlx-community/gemma-4-e2b-it-4bit` (Fast Mode), `mlx-community/gemma-4-e2b-it-OptiQ-4bit` (Deep Mode)
+    *   `transformers` (Native AMD ROCm PyTorch backend for evaluation)
+    *   `fireworks` (DeepSeek-v4-Pro cloud reasoning for deep analysis)
+    *   `mlx` (Native Apple Silicon acceleration via `mlx-lm` for local development)
+*   **Models:** `google/gemma-2-2b-it` (Fast Mode Containerized), `deepseek-v4-pro` (Deep Mode)
 
 ---
 
@@ -122,9 +123,8 @@ AcademicForge routes generation requests to optimize quality and speed:
 
 | Model Role | Model | Inference Backend | Description |
 | :--- | :--- | :--- | :--- |
-| **Fast Mode (Default)** | `mlx-community/gemma-4-e2b-it-4bit` | `mlx` or `transformers` | Model used for query routing, paper summarization, and quick plans in Fast Mode. |
-| **Deep Mode** | `mlx-community/gemma-4-e2b-it-OptiQ-4bit` | `mlx` or `transformers` | Used for comprehensive Research Plans, system design, and tradeoffs. |
-| **Summarizer** | `mlx-community/gemma-4-e2b-it-4bit` | `mlx` or `transformers` | Generates plain-English paper summaries. |
+| **Fast Mode (Default)** | `google/gemma-2-2b-it` | `transformers` (ROCm) / `mlx` | Ultra-fast local model used for query routing, paper summarization, and quick plans. Guarantees < 30s response time. |
+| **Deep Mode** | `deepseek-v4-pro` | `fireworks` | Massive server-grade reasoning model used for comprehensive Research Plans, system design, and complex tradeoffs. |
 | **Dense Embeddings** | `BAAI/bge-small-en-v1.5` | `transformers` (PyTorch) | Computes 384-dimensional query and abstract dense vectors. |
 | **Dense Fallback** | Cosine Similarity Vectorizer | Pure Python / `numpy` | Local cosine-similarity fallback if `sentence-transformers` is missing. |
 
@@ -167,7 +167,19 @@ AcademicForge provides full compatibility with AMD GPU platforms through the PyT
 
 ---
 
-## 🛠️ Local Development
+## 🛠️ Deployment & Automated Evaluation
+
+AcademicForge has been packaged as a fully compliant Docker container for the AMD Developer Hackathon.
+
+1. **Pre-baked Weights**: `google/gemma-2-2b-it` is downloaded into the image layer during `docker build`, ensuring the container is ready instantly (sub-60 seconds rule).
+2. **Dynamic Streaming**: The PyTorch/ROCm backend processes requests incredibly fast (sub-30 seconds rule).
+3. **Cache Disabled**: Disk caching is globally disabled in the backend for automated scoring to prove generation occurs live.
+
+For instructions on building the Docker image or running the system locally via a Jupyter Notebook, please see the **[RUN_INSTRUCTIONS.md](RUN_INSTRUCTIONS.md)** file.
+
+---
+
+## 💻 Local Development
 
 ### 1. Setup Environment
 ```bash

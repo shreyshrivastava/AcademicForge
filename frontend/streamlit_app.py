@@ -14,19 +14,14 @@ from frontend.api_client import APIClient
 api_client = APIClient()
 MODE_OPTIONS = {
     "fast": {
-        "label": "Fast Mode (Gemma 4 2B)",
+        "label": "Fast Mode (Local MLX/Rocm)",
         "short": "Fast",
         "purpose": "Quick insights, shorter responses.",
     },
     "deep": {
-        "label": "Deep Mode (Gemma 4 31B)",
+        "label": "Deep Mode (DeepSeek-v4-Pro)",
         "short": "Deep",
         "purpose": "Detailed analysis, prototype guidance.",
-    },
-    "annotation": {
-        "label": "Annotation Mode (DeepSeek V3)",
-        "short": "Annotation",
-        "purpose": "High accuracy annotation via Fireworks.",
     },
 }
 CATEGORY_OPTIONS = [
@@ -1135,17 +1130,6 @@ with st.sidebar:
     else:
         st.error(f"Backend: Offline\n\n{health.get('message', 'Unknown error')}")
 
-    st.markdown("---")
-    if "generation_mode" not in st.session_state:
-        st.session_state.generation_mode = "fast"
-        
-    st.session_state.generation_mode = st.radio(
-        "Analysis Mode",
-        options=["fast", "deep", "annotation"],
-        format_func=lambda x: MODE_OPTIONS[x]["label"],
-        index=["fast", "deep", "annotation"].index(st.session_state.generation_mode)
-    )
-
 try:
     config = get_config()
 except requests.RequestException:
@@ -1191,6 +1175,15 @@ if "search_message" not in st.session_state:
 default_query = st.query_params.get("query", "")
 
 with st.container(border=True, key="search_shell"):
+    st.session_state.generation_mode = st.radio(
+        "Analysis Mode",
+        options=["fast", "deep"],
+        format_func=lambda x: MODE_OPTIONS[x]["label"],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
+
     search_cols = st.columns([5, 1.05], vertical_alignment="bottom", gap="medium")
     research_question = search_cols[0].text_input(
         "Question or link",
@@ -1204,8 +1197,6 @@ with st.container(border=True, key="search_shell"):
         and st.session_state.last_query != research_question.strip()
     )
     manual_search = search_cols[1].button("Search", type="primary", width="stretch")
-
-    st.session_state.generation_mode = "fast"
 
     st.markdown(
         """

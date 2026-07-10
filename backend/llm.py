@@ -162,35 +162,37 @@ class LLMService:
 
     def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        if self.provider == "mlx":
+        effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
+        if effective_provider == "mlx":
             return _clean_response(
                 _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
             )
-        if self.provider == "transformers":
+        if effective_provider == "transformers":
             return _clean_response(
                 _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
             )
-        if self.provider == "fireworks":
+        if effective_provider == "fireworks":
             return _clean_response(
                 _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model)
             )
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
         )
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        if self.provider == "mlx":
+        effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
+        if effective_provider == "mlx":
             yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
             return
-        if self.provider == "transformers":
+        if effective_provider == "transformers":
             yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
             return
-        if self.provider == "fireworks":
+        if effective_provider == "fireworks":
             yield from _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model)
             return
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={self.provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
         )
 
 
@@ -353,14 +355,20 @@ def _get_openai_client():
 
 def _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model):
     client = _get_openai_client()
+    # Tune parameters specifically for DeepSeek via Fireworks
+    # We dynamically cap max_tokens to save credits while leaving enough room to think
+    base_budget = token_budget or max_tokens()
+    fw_max_tokens = min(base_budget * 2 + 500, 2048)
+    fw_temperature = 0.6
+    
     response = client.chat.completions.create(
         model=selected_model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        max_tokens=token_budget or max_tokens(),
-        temperature=temperature(),
+        max_tokens=fw_max_tokens,
+        temperature=fw_temperature,
         stream=False,
     )
     return response.choices[0].message.content
@@ -368,14 +376,20 @@ def _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model
 
 def _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model):
     client = _get_openai_client()
+    # Tune parameters specifically for DeepSeek via Fireworks
+    # We dynamically cap max_tokens to save credits while leaving enough room to think
+    base_budget = token_budget or max_tokens()
+    fw_max_tokens = min(base_budget * 2 + 500, 2048)
+    fw_temperature = 0.6
+    
     response = client.chat.completions.create(
         model=selected_model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        max_tokens=token_budget or max_tokens(),
-        temperature=temperature(),
+        max_tokens=fw_max_tokens,
+        temperature=fw_temperature,
         stream=True,
     )
     for chunk in response:

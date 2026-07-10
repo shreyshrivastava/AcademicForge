@@ -15,6 +15,8 @@ def make_cache_key(*parts: Any) -> str:
 
 
 def cache_get(namespace: str, key: str):
+    # COMPETITION RULE: Do not hardcode or cache answers to specific inputs
+    return None
     path = _cache_path(namespace, key)
     if not path.exists():
         return None
@@ -33,6 +35,8 @@ def cache_get(namespace: str, key: str):
 
 
 def cache_set(namespace: str, key: str, value):
+    # COMPETITION RULE: Do not hardcode or cache answers to specific inputs
+    return
     path = _cache_path(namespace, key)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(".tmp")

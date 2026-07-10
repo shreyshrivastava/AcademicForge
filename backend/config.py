@@ -72,13 +72,13 @@ class AppConfig:
 
         if provider == "mlx":
             default_model = "mlx-community/gemma-4-e2b-it-4bit"
-            default_deep_model = "mlx-community/gemma-4-e2b-it-OptiQ-4bit"
+            default_deep_model = "accounts/fireworks/models/deepseek-v4-pro"
         elif provider == "fireworks":
-            default_model = "accounts/fireworks/models/deepseek-v3"
-            default_deep_model = "accounts/fireworks/models/deepseek-v3"
+            default_model = "accounts/fireworks/models/deepseek-v4-pro"
+            default_deep_model = "accounts/fireworks/models/deepseek-v4-pro"
         else:
             default_model = "google/gemma-4-2b-it"
-            default_deep_model = "google/gemma-4-2b-it"
+            default_deep_model = "accounts/fireworks/models/deepseek-v4-pro"
 
         load_in_4bit = os.getenv("LOCAL_LLM_LOAD_IN_4BIT", "false").lower() == "true"
 
