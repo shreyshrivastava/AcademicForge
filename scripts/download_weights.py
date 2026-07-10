@@ -1,7 +1,7 @@
 import os
 import argparse
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, CrossEncoder
 
 def download_llm(model_name: str, token: str = None):
     print(f"Downloading LLM model: {model_name}...")
@@ -14,10 +14,16 @@ def download_embedding(model_name: str):
     SentenceTransformer(model_name)
     print("Embedding model downloaded successfully.")
 
+def download_cross_encoder(model_name: str):
+    print(f"Downloading Cross-Encoder model: {model_name}...")
+    CrossEncoder(model_name)
+    print("Cross-Encoder downloaded successfully.")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--llm", type=str, default="google/gemma-2-2b-it", help="LLM model name on HuggingFace")
-    parser.add_argument("--embed", type=str, default="all-MiniLM-L6-v2", help="Embedding model name on HuggingFace")
+    parser.add_argument("--embed", type=str, default="BAAI/bge-small-en-v1.5", help="Embedding model name on HuggingFace")
+    parser.add_argument("--reranker", type=str, default="BAAI/bge-reranker-base", help="Cross-Encoder model name")
     args = parser.parse_args()
 
     hf_token = os.environ.get("HF_TOKEN")
@@ -26,4 +32,5 @@ if __name__ == "__main__":
 
     download_llm(args.llm, token=hf_token)
     download_embedding(args.embed)
+    download_cross_encoder(args.reranker)
     print("All weights downloaded and cached successfully!")

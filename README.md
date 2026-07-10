@@ -11,7 +11,7 @@ Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicF
 ### Tech Stack
 *   **Backend:** FastAPI, Uvicorn, Python 3.11+
 *   **Frontend:** Streamlit
-*   **Retrieval:** BM25 (Rank-BM25), Dense Vector Embeddings (`BAAI/bge-small-en-v1.5`), Reciprocal Rank Fusion (RRF)
+*   **Retrieval:** BM25 (Lexical), Dense Embeddings (`BAAI/bge-small-en-v1.5`), Reciprocal Rank Fusion (RRF), Cross-Encoder Reranking (`BAAI/bge-reranker-base`)
 *   **Inference Backends:** 
     *   `transformers` (Native AMD ROCm PyTorch backend for evaluation)
     *   `fireworks` (DeepSeek-v4-Pro cloud reasoning for deep analysis)
@@ -66,6 +66,7 @@ While ChatGPT is an excellent generalist search agent, AcademicForge offers sign
 *   **Query Rewrite Engine:** Preprocesses casual user input into academic-friendly keywords.
 *   **Dual-Engine Hybrid Retrieval:** Lexical matching (BM25) combined with dense vector semantic search (`BAAI/bge-small-en-v1.5` embeddings).
 *   **Reciprocal Rank Fusion (RRF):** Merges rank lists mathematically to prevent score-distribution bias.
+*   **Cross-Encoder Reranking:** Applies a heavy `BAAI/bge-reranker-base` cross-encoder to the top fused results for extremely precise semantic relevance.
 *   **Structured Research Lenses:** Dynamic candidate weighting (Balanced, Foundational, Survey, Implementation Focused, Evaluation Focused, Alternative Approach, Contrarian View).
 *   **Task-Specific Model Routing:** Routes queries to distinct models for fast summarization vs. deep research plans.
 *   **Streamed Generation:** High-performance, incremental token streaming for real-time UI rendering.
@@ -90,7 +91,8 @@ graph TD
     Pool --> Dense[Dense Semantic Embeddings]
     BM25 --> RRF[Reciprocal Rank Fusion]
     Dense --> RRF
-    RRF --> Filter[Relevance Filtering & Lens Selection]
+    RRF --> Rerank[Cross-Encoder Reranking]
+    Rerank --> Filter[Relevance Filtering & Lens Selection]
     Filter --> Ev[Evidence Selection]
     Ev --> Summary[Concise Paper Summaries]
     Ev --> Plan[Research Plan Generation]
@@ -115,6 +117,9 @@ Fuses the rankings from BM25 and Dense search using the standard formula:
 $$RRF(d) = \sum_{m \in M} \frac{1}{k + r_m(d)}$$
 (where $k = 60$). RRF does not require score normalization, which prevents dense search scores from dominating lexical matches.
 
+### 4. Cross-Encoder Reranking
+After RRF surfaces a broad pool of highly relevant candidates, AcademicForge passes the top 30 papers through a heavy cross-encoder (`BAAI/bge-reranker-base`). Unlike bi-encoders (dense embeddings) which encode the query and document separately, a cross-encoder passes the query and document through the transformer simultaneously, allowing deep cross-attention at every layer. This dramatically increases final retrieval precision before evidence selection.
+
 ---
 
 ## 🤖 AI Models
@@ -125,8 +130,16 @@ AcademicForge routes generation requests to optimize quality and speed:
 | :--- | :--- | :--- | :--- |
 | **Fast Mode (Default)** | `google/gemma-2-2b-it` | `transformers` (ROCm) / `mlx` | Ultra-fast local model used for query routing, paper summarization, and quick plans. Guarantees < 30s response time. |
 | **Deep Mode** | `deepseek-v4-pro` | `fireworks` | Massive server-grade reasoning model used for comprehensive Research Plans, system design, and complex tradeoffs. |
+| **Cross-Encoder** | `BAAI/bge-reranker-base` | `transformers` (PyTorch) | Heavy cross-encoder for final retrieval reranking (deep cross-attention). |
 | **Dense Embeddings** | `BAAI/bge-small-en-v1.5` | `transformers` (PyTorch) | Computes 384-dimensional query and abstract dense vectors. |
 | **Dense Fallback** | Cosine Similarity Vectorizer | Pure Python / `numpy` | Local cosine-similarity fallback if `sentence-transformers` is missing. |
+
+### Why This Hybrid Model Architecture?
+
+AcademicForge routes between two fundamentally different classes of LLMs to balance speed, cost, and intelligence:
+
+1. **Gemma 2 (Fast Mode / Local Inference):** We utilize `google/gemma-2-2b-it` via PyTorch/ROCm on the local AMD hardware. As a 2-billion parameter model, it is incredibly lightweight but highly capable. This allows the backend to perform rapid query routing, parallel paper summarization, and quick exploration locally without any network latency or API costs. This guarantees the strict sub-30-second response time for exploratory tasks.
+2. **DeepSeek-v4-Pro (Deep Mode / Cloud Inference):** For the final synthesis step (generating the complex Builder Guidance or the massive Research Plan), we offload the generation to DeepSeek via Fireworks AI. Generating a high-fidelity system architecture from 8 distinct academic papers requires a frontier-class reasoning model with heavy `<think>` capability. By reserving the cloud API solely for this final heavy-lifting step, we maximize output quality while minimizing API token burn.
 
 ---
 

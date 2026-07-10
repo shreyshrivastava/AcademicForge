@@ -20,7 +20,7 @@ COPY . .
 # Download weights into the image to satisfy the 60-second boot rule
 ARG HF_TOKEN
 ENV HF_TOKEN=${HF_TOKEN}
-RUN python scripts/download_weights.py --llm google/gemma-2-2b-it --embed all-MiniLM-L6-v2
+RUN python scripts/download_weights.py --llm google/gemma-2-2b-it --embed BAAI/bge-small-en-v1.5 --reranker BAAI/bge-reranker-base
 
 # Expose ports for FastAPI (8000) and Streamlit (8501)
 EXPOSE 8000
