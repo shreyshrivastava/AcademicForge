@@ -14,13 +14,13 @@ class APIClient:
     Handles dynamic routing via VERCEL_API_URL and implements basic retry loops.
     """
     def __init__(self):
-        # 1. Try OS environment variable
-        url = os.getenv("VERCEL_API_URL")
+        # 1. Try OS environment variables
+        url = os.getenv("ACADEMICFORGE_BACKEND_URL") or os.getenv("VERCEL_API_URL")
         
         # 2. Try Streamlit Secrets (Community Cloud)
         if not url:
             try:
-                url = st.secrets.get("VERCEL_API_URL")
+                url = st.secrets.get("ACADEMICFORGE_BACKEND_URL") or st.secrets.get("VERCEL_API_URL")
             except Exception:
                 pass
                 
