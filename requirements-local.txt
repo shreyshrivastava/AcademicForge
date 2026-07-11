@@ -21,3 +21,6 @@ sentence-transformers>=2.2.0
 
 # OpenAI API Client (used for Fireworks)
 openai>=1.0.0
+
+# Ngrok Tunneling Support
+pyngrok>=7.0.0
