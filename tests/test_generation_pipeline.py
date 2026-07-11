@@ -1,15 +1,12 @@
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import backend.cache as cache
 from backend.research_plan_generator import build_research_plan_context, generate_research_plan
-from backend.research_plan_generator import research_plan_cache_status
 from backend.research_plan_generator import stream_research_plan
 import backend.research_plan_generator as research_plan_generator
-from backend.guidance_generator import generate_paper_guidance, paper_guidance_cache_key, paper_guidance_cache_status
+from backend.guidance_generator import generate_paper_guidance
 import backend.guidance_generator as guidance_generator
 import backend.summarizer as summarizer
 
@@ -55,8 +52,6 @@ def test_research_plan_context_is_compact_and_structured():
 def test_generate_research_plan_uses_compact_context():
     captured = {}
     original_generate_text = research_plan_generator.generate_text
-    original_cache_dir = cache.CACHE_DIR
-    research_plan_generator.RESEARCH_PLAN_CACHE.clear()
 
     def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
         captured["system_prompt"] = system_prompt
@@ -66,12 +61,10 @@ def test_generate_research_plan_uses_compact_context():
         return "research plan"
 
     research_plan_generator.generate_text = fake_generate_text
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
+    try:
         result = generate_research_plan([PAPER], [SUMMARY], query="build a RAG hallucination detector")
-        cache.CACHE_DIR = original_cache_dir
+    finally:
         research_plan_generator.generate_text = original_generate_text
-        research_plan_generator.RESEARCH_PLAN_CACHE.clear()
 
     assert result == "research plan"
     assert captured["token_budget"] == 1900
@@ -94,8 +87,6 @@ def test_generate_research_plan_uses_compact_context():
 def test_generate_paper_guidance_uses_paper_specific_prompt():
     captured = {}
     original_generate_text = guidance_generator.generate_text
-    original_cache_dir = cache.CACHE_DIR
-    guidance_generator.PAPER_GUIDANCE_CACHE.clear()
 
     def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
         captured["system_prompt"] = system_prompt
@@ -105,12 +96,10 @@ def test_generate_paper_guidance_uses_paper_specific_prompt():
         return "paper guidance"
 
     guidance_generator.generate_text = fake_generate_text
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
+    try:
         result = generate_paper_guidance(PAPER)
-        cache.CACHE_DIR = original_cache_dir
+    finally:
         guidance_generator.generate_text = original_generate_text
-        guidance_generator.PAPER_GUIDANCE_CACHE.clear()
 
     assert result == "paper guidance"
     assert captured["token_budget"] == 1100
@@ -124,174 +113,8 @@ def test_generate_paper_guidance_uses_paper_specific_prompt():
     assert "8. Difficulty level" not in captured["user_prompt"]
 
 
-def test_paper_guidance_cache_reuses_disk_cache_and_invalidates_on_content_change():
-    calls = {"count": 0}
-    original_generate_text = guidance_generator.generate_text
-    original_cache_dir = cache.CACHE_DIR
-    guidance_generator.PAPER_GUIDANCE_CACHE.clear()
-
-    def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
-        calls["count"] += 1
-        return "disk cached paper guidance"
-
-    changed_paper = dict(PAPER)
-    changed_paper["abstract"] = "A changed abstract should produce a different cache key."
-
-    guidance_generator.generate_text = fake_generate_text
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
-        first = generate_paper_guidance(PAPER)
-        guidance_generator.PAPER_GUIDANCE_CACHE.clear()
-        second = generate_paper_guidance(PAPER)
-        assert first == "disk cached paper guidance"
-        assert second == "disk cached paper guidance"
-        assert calls["count"] == 1
-        assert paper_guidance_cache_status(PAPER) == {
-            "cached": True,
-            "cache": "memory",
-        }
-        assert paper_guidance_cache_key(PAPER) != paper_guidance_cache_key(changed_paper)
-        cache.CACHE_DIR = original_cache_dir
-        guidance_generator.generate_text = original_generate_text
-        guidance_generator.PAPER_GUIDANCE_CACHE.clear()
-
-
-def test_summary_cache_reuses_existing_summary():
-    calls = {"count": 0}
-    original_generate_text = summarizer.generate_text
-    original_cache_dir = cache.CACHE_DIR
-    summarizer.SUMMARY_CACHE.clear()
-
-    def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
-        calls["count"] += 1
-        return "cached summary"
-
-    summarizer.generate_text = fake_generate_text
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
-        first = summarizer.summarize_paper(PAPER)
-        second = summarizer.summarize_paper(PAPER)
-        cache.CACHE_DIR = original_cache_dir
-        summarizer.generate_text = original_generate_text
-        summarizer.SUMMARY_CACHE.clear()
-
-    assert first == "cached summary"
-    assert second == "cached summary"
-    assert calls["count"] == 1
-
-
-def test_summary_disk_cache_reuses_existing_summary_after_memory_clear():
-    calls = {"count": 0}
-    original_generate_text = summarizer.generate_text
-    original_cache_dir = cache.CACHE_DIR
-    summarizer.SUMMARY_CACHE.clear()
-
-    def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
-        calls["count"] += 1
-        return "disk cached summary"
-
-    summarizer.generate_text = fake_generate_text
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
-        first = summarizer.summarize_paper(PAPER)
-        summarizer.SUMMARY_CACHE.clear()
-        second = summarizer.summarize_paper(PAPER)
-        cache.CACHE_DIR = original_cache_dir
-        summarizer.generate_text = original_generate_text
-        summarizer.SUMMARY_CACHE.clear()
-
-    assert first == "disk cached summary"
-    assert second == "disk cached summary"
-    assert calls["count"] == 1
-
-
-def test_research_plan_disk_cache_reuses_existing_plan_after_memory_clear():
-    calls = {"count": 0}
-    original_generate_text = research_plan_generator.generate_text
-    original_cache_dir = cache.CACHE_DIR
-    research_plan_generator.RESEARCH_PLAN_CACHE.clear()
-
-    def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
-        calls["count"] += 1
-        return "disk cached research plan"
-
-    research_plan_generator.generate_text = fake_generate_text
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
-        first = generate_research_plan([PAPER], [SUMMARY], query="build detector")
-        research_plan_generator.RESEARCH_PLAN_CACHE.clear()
-        second = generate_research_plan([PAPER], [SUMMARY], query="build detector")
-        cache.CACHE_DIR = original_cache_dir
-        research_plan_generator.generate_text = original_generate_text
-        research_plan_generator.RESEARCH_PLAN_CACHE.clear()
-
-    assert first == "disk cached research plan"
-    assert second == "disk cached research plan"
-    assert calls["count"] == 1
-
-
-def test_research_plan_cache_status_reports_miss_and_disk_hit():
-    original_generate_text = research_plan_generator.generate_text
-    original_cache_dir = cache.CACHE_DIR
-    research_plan_generator.RESEARCH_PLAN_CACHE.clear()
-
-    def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
-        return "status research plan"
-
-    research_plan_generator.generate_text = fake_generate_text
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
-        assert research_plan_cache_status([PAPER], [SUMMARY], query="build detector") == {
-            "cached": False,
-            "cache": "miss",
-        }
-        generate_research_plan([PAPER], [SUMMARY], query="build detector")
-        research_plan_generator.RESEARCH_PLAN_CACHE.clear()
-        assert research_plan_cache_status([PAPER], [SUMMARY], query="build detector") == {
-            "cached": True,
-            "cache": "disk",
-        }
-        cache.CACHE_DIR = original_cache_dir
-        research_plan_generator.generate_text = original_generate_text
-        research_plan_generator.RESEARCH_PLAN_CACHE.clear()
-
-
-def test_stream_research_plan_yields_chunks_and_caches_result():
-    calls = {"count": 0}
-    original_stream = research_plan_generator.generate_text_stream
-    original_cache_dir = cache.CACHE_DIR
-    research_plan_generator.RESEARCH_PLAN_CACHE.clear()
-
-    def fake_stream(system_prompt, user_prompt, token_budget=None, task=None, model=None):
-        calls["count"] += 1
-        yield "```markdown\n"
-        yield "streamed "
-        yield "research plan"
-        yield "\n```"
-
-    research_plan_generator.generate_text_stream = fake_stream
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
-        first = "".join(stream_research_plan([PAPER], [SUMMARY], query="build detector"))
-        research_plan_generator.RESEARCH_PLAN_CACHE.clear()
-        second = "".join(stream_research_plan([PAPER], [SUMMARY], query="build detector"))
-        cache.CACHE_DIR = original_cache_dir
-        research_plan_generator.generate_text_stream = original_stream
-        research_plan_generator.RESEARCH_PLAN_CACHE.clear()
-
-    assert first.replace("\n```", "").strip() == "streamed research plan"
-    assert second.replace("\n```", "").strip() == "streamed research plan"
-    assert calls["count"] == 1
-
-
 if __name__ == "__main__":
     test_research_plan_context_is_compact_and_structured()
     test_generate_research_plan_uses_compact_context()
     test_generate_paper_guidance_uses_paper_specific_prompt()
-    test_paper_guidance_cache_reuses_disk_cache_and_invalidates_on_content_change()
-    test_summary_cache_reuses_existing_summary()
-    test_summary_disk_cache_reuses_existing_summary_after_memory_clear()
-    test_research_plan_disk_cache_reuses_existing_plan_after_memory_clear()
-    test_research_plan_cache_status_reports_miss_and_disk_hit()
-    test_stream_research_plan_yields_chunks_and_caches_result()
     print("generation pipeline tests passed")

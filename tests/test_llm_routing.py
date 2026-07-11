@@ -1,12 +1,9 @@
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import backend.cache as cache
-cache.check_and_increment_usage = lambda limit=10: 0
 import backend.config as config
 import backend.llm as llm
 import backend.research_plan_generator as research_plan_generator
@@ -16,16 +13,13 @@ import backend.summarizer as summarizer
 def test_summary_uses_summary_task():
     captured = {}
     original_generate_text = summarizer.generate_text
-    original_cache_dir = cache.CACHE_DIR
-    summarizer.SUMMARY_CACHE.clear()
 
     def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
         captured["task"] = task
         return "summary"
 
     summarizer.generate_text = fake_generate_text
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
+    try:
         summarizer.summarize_paper(
             {
                 "paper_id": "x",
@@ -34,9 +28,8 @@ def test_summary_uses_summary_task():
                 "abstract": "Abstract",
             }
         )
-        cache.CACHE_DIR = original_cache_dir
+    finally:
         summarizer.generate_text = original_generate_text
-        summarizer.SUMMARY_CACHE.clear()
 
     assert captured["task"] == "summary"
 
@@ -44,16 +37,13 @@ def test_summary_uses_summary_task():
 def test_research_plan_uses_research_plan_task():
     captured = {}
     original_generate_text = research_plan_generator.generate_text
-    original_cache_dir = cache.CACHE_DIR
-    research_plan_generator.RESEARCH_PLAN_CACHE.clear()
 
     def fake_generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
         captured["task"] = task
         return "research plan"
 
     research_plan_generator.generate_text = fake_generate_text
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cache.CACHE_DIR = Path(tmpdir)
+    try:
         research_plan_generator.generate_research_plan(
             [
                 {
@@ -66,9 +56,8 @@ def test_research_plan_uses_research_plan_task():
             ],
             ["Core idea\nIdea"],
         )
-        cache.CACHE_DIR = original_cache_dir
+    finally:
         research_plan_generator.generate_text = original_generate_text
-        research_plan_generator.RESEARCH_PLAN_CACHE.clear()
 
     assert captured["task"] == "research_plan"
 

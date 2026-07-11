@@ -75,13 +75,27 @@ cp .env.example .env
 
 Open the `.env` file and customize the variables as needed.
 
+### Hugging Face Authentication (For Gated Models)
+
+If you are using gated models like `google/gemma-2-2b-it`, you must authenticate with the Hugging Face Hub:
+
+* **Option 1: Environment Variable (Recommended):** Add your token to your `.env` file:
+  ```env
+  HF_TOKEN=your_token_here
+  ```
+* **Option 2: CLI Login:** Run the login command inside your active virtual environment and enter your token:
+  ```bash
+  huggingface-cli login
+  ```
+
 ### Configuration Reference Table
 
 | Variable | Purpose | Required? | Example Value | Default |
 | :--- | :--- | :---: | :--- | :--- |
-| `LOCAL_LLM_PROVIDER` | Defines the LLM inference engine backend. | No | `transformers` | `mlx` |
+| `LOCAL_LLM_PROVIDER` | Defines the LLM inference engine backend. | No | `transformers` | `transformers` |
 | `LOCAL_LLM_MAX_TOKENS` | Token budget limit for text generation. | No | `900` | `700` |
 | `LOCAL_LLM_TEMPERATURE` | Generation creativity temperature. | No | `0.2` | `0.2` |
+| `HF_TOKEN` | Hugging Face Hub Access Token (for downloading gated models like Gemma). | Yes (if using gated models) | `hf_xxx...` | None |
 | `ACADEMICFORGE_CACHE_DIR` | Local folder where JSON caches are saved. | No | `.academicforge_cache` | `.academicforge_cache` |
 | `ACADEMICFORGE_CACHE_TTL_SECONDS` | Cache expiration time (in seconds). | No | `604800` (7 days) | `604800` |
 | `ACADEMICFORGE_CACHE_MAX_FILES` | Cache cleanup threshold (file count). | No | `500` | `500` |
@@ -92,12 +106,11 @@ Open the `.env` file and customize the variables as needed.
 ## 🤖 Choosing Models & Runtimes
 
 ### Inference Modes
-*   **Fast Mode:** Uses the smaller model `mlx-community/gemma-4-e2b-it-4bit` (2B parameters). Select this for quick search checks, fast summaries, and lower latency.
-*   **Deep Mode:** Uses the larger model `mlx-community/gemma-4-e2b-it-OptiQ-4bit` (31B parameters). Select this for detailed synthesis, system architectures, and tradeoff analysis.
+*   **Fast Mode:** Uses `google/gemma-2-2b-it` (2.6B parameters).
+*   **Deep Mode:** Uses `google/gemma-2-2b-it` (2.6B parameters).
 
 ### Local Runtimes
-*   **MLX Backend (`mlx`):** Native hardware-accelerated serving on macOS (Apple Silicon). Highly efficient memory consumption and fast token speeds.
-*   **Transformers Backend (`transformers`):** Uses Hugging Face PyTorch implementation. Offloads tasks automatically to GPUs (`device_map="auto"`) on **AMD ROCm** machines. It is the default runtime when running on Linux/Windows.
+*   **Transformers Backend (`transformers`):** Uses Hugging Face PyTorch implementation. Offloads tasks automatically to GPUs (`device_map="auto"`) on **AMD ROCm** machines. It is the default runtime.
 
 ---
 
@@ -127,7 +140,6 @@ Open your browser and navigate to **[http://127.0.0.1:8501](http://127.0.0.1:850
 Ensure code correctness by running the tests:
 ```bash
 source venv/bin/activate
-python tests/test_cache.py
 python tests/test_generation_pipeline.py
 python tests/test_llm_routing.py
 python tests/test_api_contract.py

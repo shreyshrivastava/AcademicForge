@@ -74,16 +74,6 @@ def temperature():
     return get_config().llm_temperature
 
 
-@lru_cache(maxsize=4)
-def _load_mlx_model(selected_model):
-    try:
-        from mlx_lm import load
-    except ImportError as exc:
-        raise LocalLLMError(
-            "MLX runtime is not installed. Install it with: pip install mlx-lm"
-        ) from exc
-
-    return load(selected_model)
 
 
 @lru_cache(maxsize=2)
@@ -152,10 +142,6 @@ class LLMService:
     def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
         effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
-        if effective_provider == "mlx":
-            return _clean_response(
-                _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
-            )
         if effective_provider == "transformers":
             return _clean_response(
                 _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
@@ -165,15 +151,12 @@ class LLMService:
                 _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model)
             )
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers' or 'fireworks'."
         )
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
         effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
-        if effective_provider == "mlx":
-            yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
-            return
         if effective_provider == "transformers":
             yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
             return
@@ -181,7 +164,7 @@ class LLMService:
             yield from _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model)
             return
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'mlx', 'transformers', or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers' or 'fireworks'."
         )
 
 
@@ -268,40 +251,6 @@ def _clean_response(text):
 
 
 
-def _generate_mlx(system_prompt, user_prompt, token_budget, selected_model):
-    from mlx_lm import generate
-    from mlx_lm.sample_utils import make_sampler
-
-    model, tokenizer = _load_mlx_model(selected_model)
-    prompt = _chat_prompt(tokenizer, system_prompt, user_prompt)
-    sampler = make_sampler(temp=temperature())
-    text = generate(
-        model,
-        tokenizer,
-        prompt=prompt,
-        verbose=False,
-        max_tokens=token_budget or max_tokens(),
-        sampler=sampler,
-    )
-    return text.strip()
-
-
-def _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model):
-    from mlx_lm import stream_generate
-    from mlx_lm.sample_utils import make_sampler
-
-    model, tokenizer = _load_mlx_model(selected_model)
-    prompt = _chat_prompt(tokenizer, system_prompt, user_prompt)
-    sampler = make_sampler(temp=temperature())
-    for response in stream_generate(
-        model,
-        tokenizer,
-        prompt=prompt,
-        max_tokens=token_budget or max_tokens(),
-        sampler=sampler,
-    ):
-        if response.text:
-            yield response.text
 
 
 def _generate_transformers(system_prompt, user_prompt, token_budget, selected_model):
