@@ -25,7 +25,6 @@ while true; do
   sleep 2
 done
 
-# Start Streamlit frontend in the foreground
+# Start Streamlit frontend in the foreground on port 7860
 echo "Starting Streamlit frontend..."
-streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
-python -m streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port $PORT
+streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 7860
