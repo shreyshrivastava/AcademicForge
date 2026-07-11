@@ -70,12 +70,10 @@ def model_for_research_plan(mode: str | None) -> str:
 async def startup_event():
     logger.info("Warming up models...")
     try:
-        from backend.llm import _load_transformers_model, _load_mlx_model
+        from backend.llm import _load_transformers_model
         config = get_app_config()
         if config.llm_provider == "transformers":
             _load_transformers_model(config.llm_model)
-        elif config.llm_provider == "mlx":
-            _load_mlx_model(config.llm_model)
             
         from backend.retrieval.dense import _load_sentence_transformer
         _load_sentence_transformer()
@@ -97,9 +95,6 @@ async def health_check():
         if config.llm_provider == "transformers":
             from backend.llm import _load_transformers_model
             models_ready = _load_transformers_model.cache_info().currsize > 0
-        elif config.llm_provider == "mlx":
-            from backend.llm import _load_mlx_model
-            models_ready = _load_mlx_model.cache_info().currsize > 0
         else:
             models_ready = True
     except Exception:
