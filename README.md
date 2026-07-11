@@ -1,3 +1,14 @@
+---
+title: AcademicForge
+emoji: 📑
+colorFrom: indigo
+colorTo: blue
+sdk: streamlit
+sdk_version: 1.31.0
+app_file: app.py
+pinned: false
+---
+
 # AcademicForge
 
 AcademicForge is a local-first, AI-powered research-to-implementation engine that translates academic papers into production-ready system architectures and engineering blueprints.
