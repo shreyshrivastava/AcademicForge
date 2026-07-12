@@ -15,17 +15,17 @@ class APIClient:
     """
     def __init__(self):
         # 1. Try OS environment variables
-        url = os.getenv("ACADEMICFORGE_BACKEND_URL") or os.getenv("VERCEL_API_URL")
+        url = os.getenv("ACADEMICFORGE_BACKEND_URL")
         
         # 2. Try Streamlit Secrets (Community Cloud)
         if not url:
             try:
-                url = st.secrets.get("ACADEMICFORGE_BACKEND_URL") or st.secrets.get("VERCEL_API_URL")
+                url = st.secrets.get("ACADEMICFORGE_BACKEND_URL")
             except Exception:
                 pass
                 
-        # 3. Fallback to the live Vercel Proxy instead of localhost
-        self.base_url = url if url else "https://academic-forge-icme.vercel.app"
+        # 3. Fallback to localhost
+        self.base_url = url if url else "http://localhost:8000"
         
         self.timeout_health = 5
         self.timeout_generation = 240

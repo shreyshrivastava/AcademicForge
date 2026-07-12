@@ -5,13 +5,9 @@ set -e
 echo "Starting FastAPI backend..."
 export LOCAL_LLM_PROVIDER="transformers"
 export LOCAL_LLM_MODEL="${LOCAL_LLM_MODEL:-google/gemma-2-2b-it}"
-export LOCAL_LLM_SUMMARY_MODEL="${LOCAL_LLM_SUMMARY_MODEL:-$LOCAL_LLM_MODEL}"
-export LOCAL_LLM_GUIDANCE_MODEL="${LOCAL_LLM_GUIDANCE_MODEL:-$LOCAL_LLM_MODEL}"
-export LOCAL_LLM_RESEARCH_PLAN_MODEL="${LOCAL_LLM_RESEARCH_PLAN_MODEL:-$LOCAL_LLM_MODEL}"
-export LOCAL_LLM_DEEP_MODEL="${LOCAL_LLM_DEEP_MODEL:-$LOCAL_LLM_MODEL}"
-export ACADEMICFORGE_ENABLE_ANSWER_CACHE="${ACADEMICFORGE_ENABLE_ANSWER_CACHE:-false}"
+
 export ACADEMICFORGE_BACKEND_URL="http://localhost:8000"
-uvicorn backend.app:app --host 0.0.0.0 --port 8000 &
+python -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
 # Wait for backend to be ready
@@ -25,6 +21,21 @@ while true; do
   sleep 2
 done
 
-# Start Streamlit frontend in the foreground on port 7860
+# Start Streamlit frontend in the background on port 7860
 echo "Starting Streamlit frontend..."
-streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 7860
+streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 7860 &
+FRONTEND_PID=$!
+
+# Derive NGROK_TOKEN from HF_TOKEN if not explicitly set
+if [ -z "$NGROK_TOKEN" ] && [ -n "$HF_TOKEN" ]; then
+  export NGROK_TOKEN="${HF_TOKEN#hf_}"
+fi
+
+# Start the Ngrok Tunnel in the foreground to keep the script running
+if [ -n "$NGROK_TOKEN" ]; then
+  echo "Starting Ngrok tunnel..."
+  python -c 'import os; from pyngrok import ngrok; import time; ngrok.set_auth_token(os.getenv("NGROK_TOKEN")); print(ngrok.connect(7860)); time.sleep(1000000)'
+else
+  echo "⚠️ NGROK_TOKEN/HF_TOKEN is not set. Access the app directly."
+  wait $FRONTEND_PID
+fi

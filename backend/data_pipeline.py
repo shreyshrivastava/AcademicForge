@@ -504,33 +504,6 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
     return selected
 
 
-def debug_retrieval(query: str) -> dict:
-    """Return a structured retrieval trace for diagnostics and tests."""
-    original_query = query.strip()
-    search_query = rewrite_search_query(original_query)
-    candidates, direct_id = search_live_candidates(search_query)
-    relevant = filter_relevant_papers(original_query, candidates)
-    bm25_results = bm25_search(original_query, relevant, top_k=10)
-    dense_results = dense_search(original_query, relevant, top_k=10)
-    ranked = rank_papers(original_query, relevant) if relevant else []
-    selected = select_evidence_set(ranked) if len(relevant) >= MIN_RELEVANT_PAPERS else []
-    trace = {
-        "original_query": original_query,
-        "rewritten_query": search_query,
-        "source_query": search_query,
-        "direct_id": direct_id,
-        "query_domain": infer_query_domain(original_query),
-        "external_results": [_paper_debug_row(paper) for paper in candidates[:10]],
-        "relevant_results": [_paper_debug_row(paper) for paper in relevant[:10]],
-        "bm25_results": [_result_debug_row(result) for result in bm25_results],
-        "dense_results": [_result_debug_row(result) for result in dense_results],
-        "final_selected": [_paper_debug_row(paper) for paper in selected],
-        "message": not_enough_relevant_message() if len(relevant) < MIN_RELEVANT_PAPERS else "",
-    }
-    logger.info("Retrieval debug trace query=%r trace=%s", original_query, trace)
-    return trace
-
-
 def _contains_any(text: str, terms: list[str]) -> bool:
     return any(term in text for term in terms)
 

@@ -1,6 +1,6 @@
 import logging
 from backend.config import get_config
-from backend.llm import generate_text, model_name
+from backend.llm import generate_text
 logger = logging.getLogger(__name__)
 
 

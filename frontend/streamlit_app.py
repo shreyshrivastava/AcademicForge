@@ -24,16 +24,7 @@ MODE_OPTIONS = {
         "purpose": "Detailed analysis, prototype guidance.",
     },
 }
-CATEGORY_OPTIONS = [
-    "Balanced",
-    "Foundational",
-    "Survey",
-    "Recent",
-    "Implementation Focused",
-    "Evaluation Focused",
-    "Alternative Approach",
-    "Contrarian View",
-]
+
 RESEARCH_LENS_OPTIONS = [
     "Balanced",
     "Foundational",
@@ -1122,7 +1113,7 @@ st.markdown(
 with st.sidebar:
     st.header("Backend Config")
     health = api_client.health_check()
-    st.write(f"**Mode:** VERCEL PROXY")
+    st.write(f"**Mode:** DIRECT API")
     if health.get("status") == "ok":
         st.success("Backend: Online")
         st.write(f"**Provider:** {health.get('provider')}")

@@ -199,7 +199,21 @@ AcademicForge has been packaged as a fully compliant Docker container for the AM
 2. **Dynamic Streaming**: The PyTorch/ROCm backend processes requests incredibly fast (sub-30 seconds rule).
 3. **Cache Disabled**: Disk caching is globally disabled in the backend for automated scoring to prove generation occurs live.
 
-For instructions on building the Docker image or running the system locally via a Jupyter Notebook, please see the **[RUN_INSTRUCTIONS.md](RUN_INSTRUCTIONS.md)** file.
+For detailed instructions on running the system natively on an AMD Notebook VM, please see **[docs/setup_amd_rocm.md](docs/setup_amd_rocm.md)**.
+
+### Quick Start (AMD Notebook VM Terminal)
+1. Open a terminal in your VM and navigate to the project directory.
+2. Activate the environment: `source venv/bin/activate`
+3. Export your API keys:
+   ```bash
+   export HF_TOKEN="your_hf_token"
+   export FIREWORKS_API_KEY="your_fireworks_key" # Optional for Deep Mode
+   ```
+4. Run the startup script (this will start FastAPI, Streamlit, and Ngrok):
+   ```bash
+   ./start.sh
+   ```
+5. Check your terminal output for the Ngrok URL to access the Streamlit app.
 
 ---
 

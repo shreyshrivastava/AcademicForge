@@ -13,7 +13,6 @@ from backend.research_plan_generator import generate_research_plan as generate_a
 from backend.research_plan_generator import stream_research_plan as stream_ai_research_plan
 from backend.guidance_generator import generate_paper_guidance as generate_ai_paper_guidance
 from backend.summarizer import summarize_paper as summarize_paper_with_ai
-from backend.summarizer import summarize_paper as summarize_paper_with_ai
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
@@ -102,7 +101,6 @@ async def health_check():
 
     return {
         "status": "ok" if models_ready else "warming_up",
-        "backend": os.getenv("BACKEND_MODE", "unknown"),
         "provider": provider_name(),
         "model": config.llm_model,
         "models_ready": models_ready

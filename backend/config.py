@@ -37,7 +37,6 @@ class AppConfig:
     llm_research_plan_model: str
     llm_max_tokens: int
     llm_temperature: float
-    llm_load_in_4bit: bool
 
     @classmethod
     def from_env(cls) -> "AppConfig":
@@ -64,9 +63,6 @@ class AppConfig:
             default_deep = os.getenv("LOCAL_LLM_DEEP_MODEL", fast_model)
             
         deep_model = default_deep
-
-        load_in_4bit = os.getenv("LOCAL_LLM_LOAD_IN_4BIT", "false").lower() == "true"
-
         return cls(
             llm_provider=provider,
             llm_model=fast_model,
@@ -77,7 +73,6 @@ class AppConfig:
             llm_research_plan_model=os.getenv("LOCAL_LLM_RESEARCH_PLAN_MODEL", deep_model),
             llm_max_tokens=LLM_MAX_TOKENS,
             llm_temperature=LLM_TEMPERATURE,
-            llm_load_in_4bit=load_in_4bit,
         )
 
     def model_for_task_and_mode(self, task: str | None = None, mode: str | None = None) -> str:
@@ -90,8 +85,6 @@ class AppConfig:
             return self.llm_research_plan_model if is_deep else self.llm_model
         return self.llm_research_plan_model if is_deep else self.llm_model
 
-    def model_for_task(self, task: str | None = None) -> str:
-        return self.model_for_task_and_mode(task, "fast")
 
     def as_public_dict(self) -> dict:
         return {
@@ -106,7 +99,6 @@ class AppConfig:
             },
             "llm_max_tokens": self.llm_max_tokens,
             "llm_temperature": self.llm_temperature,
-            "llm_load_in_4bit": self.llm_load_in_4bit,
         }
 
 

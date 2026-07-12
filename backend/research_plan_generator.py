@@ -1,6 +1,6 @@
 import logging
 
-from backend.llm import generate_text, generate_text_stream, model_name
+from backend.llm import generate_text, generate_text_stream
 
 
 logger = logging.getLogger(__name__)
