@@ -162,7 +162,15 @@ class APIClient:
                 payload.get("query", ""),
                 normalize_research_categories(payload.get("categories", [])),
             )
-            return {"papers": papers, "message": not_enough_relevant_message() if not papers else ""}
+            fallback_used = any(
+                paper.get("metadata", {}).get("demo_relevance_fallback")
+                for paper in papers
+            )
+            if fallback_used:
+                message = "Showing the closest live research matches found for this query."
+            else:
+                message = not_enough_relevant_message() if not papers else ""
+            return {"papers": papers, "message": message}
 
         if path == "/summarize":
             from backend.summarizer import summarize_paper

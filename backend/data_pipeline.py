@@ -1,5 +1,6 @@
 from urllib.parse import quote_plus, urlparse
 from datetime import date
+from xml.etree import ElementTree
 import logging
 import re
 
@@ -146,7 +147,79 @@ def search_arxiv_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COU
             logger.warning("Skipping malformed arXiv result query=%r error=%s", query, exc)
 
     logger.info("arXiv candidates fetched direct_id=%s count=%d", bool(arxiv_id), len(papers))
+    if not papers and not arxiv_id:
+        papers = search_arxiv_http_candidates(query, max_results=max_results)
+        logger.info("arXiv HTTP fallback candidates fetched count=%d", len(papers))
     return papers, bool(arxiv_id)
+
+
+def search_arxiv_http_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COUNT) -> list[dict]:
+    params = {
+        "search_query": f"all:{query}",
+        "sortBy": "relevance",
+        "sortOrder": "descending",
+        "start": "0",
+        "max_results": str(max_results),
+    }
+    try:
+        response = requests.get(
+            "https://export.arxiv.org/api/query",
+            params=params,
+            timeout=15,
+            headers={"User-Agent": "AcademicForge Streamlit Cloud Demo"},
+        )
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        logger.warning("arXiv HTTP fallback failed query=%r error=%s", query, exc)
+        return []
+
+    try:
+        root = ElementTree.fromstring(response.text)
+    except ElementTree.ParseError as exc:
+        logger.warning("arXiv HTTP fallback returned invalid XML query=%r error=%s", query, exc)
+        return []
+
+    ns = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
+    papers = []
+    for entry in root.findall("atom:entry", ns):
+        title = " ".join((entry.findtext("atom:title", default="", namespaces=ns) or "").split())
+        abstract = " ".join((entry.findtext("atom:summary", default="", namespaces=ns) or "").split())
+        if not title or not abstract:
+            continue
+        entry_id = entry.findtext("atom:id", default="", namespaces=ns) or ""
+        authors = [
+            author.findtext("atom:name", default="", namespaces=ns)
+            for author in entry.findall("atom:author", ns)
+        ]
+        categories = [
+            category.attrib.get("term", "")
+            for category in entry.findall("atom:category", ns)
+            if category.attrib.get("term")
+        ]
+        pdf_url = ""
+        for link in entry.findall("atom:link", ns):
+            if link.attrib.get("title") == "pdf" or link.attrib.get("type") == "application/pdf":
+                pdf_url = link.attrib.get("href", "")
+                break
+        papers.append(
+            {
+                "paper_id": entry_id,
+                "title": title,
+                "authors": [author for author in authors if author],
+                "abstract": abstract,
+                "source": "arxiv",
+                "url": pdf_url or entry_id,
+                "link": pdf_url or entry_id,
+                "published": (entry.findtext("atom:published", default="", namespaces=ns) or "")[:10],
+                "date": (entry.findtext("atom:published", default="", namespaces=ns) or "")[:10],
+                "metadata": {
+                    "categories": categories,
+                    "primary_category": categories[0] if categories else "",
+                    "source_client": "arxiv_http_fallback",
+                },
+            }
+        )
+    return papers
 
 
 def search_semantic_scholar_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COUNT) -> list[dict]:
@@ -502,7 +575,16 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
             original_query,
             len(papers),
         )
-        return []
+        fallback_pool = papers or candidates
+        if not fallback_pool:
+            return []
+        ranked_fallback = rank_papers(query, fallback_pool)
+        selected = select_evidence_set(ranked_fallback, preferred_categories=preferred_categories)
+        for paper in selected:
+            paper["metadata"] = dict(paper.get("metadata", {}))
+            paper["metadata"]["demo_relevance_fallback"] = True
+        _log_final_selection(original_query, selected)
+        return selected
     ranked = rank_papers(query, papers)
     selected = select_evidence_set(ranked, preferred_categories=preferred_categories)
     _log_final_selection(original_query, selected)
