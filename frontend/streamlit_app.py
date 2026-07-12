@@ -877,7 +877,17 @@ def render_status_banner(config, generation_mode):
         )
         return
 
+    if config.get("streamlit_cloud_demo") and generation_mode == "deep":
+        st.warning(
+            "Deep Mode is visible for the full AcademicForge workflow, but it is disabled in this Streamlit Cloud demo. "
+            "Fireworks AI / DeepSeek is only available in the AMD GPU deployment branch. Switch to Fast Mode to run the public demo."
+        )
+
     return
+
+
+def deep_mode_disabled(config, generation_mode):
+    return bool(config and config.get("streamlit_cloud_demo") and generation_mode == "deep")
 
 
 def render_results_table(papers):
@@ -965,6 +975,7 @@ def render_paper_cards(
     selectable=False,
     scope="results",
     generation_mode="fast",
+    disable_generation=False,
 ):
     summaries = summaries or []
     selected_set = set(st.session_state.selected_labels)
@@ -1039,8 +1050,16 @@ def render_paper_cards(
                     selected_set.discard(label)
             if url:
                 open_col.link_button("Open", url)
-            summary_clicked = summary_col.button("Summary", key=f"paper-summary-button-{scope}-{cache_id}")
-            guidance_clicked = guidance_col.button("Guidance", key=f"paper-guidance-button-{scope}-{cache_id}")
+            summary_clicked = summary_col.button(
+                "Summary",
+                key=f"paper-summary-button-{scope}-{cache_id}",
+                disabled=disable_generation,
+            )
+            guidance_clicked = guidance_col.button(
+                "Guidance",
+                key=f"paper-guidance-button-{scope}-{cache_id}",
+                disabled=disable_generation,
+            )
 
             panel_placeholder = st.empty()
             if summary_clicked and not inline_summary:
@@ -1214,6 +1233,7 @@ with st.container(border=True, key="search_shell"):
 focus_categories = applied_focus_categories(research_lens)
 
 active_mode = mode_config(config, st.session_state.generation_mode)
+generation_disabled = deep_mode_disabled(config, st.session_state.generation_mode)
 
 render_selection_guidance(0, len(focus_categories), st.session_state.generation_mode)
 
@@ -1282,6 +1302,7 @@ if papers:
         selectable=True,
         scope="results",
         generation_mode=st.session_state.generation_mode,
+        disable_generation=generation_disabled,
     )
 
     selected_labels = [label for label in st.session_state.selected_labels if label in labels]
@@ -1346,9 +1367,15 @@ if papers:
         )
         should_generate = control_cols[1].button(
             "Generate Research Plan",
-            disabled=not selected_papers,
+            disabled=not selected_papers or generation_disabled,
             type="primary",
             width="stretch",
+        )
+
+    if generation_disabled:
+        st.info(
+            "This public Streamlit Cloud demo does not call Fireworks AI / DeepSeek. "
+            "Switch to Fast Mode to generate summaries, guidance, and Research Plans here."
         )
 
     if should_generate:

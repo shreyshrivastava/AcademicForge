@@ -1,5 +1,18 @@
 # AcademicForge
 
+## Streamlit Cloud demo branch
+
+This branch is prepared for a lightweight public Streamlit Cloud demo. It keeps the same AcademicForge workflow and UI, runs live paper retrieval inside the Streamlit process, and uses a lightweight evidence-grounded demo generator instead of loading GPU-scale local models.
+
+Deep Mode remains visible in the interface so viewers can understand the full product workflow, but Fireworks AI / DeepSeek is intentionally disabled on Streamlit Cloud. The app shows a demo notice when Deep Mode is selected. Use the AMD GPU branch for the full local Gemma + optional Fireworks/DeepSeek deployment.
+
+Streamlit Cloud settings:
+
+- Repository: `shreyshrivastava/AcademicForge`
+- Branch: `streamlit-cloud-demo`
+- Main file path: `frontend/streamlit_app.py`
+- Python dependencies: `requirements.txt`
+
 AcademicForge is a local-first, AI-powered research-to-implementation engine that translates academic papers into production-ready system architectures and engineering blueprints.
 
 Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicForge acts as an explainable, self-hosted research copilot. It combines hybrid document retrieval, Reciprocal Rank Fusion (RRF), local vector embeddings, and streamed local LLM inference to compile multiple research papers into structured **Research Plans** and **Builder Guidance**.

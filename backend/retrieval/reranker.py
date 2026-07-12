@@ -1,4 +1,3 @@
-from sentence_transformers import CrossEncoder
 from backend.retrieval.models import RetrievalResult
 
 # Lazy-loaded global cross-encoder instance
@@ -8,6 +7,8 @@ _MODEL = None
 def get_reranker_model():
     global _MODEL
     if _MODEL is None:
+        from sentence_transformers import CrossEncoder
+
         _MODEL = CrossEncoder("BAAI/bge-reranker-base")
     return _MODEL
 

@@ -50,7 +50,7 @@ def provider_name():
 
 
 def model_name(task=None):
-    return get_config().model_for_task(task)
+    return get_config().model_for_task_and_mode(task, None)
 
 
 def task_model_config():
@@ -140,6 +140,10 @@ class LLMService:
     def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
         effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
+        if effective_provider == "demo":
+            return _clean_response(
+                _generate_demo_response(system_prompt, user_prompt, token_budget, task, selected_model)
+            )
         if effective_provider == "transformers":
             return _clean_response(
                 _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
@@ -149,12 +153,15 @@ class LLMService:
                 _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model)
             )
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers' or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'demo', 'transformers', or 'fireworks'."
         )
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
         effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
+        if effective_provider == "demo":
+            yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
+            return
         if effective_provider == "transformers":
             yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
             return
@@ -162,7 +169,7 @@ class LLMService:
             yield from _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model)
             return
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers' or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'demo', 'transformers', or 'fireworks'."
         )
 
 
@@ -244,6 +251,126 @@ def _clean_response(text):
     if fence_match:
         text = fence_match.group(1)
     return text.strip()
+
+
+def _first_sentences(text, count=3):
+    sentences = re.split(r"(?<=[.!?])\s+", " ".join((text or "").split()))
+    clean = [sentence.strip() for sentence in sentences if sentence.strip()]
+    return " ".join(clean[:count])
+
+
+def _extract_prompt_field(prompt, field):
+    pattern = (
+        rf"{re.escape(field)}:\s*(.*?)"
+        r"(?:\n(?:AUTHORS|ABSTRACT|TITLE|USER GOAL|Paper title|Authors|Date|Source|URL|Categories|Abstract|Requirements|Evidence category|Retrieved text|Prior extracted notes|Limitations or verification needs):|\n\n[A-Z][A-Za-z ]+ \[\d+\]|\Z)"
+    )
+    match = re.search(pattern, prompt, flags=re.DOTALL)
+    return match.group(1).strip() if match else ""
+
+
+def _extract_evidence(prompt):
+    blocks = re.split(r"\n(?=\[Evidence \d+\])", prompt)
+    evidence = []
+    for block in blocks:
+        if not block.strip().startswith("[Evidence"):
+            continue
+        title_match = re.search(r"\[Evidence (\d+)\]\s*(.*)", block)
+        abstract_match = re.search(r"(?:Retrieved text|Abstract):\s*(.*?)(?:\nPrior extracted notes:|\nLimitations or verification needs:|\nRequirements:|\Z)", block, flags=re.DOTALL)
+        category_match = re.search(r"Evidence category:\s*(.*)", block)
+        evidence.append(
+            {
+                "index": title_match.group(1) if title_match else str(len(evidence) + 1),
+                "title": (title_match.group(2) if title_match else "Selected paper").strip(),
+                "abstract": (abstract_match.group(1) if abstract_match else "").strip(),
+                "category": (category_match.group(1) if category_match else "Research").strip(),
+            }
+        )
+    return evidence
+
+
+def _generate_demo_response(system_prompt, user_prompt, token_budget, task, selected_model):
+    title = _extract_prompt_field(user_prompt, "TITLE") or _extract_prompt_field(user_prompt, "Paper title")
+    abstract = _extract_prompt_field(user_prompt, "ABSTRACT") or _extract_prompt_field(user_prompt, "Abstract")
+
+    if task == "summary":
+        core = _first_sentences(abstract, 3) or "This paper was retrieved as relevant evidence for the research question."
+        return f"{core} In this Streamlit Cloud demo, AcademicForge keeps the summary grounded in the retrieved title and abstract."
+
+    if task == "guidance":
+        title_text = title or "this paper"
+        core = _first_sentences(abstract, 2) or "It provides evidence that can inform the project direction."
+        return (
+            f"Use {title_text} when you need evidence for the selected research direction. {core}\n\n"
+            "In a project, treat the paper as a source for requirements, evaluation criteria, and architecture constraints before writing implementation code.\n\n"
+            "Watch for missing experimental details, dataset assumptions, and domain limits; verify those points in the full paper before making final design decisions."
+        )
+
+    evidence = _extract_evidence(user_prompt)
+    query = _extract_prompt_field(user_prompt, "USER GOAL") or "the selected research question"
+    if not evidence:
+        return (
+            "# Research Plan\n\n"
+            "# Research Focus\n\n"
+            "AcademicForge could not find enough structured evidence in the selected papers to build a grounded plan.\n\n"
+            "# Key Findings\n\n"
+            "- Select papers first so the plan can cite retrieved evidence.\n\n"
+            "# Research Gaps\n\n"
+            "- More paper context is needed before recommending an implementation.\n\n"
+            "# Recommended Build\n\n"
+            "Recommended Architecture:\nUse the selected papers as the evidence base before choosing architecture.\n\n"
+            "Core Components:\nRetrieval layer, evidence selector, synthesis layer, and evaluation checklist.\n\n"
+            "Deployment Considerations:\nKeep the demo lightweight on Streamlit Cloud and run larger models on AMD GPU infrastructure.\n\n"
+            "Evaluation Strategy:\nValidate generated plans against the selected papers.\n\n"
+            "# Builder Guidance\n\n"
+            "Start by selecting 2-4 relevant papers and generating a plan from those grounded inputs."
+        )
+
+    citations = ", ".join(f"[{paper['index']}]" for paper in evidence[:4])
+    titles = "; ".join(paper["title"] for paper in evidence[:3])
+    categories = sorted({paper["category"] for paper in evidence if paper["category"]})
+    category_text = ", ".join(categories[:4]) if categories else "mixed research evidence"
+    findings = []
+    for paper in evidence[:5]:
+        finding = _first_sentences(paper["abstract"], 1) or f"{paper['title']} contributes evidence for the plan."
+        findings.append(f"- {finding} [{paper['index']}]")
+
+    return f"""# Research Plan
+
+# Research Focus
+
+For the question "{query}", the selected papers point toward a build plan grounded in {category_text}. The strongest direction is to convert the retrieved methods and evaluation ideas into a small, testable prototype rather than a broad literature summary. Key papers include {titles}.
+
+# Key Findings
+
+{chr(10).join(findings)}
+
+# Research Gaps
+
+- The selected evidence may not cover deployment constraints, so those should be validated separately.
+- Benchmarks and datasets should be taken from the full papers before finalizing claims.
+- The demo plan is generated without DeepSeek/Fireworks, so deeper reasoning should be rerun on the full AMD version for submission.
+
+# Recommended Build
+
+Recommended Architecture:
+Build a retrieval-first assistant that searches live academic sources, ranks candidate papers, lets the user select evidence, and then generates one grounded Research Plan from those selected papers.
+
+Core Components:
+1. Live paper retrieval layer for arXiv and Semantic Scholar.
+2. Hybrid ranking layer using lexical, semantic, and reranking signals.
+3. Research Lens selector to bias the evidence set toward foundations, implementation, evaluation, alternatives, or contrarian work.
+4. Paper card workspace for selection, summary, and guidance.
+5. Research Plan generator that synthesizes selected papers into a single implementation blueprint.
+
+Deployment Considerations:
+Use this Streamlit Cloud branch for a lightweight public demo. Use the AMD GPU branch for local Gemma inference and optional Fireworks/DeepSeek analysis.
+
+Evaluation Strategy:
+Check whether every recommendation can be traced back to selected papers {citations}, then test the generated plan against a small prototype or benchmark.
+
+# Builder Guidance
+
+Start with the highest-relevance 2-4 papers, generate summaries only for the ones you intend to use, and then create the Research Plan. Treat the output as a technical brief: verify claims in the full papers, convert the core components into tasks, and run the deeper AMD/Fireworks version when you need final-quality reasoning."""
 
 
 

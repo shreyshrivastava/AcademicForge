@@ -6,12 +6,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_PROVIDER = "transformers"
-DEFAULT_TRANSFORMERS_MODEL = "google/gemma-2-2b-it"
+DEFAULT_PROVIDER = "demo"
+DEFAULT_TRANSFORMERS_MODEL = "demo-local-research-planner"
 DEFAULT_MAX_TOKENS = 2500
 DEFAULT_TEMPERATURE = 0.2
 
 PROVIDER_ALIASES = {
+    "demo": "demo",
     "torch": "transformers",
     "transformer": "transformers",
     "transformers": "transformers",
@@ -44,12 +45,14 @@ class AppConfig:
         provider = raw_provider.strip().lower()
         provider = PROVIDER_ALIASES.get(provider, provider)
 
-        if provider not in ("transformers", "fireworks"):
-            logger.warning("Unsupported local LLM provider %r. Defaulting to 'transformers'.", provider)
-            provider = "transformers"
+        if provider not in ("demo", "transformers", "fireworks"):
+            logger.warning("Unsupported local LLM provider %r. Defaulting to 'demo'.", provider)
+            provider = "demo"
 
         if provider == "fireworks":
             default_model = os.getenv("FIREWORKS_MODEL", "accounts/fireworks/models/deepseek-v4-pro")
+        elif provider == "demo":
+            default_model = DEFAULT_TRANSFORMERS_MODEL
         else:
             default_model = DEFAULT_TRANSFORMERS_MODEL
 
