@@ -23,9 +23,8 @@ done
 
 # Start Streamlit frontend in the background on port 7860
 echo "Starting Streamlit frontend..."
-# Unset SPACE_ID to prevent Streamlit from routing to /spaces/ subpath
-unset SPACE_ID
-streamlit run frontend/streamlit_app.py --server.baseUrlPath="" --server.address 0.0.0.0 --server.port 7860 &
+# Run Streamlit on default port 8501 to bypass the VM's built-in 7860 proxy
+streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 8501 &
 FRONTEND_PID=$!
 
 # Derive NGROK_TOKEN from HF_TOKEN if not explicitly set
@@ -36,7 +35,7 @@ fi
 # Start the Ngrok Tunnel in the foreground to keep the script running
 if [ -n "$NGROK_TOKEN" ]; then
   echo "Starting Ngrok tunnel..."
-  python -c 'import os; from pyngrok import ngrok; import time; ngrok.set_auth_token(os.getenv("NGROK_TOKEN")); print(ngrok.connect(7860)); time.sleep(1000000)'
+  python -c 'import os; from pyngrok import ngrok; import time; ngrok.set_auth_token(os.getenv("NGROK_TOKEN")); print(ngrok.connect(8501)); time.sleep(1000000)'
 else
   echo "⚠️ NGROK_TOKEN/HF_TOKEN is not set. Access the app directly."
   wait $FRONTEND_PID
