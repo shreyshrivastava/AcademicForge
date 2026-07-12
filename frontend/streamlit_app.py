@@ -14,7 +14,7 @@ from frontend.api_client import APIClient
 api_client = APIClient()
 MODE_OPTIONS = {
     "fast": {
-        "label": "Fast Mode (Local MLX/Rocm)",
+        "label": "Fast Mode (Local ROCm)",
         "short": "Fast",
         "purpose": "Quick insights, shorter responses.",
     },

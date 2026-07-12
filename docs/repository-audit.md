@@ -6,8 +6,8 @@ This audit summarizes the repository state after the hackathon-readiness pass.
 
 - Clear FastAPI backend and Streamlit frontend separation.
 - Modular retrieval layer under `backend/retrieval/`.
-- Local-first LLM wrapper with MLX as the default provider.
-- Summary and Research Plan generation are cached locally.
+- AMD-oriented LLM wrapper using Transformers as the default provider.
+- Live generation path without precomputed answer caches.
 - Research Plan generation streams output to improve perceived latency.
 - Tests cover retrieval, cache, model routing, generation pipeline, and API contracts.
 
@@ -61,7 +61,8 @@ reciprocal-rank-fusion
 arxiv
 fastapi
 streamlit
-mlx
+rocm
+amd-gpu
 local-llm
 hackathon
 ```

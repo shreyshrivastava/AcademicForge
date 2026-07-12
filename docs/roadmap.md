@@ -8,11 +8,11 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 - BM25 keyword retrieval
 - dense semantic retrieval
 - reciprocal rank fusion
-- optional reranker placeholder
+- cross-encoder reranking
 - paper selection UI
-- local MLX summarization
-- streamed local MLX Research Plan generation
-- persistent summary and Research Plan cache
+- local Transformers summarization on the AMD/ROCm path
+- streamed Research Plan generation
+- arXiv and Semantic Scholar source search
 
 - lightweight tests for retrieval, generation, cache, and API contracts
 
@@ -40,12 +40,10 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 - Add collaborative research boards.
 - Add code-generation mode using a task-specific coder model.
 - Add evaluation harness for search relevance and Research Plan quality.
-- Evaluate future CUDA and ROCm inference backends when the MLX path is stable.
+- Improve AMD/ROCm deployment automation and hosted demo reliability.
 
 ## Known Limitations
 
-- arXiv is the only paper source today.
+- Research Plans are generated from abstracts and metadata, not full PDFs.
 - Retrieval is in-memory and optimized for MVP candidate sets.
-- Reranker is not active yet.
 - Local generation speed depends on hardware and selected model.
-- Research Plans are generated from abstracts and summaries, not full PDFs.

@@ -1,6 +1,6 @@
 # Streamlit API Switch Architecture
 
-This branch introduces an isolated proof-of-concept for dynamic backend routing in the Streamlit frontend. It enables swapping out the inference API target (Mac Local, AMD Notebook, or Fireworks API) using environment variables.
+This document describes dynamic backend routing in the Streamlit frontend. The AMD notebook branch focuses on routing the UI to an AMD/ROCm FastAPI backend, with Fireworks as an optional cloud path.
 
 ## Architecture Diagram
 
@@ -8,22 +8,19 @@ This branch introduces an isolated proof-of-concept for dynamic backend routing 
 flowchart TD
     UI[Streamlit Frontend] --> AC[API Client\nfrontend/api_client.py]
     
-    AC -->|BACKEND_MODE=mac| B_MAC[Mac FastAPI]
     AC -->|BACKEND_MODE=amd| B_AMD[AMD Notebook FastAPI]
-    AC -->|BACKEND_MODE=fireworks| B_FW[Future Fireworks Backend]
+    AC -->|BACKEND_MODE=fireworks| B_FW[Optional Fireworks Backend]
     
-    B_MAC --> MLX[MLX Local\ngemma-4-2b-it]
-    B_AMD --> ROCM[ROCm / Transformers\ngemma-4-2b-it]
-    B_FW --> FW_API[Fireworks API\nFireworks Gemma 4 E4B]
+    B_AMD --> ROCM[ROCm / Transformers\ngoogle/gemma-2-2b-it]
+    B_FW --> FW_API[Fireworks API\nDeepSeek when enabled]
 ```
 
 ## How to Switch Backends
 
 You can control where the frontend sends its API requests via environment variables:
 
-1. **BACKEND_MODE**: Controls which route the `APIClient` selects. Valid options are `mac`, `amd`, and `fireworks`.
+1. **BACKEND_MODE**: Controls which route the `APIClient` selects. Valid options are `amd` and `fireworks`.
 2. **URL Overrides**: Provide explicit URLs for the targets.
-   - `MAC_API_URL` (default: `http://localhost:8000`)
    - `AMD_API_URL` (default: `http://localhost:8000`)
    - `FIREWORKS_API_URL` (default: `https://api.fireworks.ai`)
 

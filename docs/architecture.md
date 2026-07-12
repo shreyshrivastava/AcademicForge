@@ -1,38 +1,45 @@
 # Architecture
 
-AcademicForge is intentionally small: a FastAPI backend, a Streamlit frontend, in-memory retrieval, local LLM generation, and local disk caching.
+AcademicForge is an AMD notebook-oriented research-to-plan system. It uses a
+Streamlit frontend, a FastAPI backend, live academic retrieval, hybrid ranking,
+and Transformers-based local inference for ROCm-compatible AMD GPU deployment.
 
 ## High-Level Flow
 
 ```text
 Streamlit UI
   -> FastAPI backend
-  -> arXiv search
+  -> live source search
+       -> arXiv
+       -> Semantic Scholar
+  -> candidate paper pool
   -> retrieval layer
-       -> BM25 keyword search
-       -> dense semantic search
+       -> BM25 lexical ranking
+       -> dense semantic ranking
        -> reciprocal rank fusion
-       -> reranker placeholder
-  -> selected papers
-  -> local MLX summarization
+       -> cross-encoder reranking
+  -> Research Lens selection
+  -> ranked paper cards
+       -> on-demand Summary
+       -> on-demand Guidance
+       -> selected papers
   -> compact Research Plan context
-  -> streamed local MLX Research Plan
-  -> local JSON cache
+  -> streamed Research Plan
 ```
 
 ## Backend
 
 `backend/app.py` exposes the main API:
 
-- `GET /config` - active model configurations
-- `POST /search` - arXiv collection plus hybrid retrieval
+- `GET /health` - backend and model readiness status
+- `GET /config` - active model configuration
+- `POST /search` - arXiv and Semantic Scholar collection plus hybrid retrieval
 - `POST /summarize` - paper summary generation
+- `POST /paper-guidance` - single-paper practical guidance
 - `POST /research-plan` - non-streaming Research Plan generation
 - `POST /research-plan/stream` - streaming Research Plan generation
-- `POST /research-plan/cache-status` - cache status for selected Research Plan inputs
-- `POST /paper-guidance` - single-paper practical guidance
-
-The older `/roadmap/*` routes remain as compatibility aliases during the product rename.
+- `POST /research-plan/cache-status` - cache compatibility endpoint
+- `POST /paper-guidance/cache-status` - cache compatibility endpoint
 
 ## Retrieval Layer
 
@@ -42,57 +49,42 @@ The retrieval layer lives in `backend/retrieval/`.
 - `dense.py` uses `BAAI/bge-small-en-v1.5` through `sentence-transformers` when available.
 - `rrf.py` combines ranked lists with reciprocal rank fusion.
 - `hybrid.py` runs BM25, dense search, and RRF together.
-- `reranker.py` is a placeholder for future cross-encoder reranking.
+- `reranker.py` applies `BAAI/bge-reranker-base` as the final cross-encoder ranking step.
 
-RRF is used because BM25 and dense search produce different score distributions. RRF combines rankings without requiring score normalization.
+RRF is used because BM25 and dense search produce different score
+distributions. It combines rankings without requiring score normalization.
 
-## Local LLM Layer
+## Model Layer
 
-`backend/llm.py` wraps local generation.
+`backend/llm.py` wraps generation behind two providers:
 
-Supported provider:
+- `transformers` - local PyTorch inference for AMD ROCm environments
+- `fireworks` - optional cloud model path for deeper synthesis
 
-- `mlx`
+Current default local model:
 
-Current default model (Fast Mode):
-- `mlx-community/Qwen3-4B-4bit`
+- `google/gemma-2-2b-it`
 
 Task-specific model routing:
 
 - `LOCAL_LLM_MODEL`
 - `LOCAL_LLM_SUMMARY_MODEL`
+- `LOCAL_LLM_GUIDANCE_MODEL`
 - `LOCAL_LLM_RESEARCH_PLAN_MODEL`
-
-This lets the project use communicator/instruct models for summaries and Research Plans while reserving coder models for future code-generation workflows.
-
-Provider notes:
-
-- `mlx` is intended for Apple Silicon and uses `mlx-lm`.
-- CUDA and ROCm are future migration targets, but they are not active runtime providers yet.
-
-## Caching
-
-`backend/cache.py` stores JSON cache entries under `.academicforge_cache/` by default.
-
-Cached items:
-
-- paper summaries
-- generated Research Plans
-
-The cache key includes the task, model, selected papers, summaries, and compact Research Plan context, so changing model or selected papers produces a new cache entry.
 
 ## Frontend
 
-`frontend/streamlit_app.py` provides a simple judge-friendly UI:
+`frontend/streamlit_app.py` provides the user workflow:
 
-- search box
-- Research Lens control
+- search box for questions or paper links
+- mutually exclusive Research Lens control
 - ranked paper cards with category chips
-- inline Summary and Guidance panels
-- summary generation
-- streamed Research Plan rendering
-- Markdown export
+- on-demand Summary and Guidance actions
+- selected-paper Research Plan generation
+- technical dashboard for retrieval and model details
 
-## Why This Architecture
+## Deployment
 
-The project avoids databases and hosted services for the hackathon MVP. Everything runs locally, is easy to explain, and can be tested with small scripts. The architecture keeps feature boundaries clear while leaving room for future sources, rerankers, and deployment paths.
+The AMD notebook path runs the FastAPI backend and Streamlit frontend locally on
+the VM, then exposes Streamlit through an Ngrok tunnel when the notebook
+provider blocks Streamlit WebSockets through its native reverse proxy.

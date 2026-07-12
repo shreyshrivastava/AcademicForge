@@ -14,9 +14,8 @@ def _patch_transformers_auto_factory():
 
     ``transformers.models.auto.auto_factory._LazyAutoMapping.register``
     calls ``key.__module__`` assuming *key* is always a class, but
-    ``mlx_lm`` passes a plain string config name which causes
-    ``AttributeError: 'str' object has no attribute '__module__'``.
-    We wrap the method so it handles string keys gracefully.
+    some model registries pass a plain string config name. We wrap the
+    method so it handles string keys gracefully.
     """
     try:
         from transformers.models.auto import auto_factory
@@ -131,9 +130,8 @@ def _chat_prompt(tokenizer, system_prompt, user_prompt):
 class LLMService:
     """Provider-aware LLM facade.
 
-    MLX is the supported default. ROCm/CUDA map to the Transformers backend so the
-    rest of the app can switch providers by environment variable when it runs in
-    an AMD/NVIDIA-capable environment.
+    The AMD notebook path uses the Transformers backend for ROCm-compatible
+    local inference, with Fireworks available as an optional cloud provider.
     """
 
     def __init__(self, provider=None):

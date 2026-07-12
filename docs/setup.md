@@ -11,8 +11,8 @@ Before setting up AcademicForge, ensure your environment meets the following req
 *   **Python:** Version `3.11` or higher.
 *   **Git:** Installed and configured.
 *   **Operating System Support:**
-    *   **macOS (Apple Silicon):** Native MLX hardware acceleration (`mlx-lm`) is supported out-of-the-box.
-    *   **Windows & Linux:** Run using the standard PyTorch (`transformers`) backend.
+    *   **Linux / AMD Notebook VM:** Run using the PyTorch (`transformers`) backend.
+    *   **Local CPU fallback:** Supported for light testing, but AMD GPU / ROCm is recommended.
 *   **Hardware Acceleration (GPU Support):**
     *   **AMD GPUs (ROCm):** Supported via PyTorch/Transformers inside a ROCm-configured container or environment.
     *   **CPU Fallback:** The app runs on standard CPUs if no GPU is detected (highly recommended to use smaller models in CPU-only setups).
@@ -79,7 +79,7 @@ Open the `.env` file and customize the variables as needed.
 
 | Variable | Purpose | Required? | Example Value | Default |
 | :--- | :--- | :---: | :--- | :--- |
-| `LOCAL_LLM_PROVIDER` | Defines the LLM inference engine backend. | No | `transformers` | `mlx` |
+| `LOCAL_LLM_PROVIDER` | Defines the LLM inference engine backend. | No | `transformers` | `transformers` |
 | `LOCAL_LLM_MAX_TOKENS` | Token budget limit for text generation. | No | `900` | `700` |
 | `LOCAL_LLM_TEMPERATURE` | Generation creativity temperature. | No | `0.2` | `0.2` |
 | `ACADEMICFORGE_CACHE_DIR` | Local folder where JSON caches are saved. | No | `.academicforge_cache` | `.academicforge_cache` |
@@ -92,12 +92,11 @@ Open the `.env` file and customize the variables as needed.
 ## 🤖 Choosing Models & Runtimes
 
 ### Inference Modes
-*   **Fast Mode:** Uses the smaller model `mlx-community/gemma-4-e2b-it-4bit` (2B parameters). Select this for quick search checks, fast summaries, and lower latency.
-*   **Deep Mode:** Uses the larger model `mlx-community/gemma-4-e2b-it-OptiQ-4bit` (31B parameters). Select this for detailed synthesis, system architectures, and tradeoff analysis.
+*   **Fast Mode:** Uses `google/gemma-2-2b-it` through Hugging Face Transformers. Select this for quick search checks, fast summaries, and lower latency.
+*   **Deep Mode:** Uses a configured Fireworks model such as DeepSeek when `FIREWORKS_API_KEY` is available. Select this for detailed synthesis, system architectures, and tradeoff analysis.
 
-### Local Runtimes
-*   **MLX Backend (`mlx`):** Native hardware-accelerated serving on macOS (Apple Silicon). Highly efficient memory consumption and fast token speeds.
-*   **Transformers Backend (`transformers`):** Uses Hugging Face PyTorch implementation. Offloads tasks automatically to GPUs (`device_map="auto"`) on **AMD ROCm** machines. It is the default runtime when running on Linux/Windows.
+### Local Runtime
+*   **Transformers Backend (`transformers`):** Uses Hugging Face PyTorch implementation. Offloads tasks automatically to GPUs (`device_map="auto"`) on **AMD ROCm** machines. It is the default runtime for this branch.
 
 ---
 
@@ -162,7 +161,7 @@ AcademicForge is configured to support rapid cloud deployment on Render via the 
 
 ### 3. Missing Models
 *   **Problem:** LLM generation fails with `LocalLLMError` or Hugging Face model loading errors.
-*   **Solution:** Ensure your machine has internet access during the first generation. The backend automatically downloads model weights from Hugging Face if they are not cached locally. If using MLX, ensure the model name matches a valid MLX community weight repository.
+*   **Solution:** Ensure your machine has internet access during the first generation or pre-download model weights with `scripts/download_weights.py`. Confirm that `LOCAL_LLM_MODEL` points to a valid Hugging Face Transformers model such as `google/gemma-2-2b-it`.
 
 ### 4. Package Installation Failures
 *   **Problem:** `pip install` fails on compiling numpy or PyTorch.

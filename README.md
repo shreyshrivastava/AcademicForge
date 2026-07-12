@@ -1,14 +1,3 @@
----
-title: AcademicForge
-emoji: 📑
-colorFrom: indigo
-colorTo: blue
-sdk: streamlit
-sdk_version: 1.31.0
-app_file: app.py
-pinned: false
----
-
 # AcademicForge
 
 AcademicForge is a local-first, AI-powered research-to-implementation engine that translates academic papers into production-ready system architectures and engineering blueprints.
@@ -26,7 +15,6 @@ Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicF
 *   **Inference Backends:** 
     *   `transformers` (Native AMD ROCm PyTorch backend for evaluation)
     *   `fireworks` (DeepSeek-v4-Pro cloud reasoning for deep analysis)
-    *   `mlx` (Native Apple Silicon acceleration via `mlx-lm` for local development)
 *   **Models:** `google/gemma-2-2b-it` (Fast Mode Containerized), `deepseek-v4-pro` (Deep Mode)
 
 ---
@@ -65,8 +53,8 @@ While ChatGPT is an excellent generalist search agent, AcademicForge offers sign
 | :--- | :--- | :--- |
 | **Explainable Retrieval** | Explicitly displays BM25 lexical rank, dense semantic rank, and Reciprocal Rank Fusion (RRF) scores in the UI. | Black box search selection with no rank transparency. |
 | **Strict Context Grounding** | Prompts are injected *only* with retrieved paper metadata and summary abstracts. No hallucinated citations. | Relies on web crawls and parametric memory, which frequently invent paper details. |
-| **Data Privacy & IP Control** | Can run 100% locally on your own hardware (AMD ROCm / Apple Silicon). No corporate code or unpublished ideas leave your machine. | Requires uploading proprietary concepts and queries to third-party OpenAI endpoints. |
-| **Local Cache Performance** | Multi-tiered disk and memory caching ensures repeat queries or identical evidence runs load instantly. | Re-runs search queries and synthesis scripts from scratch, costing time and API limits. |
+| **Data Privacy & IP Control** | Can run 100% locally on your own hardware (AMD ROCm). No corporate code or unpublished ideas leave your machine. | Requires uploading proprietary concepts and queries to third-party OpenAI endpoints. |
+| **Local Cache Performance** | Model and retrieval resources stay resident during runtime while generated answers remain live. | Re-runs search queries and synthesis scripts from scratch, costing time and API limits. |
 | **Targeted Engineering Output** | Structured specifically to output project names, component architectures, difficulty levels, and tradeoffs. | Outputs generic literature reviews or academic summaries. |
 
 ---
@@ -81,7 +69,6 @@ While ChatGPT is an excellent generalist search agent, AcademicForge offers sign
 *   **Structured Research Lenses:** Dynamic candidate weighting (Balanced, Foundational, Survey, Implementation Focused, Evaluation Focused, Alternative Approach, Contrarian View).
 *   **Task-Specific Model Routing:** Routes queries to distinct models for fast summarization vs. deep research plans.
 *   **Streamed Generation:** High-performance, incremental token streaming for real-time UI rendering.
-*   **Multi-Tiered Local Cache:** Persistent JSON cache stores summaries and research plans locally to eliminate LLM latency.
 *   **Explainable Ranks:** Cards display raw search scores and metadata chips directly.
 *   **Builder Guidance:** Single-click practical guidance generated for individual papers.
 
@@ -108,8 +95,6 @@ graph TD
     Ev --> Summary[Concise Paper Summaries]
     Ev --> Plan[Research Plan Generation]
     Ev --> Guidance[Single-Paper Builder Guidance]
-    Summary --> Cache[(Persistent Disk Cache)]
-    Plan --> Cache
 ```
 
 ---
@@ -139,7 +124,7 @@ AcademicForge routes generation requests to optimize quality and speed:
 
 | Model Role | Model | Inference Backend | Description |
 | :--- | :--- | :--- | :--- |
-| **Fast Mode (Default)** | `google/gemma-2-2b-it` | `transformers` (ROCm) / `mlx` | Ultra-fast local model used for query routing, paper summarization, and quick plans. Guarantees < 30s response time. |
+| **Fast Mode (Default)** | `google/gemma-2-2b-it` | `transformers` (ROCm) | Ultra-fast local model used for query routing, paper summarization, and quick plans. Guarantees < 30s response time. |
 | **Deep Mode** | `deepseek-v4-pro` | `fireworks` | Massive server-grade reasoning model used for comprehensive Research Plans, system design, and complex tradeoffs. |
 | **Cross-Encoder** | `BAAI/bge-reranker-base` | `transformers` (PyTorch) | Heavy cross-encoder for final retrieval reranking (deep cross-attention). |
 | **Dense Embeddings** | `BAAI/bge-small-en-v1.5` | `transformers` (PyTorch) | Computes 384-dimensional query and abstract dense vectors. |
@@ -158,15 +143,13 @@ AcademicForge routes between two fundamentally different classes of LLMs to bala
 
 The FastAPI server (`backend/app.py`) is structured to expose clean, stateless API contracts:
 
-*   `GET /config` - Serves current local configurations, models, and cache paths.
+*   `GET /config` - Serves current model configuration.
 *   `POST /search` - Ingests queries, calls arXiv/Semantic Scholar, merges and ranks candidates.
 *   `POST /summarize` - Runs the local LLM summarization pipeline for a selected paper.
 *   `POST /research-plan` - Generates a structured research plan synchronously.
 *   `POST /research-plan/stream` - High-performance streaming endpoint returning plan tokens chunk-by-chunk.
-*   `POST /research-plan/cache-status` - Checks if the requested query/evidence configuration is cached on disk.
+*   `POST /research-plan/cache-status` - Compatibility endpoint for UI cache checks.
 *   `POST /paper-guidance` - Exposes single-paper implementation guidance.
-
-*Note: For backwards compatibility, the legacy `/roadmap/*` routes remain active and redirect directly to the `/research-plan/*` and `/paper-guidance/*` endpoints.*
 
 ---
 
@@ -187,7 +170,6 @@ AcademicForge provides full compatibility with AMD GPU platforms through the PyT
 1.  **ROCm PyTorch Integration:** By setting `LOCAL_LLM_PROVIDER=transformers`, the app switches its inference engine to PyTorch. When run inside a ROCm-capable environment, the model automatically offloads weights to AMD GPUs via `device_map="auto"`.
 2.  **Model Loading Optimization:** Models are loaded using `torch_dtype="auto"` to automatically leverage FP16 or BF16 precision depending on the target AMD Instinct or Radeon GPU hardware.
 3.  **In-Memory Dense Search:** Sentence-Transformers runs natively on ROCm devices for ultra-fast vector embedding generation.
-4.  **Local-First MLX Mode:** On Apple Silicon development hardware, the app defaults to native MLX (`mlx-lm`) to allow fast local prototyping.
 
 ---
 
@@ -209,11 +191,11 @@ For detailed instructions on running the system natively on an AMD Notebook VM, 
    export HF_TOKEN="your_hf_token"
    export FIREWORKS_API_KEY="your_fireworks_key" # Optional for Deep Mode
    ```
-4. Run the startup script (this will start FastAPI, Streamlit, and Ngrok):
+4. Run the startup script (this starts FastAPI and Streamlit inside the notebook VM, then exposes Streamlit through Ngrok):
    ```bash
    ./start.sh
    ```
-5. Check your terminal output for the Ngrok URL to access the Streamlit app.
+5. Open the printed `https://...ngrok-free.app` URL. Do not open the VM's internal `localhost` Streamlit URL from your laptop.
 
 ---
 
@@ -250,7 +232,7 @@ cp .env.example .env
 
 | Variable | Default | Allowed Values | Description |
 | :--- | :--- | :--- | :--- |
-| `LOCAL_LLM_PROVIDER` | `mlx` | `mlx`, `transformers` | The local inference engine backend to use. |
+| `LOCAL_LLM_PROVIDER` | `transformers` | `transformers`, `fireworks` | The local inference engine backend to use. |
 | `LOCAL_LLM_MAX_TOKENS` | `700` | Positive integer | The token budget limit for LLM generation. |
 | `LOCAL_LLM_TEMPERATURE` | `0.2` | Float `0.0 - 1.0` | Temperature setting (lower = more deterministic). |
 | `ACADEMICFORGE_CACHE_DIR` | `.academicforge_cache` | Path string | Target directory to store disk cache. |
@@ -326,7 +308,7 @@ AcademicForge/
 │   ├── cache.py             # Memory + disk caching implementation
 │   ├── config.py            # Environment-aware application configuration
 │   ├── data_pipeline.py     # Main search & ranking orchestration
-│   ├── llm.py               # Local-first LLM facade (MLX/Transformers)
+│   ├── llm.py               # LLM facade (Transformers/Fireworks)
 │   ├── pdf_parser.py        # PDF parser placeholder
 │   └── research_plan_generator.py # Streamed Research Plan & Guidance prompts
 ├── docs/
@@ -368,4 +350,4 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 ## 🤝 Acknowledgements
 *   **arXiv API** and **Semantic Scholar API** for search candidate indices.
 *   **AMD Developer Hackathon** sponsors and organizers.
-*   **mlx-lm** and **Hugging Face Transformers** teams for model serving utilities.
+**Hugging Face Transformers** teams for model serving utilities.
