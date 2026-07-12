@@ -23,7 +23,9 @@ done
 
 # Start Streamlit frontend in the background on port 7860
 echo "Starting Streamlit frontend..."
-streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 7860 &
+# Unset SPACE_ID to prevent Streamlit from routing to /spaces/ subpath
+unset SPACE_ID
+streamlit run frontend/streamlit_app.py --server.baseUrlPath="" --server.address 0.0.0.0 --server.port 7860 &
 FRONTEND_PID=$!
 
 # Derive NGROK_TOKEN from HF_TOKEN if not explicitly set
