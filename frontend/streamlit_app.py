@@ -1282,10 +1282,11 @@ if papers:
     labels = [paper_label(index, paper) for index, paper in enumerate(papers, start=1)]
 
     if focus_categories:
-        filtered_papers = [
+        focused_papers = [
             p for p in papers
             if p.get("metadata", {}).get("academicforge_category") in focus_categories
         ]
+        filtered_papers = focused_papers or papers
     else:
         filtered_papers = papers
     st.caption(f"{len(papers)} papers retrieved. Select papers to generate a Research Plan.")
