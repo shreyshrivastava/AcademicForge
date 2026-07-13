@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_PROVIDER = "transformers"
 DEFAULT_TRANSFORMERS_MODEL = "google/gemma-2-2b-it"
 DEFAULT_MLX_MODEL = "mlx-community/gemma-2-2b-it-4bit"
+DEFAULT_FIREWORKS_MODEL = "accounts/fireworks/models/deepseek-v4-pro"
 DEFAULT_MAX_TOKENS = 2500
 DEFAULT_TEMPERATURE = 0.2
 
@@ -64,7 +65,7 @@ class AppConfig:
             provider = "transformers"
 
         if provider == "fireworks":
-            default_model = os.getenv("FIREWORKS_MODEL", "accounts/fireworks/models/deepseek-v4-pro")
+            default_model = os.getenv("FIREWORKS_MODEL", DEFAULT_FIREWORKS_MODEL)
         elif provider == "mlx":
             default_model = DEFAULT_MLX_MODEL
         else:
@@ -72,14 +73,15 @@ class AppConfig:
 
         fast_model = os.getenv("LOCAL_LLM_MODEL", default_model)
         
-        # Disable Fireworks Deep Mode if the API key is not present, fallback to local fast model
-        default_deep = default_model
-        if provider == "fireworks" and not os.getenv("FIREWORKS_API_KEY"):
-            logger.warning("FIREWORKS_API_KEY is missing. Falling back to local model for Deep Mode.")
+        fireworks_model = os.getenv("FIREWORKS_MODEL", DEFAULT_FIREWORKS_MODEL)
+        if os.getenv("FIREWORKS_API_KEY"):
+            default_deep = fireworks_model
         else:
-            default_deep = os.getenv("LOCAL_LLM_DEEP_MODEL", fast_model)
+            if provider == "fireworks":
+                logger.warning("FIREWORKS_API_KEY is missing. Falling back to local model for Deep Mode.")
+            default_deep = fast_model
             
-        deep_model = default_deep
+        deep_model = os.getenv("LOCAL_LLM_DEEP_MODEL", default_deep)
 
         load_in_4bit = os.getenv("LOCAL_LLM_LOAD_IN_4BIT", "false").lower() == "true"
 
@@ -103,7 +105,7 @@ class AppConfig:
         if task == "guidance":
             return self.llm_guidance_deep_model if is_deep else self.llm_guidance_model
         if task == "research_plan":
-            return self.llm_research_plan_model if is_deep else self.llm_model
+            return self.llm_research_plan_model
         return self.llm_research_plan_model if is_deep else self.llm_model
 
     def model_for_task(self, task: str | None = None) -> str:

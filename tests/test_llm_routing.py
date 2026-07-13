@@ -92,8 +92,61 @@ def _restore_env(name, value):
         os.environ[name] = value
 
 
+def test_research_plan_prefers_fireworks_when_key_is_present():
+    saved = {name: os.environ.get(name) for name in (
+        "LOCAL_LLM_PROVIDER",
+        "LOCAL_LLM_MODEL",
+        "LOCAL_LLM_DEEP_MODEL",
+        "LOCAL_LLM_RESEARCH_PLAN_MODEL",
+        "FIREWORKS_API_KEY",
+        "FIREWORKS_MODEL",
+    )}
+    try:
+        os.environ["LOCAL_LLM_PROVIDER"] = "transformers"
+        os.environ["LOCAL_LLM_MODEL"] = "google/gemma-2-2b-it"
+        os.environ["FIREWORKS_API_KEY"] = "test-key"
+        os.environ.pop("LOCAL_LLM_DEEP_MODEL", None)
+        os.environ.pop("LOCAL_LLM_RESEARCH_PLAN_MODEL", None)
+        os.environ.pop("FIREWORKS_MODEL", None)
+
+        app_config = config.AppConfig.from_env()
+
+        assert app_config.llm_model == "google/gemma-2-2b-it"
+        assert app_config.llm_research_plan_model == "accounts/fireworks/models/deepseek-v4-pro"
+        assert app_config.model_for_task_and_mode("research_plan", "fast") == "accounts/fireworks/models/deepseek-v4-pro"
+        assert app_config.model_for_task_and_mode("research_plan", "deep") == "accounts/fireworks/models/deepseek-v4-pro"
+    finally:
+        for name, value in saved.items():
+            _restore_env(name, value)
+
+
+def test_research_plan_falls_back_to_local_without_fireworks_key():
+    saved = {name: os.environ.get(name) for name in (
+        "LOCAL_LLM_PROVIDER",
+        "LOCAL_LLM_MODEL",
+        "LOCAL_LLM_DEEP_MODEL",
+        "LOCAL_LLM_RESEARCH_PLAN_MODEL",
+        "FIREWORKS_API_KEY",
+    )}
+    try:
+        os.environ["LOCAL_LLM_PROVIDER"] = "transformers"
+        os.environ["LOCAL_LLM_MODEL"] = "google/gemma-2-2b-it"
+        os.environ.pop("FIREWORKS_API_KEY", None)
+        os.environ.pop("LOCAL_LLM_DEEP_MODEL", None)
+        os.environ.pop("LOCAL_LLM_RESEARCH_PLAN_MODEL", None)
+
+        app_config = config.AppConfig.from_env()
+
+        assert app_config.llm_research_plan_model == "google/gemma-2-2b-it"
+    finally:
+        for name, value in saved.items():
+            _restore_env(name, value)
+
+
 if __name__ == "__main__":
     test_summary_uses_summary_task()
     test_research_plan_uses_research_plan_task()
     test_clean_response_preamble_removal()
+    test_research_plan_prefers_fireworks_when_key_is_present()
+    test_research_plan_falls_back_to_local_without_fireworks_key()
     print("llm routing tests passed")
