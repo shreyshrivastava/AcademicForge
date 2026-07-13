@@ -1,13 +1,12 @@
-# AMD ROCm Setup & Vercel Proxy Guide
+# AMD ROCm Setup Guide
 
-This guide walks you through setting up the AcademicForge backend on your AMD ROCm GPU VM, proxying it through Vercel, and starting the Streamlit frontend.
+This guide walks you through setting up AcademicForge on an AMD ROCm GPU VM and starting the FastAPI backend plus Streamlit frontend.
 
 ---
 
 ## 📋 Prerequisites
 
 * **PyTorch (ROCm Compiled):** Ensure ROCm-specific PyTorch wheels are installed inside your virtual environment.
-* **Ngrok Account:** For secure HTTPS tunneling from the VM.
 * **Fireworks AI Account:** (Optional) If you plan to use Deep Mode (DeepSeek).
 
 ---
@@ -20,13 +19,13 @@ If you are running the application from a Jupyter Notebook inside your VM, follo
 Kills any processes holding the ports using a pure Python routine to prevent "address already in use" errors.
 
 ### Cell 2: Configure Credentials
-Set your HF Token, Ngrok Authtoken, and Fireworks API Key.
+Set your HF Token and Fireworks API Key.
 
 ### Cell 3: Start FastAPI and Streamlit
 Launches uvicorn (port 8000) and Streamlit (port 8501) using the `venv/bin/python` interpreter.
 
-### Cell 4: Expose with Ngrok
-Connects to ngrok programmatically, sets the authtoken, and keeps the tunnel alive.
+### Cell 4: Open the App
+Use your notebook provider's port proxy to open Streamlit on port 8501.
 
 ---
 
@@ -48,21 +47,8 @@ If you prefer using the VM terminal:
    ```bash
    ./start.sh
    ```
-4. **Expose with Ngrok:**
-   In a new terminal window:
+4. **Open Streamlit through the VM proxy:**
+   Use your notebook provider's proxy URL for port 8501. For AnruiCloud Radeon instances, it usually looks like:
    ```bash
-   source venv/bin/activate
-   export VERCEL_API_URL="http://localhost:8000"
-   python -c 'from pyngrok import ngrok; import time; ngrok.set_auth_token("YOUR_TOKEN"); print(ngrok.connect(8501)); time.sleep(1000000)'
+   https://radeon-global.anruicloud.com/instances/<instance-id>/proxy/8501/
    ```
-
----
-
-## 🌐 Deploying the Vercel Proxy
-To avoid browser blockages on ngrok free links, route frontend calls through Vercel:
-
-1. Import this repository into Vercel and target the `main` branch.
-2. Add the environment variables:
-   * `BACKEND_URL` = your active ngrok URL (e.g. `https://xxxx.ngrok-free.app`)
-   * `FIREWORKS_API_KEY` = your Fireworks token.
-3. Deploy the project and use the resulting Vercel URL as your `VERCEL_API_URL`.

@@ -11,21 +11,21 @@ import streamlit as st
 class APIClient:
     """
     Centralized API client for Streamlit frontend.
-    Handles dynamic routing via VERCEL_API_URL and implements basic retry loops.
+    Handles local backend routing and implements basic retry loops.
     """
     def __init__(self):
         # 1. Try OS environment variables
-        url = os.getenv("ACADEMICFORGE_BACKEND_URL") or os.getenv("VERCEL_API_URL")
+        url = os.getenv("ACADEMICFORGE_BACKEND_URL")
         
         # 2. Try Streamlit Secrets (Community Cloud)
         if not url:
             try:
-                url = st.secrets.get("ACADEMICFORGE_BACKEND_URL") or st.secrets.get("VERCEL_API_URL")
+                url = st.secrets.get("ACADEMICFORGE_BACKEND_URL")
             except Exception:
                 pass
                 
-        # 3. Fallback to the live Vercel Proxy instead of localhost
-        self.base_url = url if url else "https://academic-forge-icme.vercel.app"
+        # 3. Fallback to the local FastAPI backend.
+        self.base_url = (url or "http://127.0.0.1:8000").rstrip("/")
         
         self.timeout_health = 5
         self.timeout_generation = 240

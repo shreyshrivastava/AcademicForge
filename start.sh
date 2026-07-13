@@ -18,7 +18,7 @@ if [ -n "$LOCAL_LLM_MODEL" ]; then
   export LOCAL_LLM_RESEARCH_PLAN_MODEL="${LOCAL_LLM_RESEARCH_PLAN_MODEL:-$LOCAL_LLM_MODEL}"
   export LOCAL_LLM_DEEP_MODEL="${LOCAL_LLM_DEEP_MODEL:-$LOCAL_LLM_MODEL}"
 fi
-export ACADEMICFORGE_BACKEND_URL="http://localhost:8000"
+export ACADEMICFORGE_BACKEND_URL="http://127.0.0.1:8000"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 STREAMLIT_BIN="${STREAMLIT_BIN:-streamlit}"
 "$PYTHON_BIN" -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 &
@@ -37,4 +37,4 @@ done
 
 # Start Streamlit frontend in the foreground on port 8501
 echo "Starting Streamlit frontend..."
-"$STREAMLIT_BIN" run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+"$STREAMLIT_BIN" run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 8501 --server.baseUrlPath ""
