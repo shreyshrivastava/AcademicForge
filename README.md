@@ -174,7 +174,13 @@ python tests/test_retrieval.py
 
 ## Screenshots And Proof
 
-Add demo screenshots under `docs/assets/` when ready, then reference them here. Suggested proof shots:
+### VM Setup Evidence
+
+![AMD VM Jupyter setup with private token redacted](docs/assets/amd-vm-jupyter-setup-redacted.jpg)
+
+This image shows the project opened inside the Radeon VM/Jupyter environment. Private tunnel details are redacted.
+
+### Recommended ROCm Runtime Proof
 
 - `/version` showing ROCm and retrieval device.
 - Search results with BM25, dense, RRF, and categories.
