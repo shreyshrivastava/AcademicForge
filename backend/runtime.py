@@ -67,6 +67,12 @@ def auto_provider() -> str:
 def runtime_version_payload(config=None) -> dict:
     runtime = detect_runtime()
     payload = dict(runtime)
+    try:
+        from backend.retrieval.device import select_retrieval_device
+
+        payload["retrieval_device"] = select_retrieval_device()
+    except Exception:
+        payload["retrieval_device"] = "unknown"
     if config is not None:
         payload.update(
             {

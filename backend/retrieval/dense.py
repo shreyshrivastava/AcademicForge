@@ -1,12 +1,15 @@
 import math
+import logging
 from collections import Counter
 from functools import lru_cache
 
 from backend.retrieval.bm25 import paper_text, tokenize
+from backend.retrieval.device import select_retrieval_device
 from backend.retrieval.models import RetrievalResult, paper_to_result
 
 
 MODEL_NAME = "BAAI/bge-small-en-v1.5"
+logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -16,9 +19,17 @@ def _load_sentence_transformer():
     except ImportError:
         return None
 
+    device = select_retrieval_device()
     try:
-        return SentenceTransformer(MODEL_NAME)
-    except Exception:
+        logger.info("Loading dense retrieval model %s on %s", MODEL_NAME, device)
+        return SentenceTransformer(MODEL_NAME, device=device)
+    except Exception as exc:
+        if device != "cpu":
+            logger.warning("Dense retrieval GPU load failed on %s: %s. Falling back to CPU.", device, exc)
+            try:
+                return SentenceTransformer(MODEL_NAME, device="cpu")
+            except Exception:
+                return None
         return None
 
 
@@ -90,6 +101,7 @@ def dense_search(query: str, papers: list[dict], top_k: int = 50) -> list[Retrie
         score = _dot(query_embedding, embedding)
         result = paper_to_result(paper)
         result.metadata["dense_backend"] = MODEL_NAME
+        result.metadata["dense_device"] = str(getattr(model, "device", select_retrieval_device()))
         result.metadata["dense_score"] = score
         scored.append((score, result))
 

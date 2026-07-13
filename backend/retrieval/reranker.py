@@ -1,14 +1,27 @@
-from sentence_transformers import CrossEncoder
+import logging
+
+from backend.retrieval.device import select_retrieval_device
 from backend.retrieval.models import RetrievalResult
 
 # Lazy-loaded global cross-encoder instance
 _MODEL = None
+logger = logging.getLogger(__name__)
 
 
 def get_reranker_model():
     global _MODEL
     if _MODEL is None:
-        _MODEL = CrossEncoder("BAAI/bge-reranker-base")
+        from sentence_transformers import CrossEncoder
+
+        device = select_retrieval_device()
+        try:
+            logger.info("Loading cross-encoder reranker BAAI/bge-reranker-base on %s", device)
+            _MODEL = CrossEncoder("BAAI/bge-reranker-base", device=device)
+        except Exception as exc:
+            if device == "cpu":
+                raise
+            logger.warning("Cross-encoder GPU load failed on %s: %s. Falling back to CPU.", device, exc)
+            _MODEL = CrossEncoder("BAAI/bge-reranker-base", device="cpu")
     return _MODEL
 
 

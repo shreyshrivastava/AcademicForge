@@ -3,6 +3,7 @@ import argparse
 from huggingface_hub import snapshot_download
 from transformers import AutoTokenizer
 from sentence_transformers import SentenceTransformer, CrossEncoder
+from backend.retrieval.device import select_retrieval_device
 
 def download_llm(model_name: str, token: str = None):
     print(f"Downloading LLM model: {model_name}...")
@@ -22,13 +23,15 @@ def download_llm(model_name: str, token: str = None):
     print("LLM model downloaded successfully.")
 
 def download_embedding(model_name: str):
-    print(f"Downloading Embedding model: {model_name}...")
-    SentenceTransformer(model_name)
+    device = select_retrieval_device()
+    print(f"Downloading Embedding model: {model_name} on {device}...")
+    SentenceTransformer(model_name, device=device)
     print("Embedding model downloaded successfully.")
 
 def download_cross_encoder(model_name: str):
-    print(f"Downloading Cross-Encoder model: {model_name}...")
-    CrossEncoder(model_name)
+    device = select_retrieval_device()
+    print(f"Downloading Cross-Encoder model: {model_name} on {device}...")
+    CrossEncoder(model_name, device=device)
     print("Cross-Encoder downloaded successfully.")
 
 if __name__ == "__main__":
