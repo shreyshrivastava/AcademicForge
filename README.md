@@ -174,15 +174,14 @@ python tests/test_retrieval.py
 
 ## Screenshots And Proof
 
-### VM Setup Evidence
+### ROCm Runtime Proof
 
-![AMD VM Jupyter setup with private token redacted](docs/assets/amd-vm-jupyter-setup-redacted.jpg)
+![AcademicForge AMD ROCm runtime version endpoint](docs/assets/amd-rocm-version-proof.png)
 
-This image shows the project opened inside the Radeon VM/Jupyter environment. Private tunnel details are redacted.
+The `/version` endpoint shows the app running on Linux with the Transformers backend, ROCm acceleration enabled, and an AMD Radeon device detected.
 
-### Recommended ROCm Runtime Proof
+### Additional Demo Proof To Capture
 
-- `/version` showing ROCm and retrieval device.
 - Search results with BM25, dense, RRF, and categories.
 - Summary output.
 - Guidance output.
