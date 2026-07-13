@@ -145,7 +145,8 @@ def build_research_plan_prompt(paper_context, query=""):
         "direction, prioritize architecture, tradeoffs, implementation strategy, "
         "research gaps, and engineering recommendations, and never invent "
         "evidence not present in the selected papers. Do not include "
-        "conversational prefaces.\n"
+        "conversational prefaces. You must include every required output heading "
+        "exactly once and in the requested order.\n"
         "CRITICAL: You must respond exclusively in English, regardless of the input language."
     )
     user_prompt = f"""
@@ -171,6 +172,7 @@ INSTRUCTIONS:
    - Evaluation Strategy
 8. Under 'Builder Guidance', provide practical implementation advice. Avoid exact vendor lock-in, exact model recommendations, or exact dataset recommendations unless explicitly supported by evidence.
 9. Never expose reasoning, internal thoughts, chain of thought, or reasoning processes. Only output final conclusions.
+10. Include every heading below exactly as written. Do not skip 'Research Focus'.
 
 OUTPUT FORMAT:
 

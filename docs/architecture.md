@@ -1,98 +1,69 @@
 # Architecture
 
-AcademicForge is intentionally small: a FastAPI backend, a Streamlit frontend, in-memory retrieval, local LLM generation, and local disk caching.
+AcademicForge has two processes:
 
-## High-Level Flow
+- FastAPI backend in `backend/app.py`
+- Streamlit frontend in `frontend/streamlit_app.py`
+
+## Runtime Flow
 
 ```text
 Streamlit UI
   -> FastAPI backend
-  -> arXiv search
-  -> retrieval layer
-       -> BM25 keyword search
-       -> dense semantic search
-       -> reciprocal rank fusion
-       -> reranker placeholder
-  -> selected papers
-  -> local MLX summarization
+  -> arXiv + Semantic Scholar live search
+  -> relevance filtering
+  -> BM25 lexical retrieval
+  -> BGE dense retrieval
+  -> Reciprocal Rank Fusion
+  -> BGE cross-encoder reranking
+  -> selected evidence papers
+  -> local Gemma summaries and guidance
   -> compact Research Plan context
-  -> streamed local MLX Research Plan
-  -> local JSON cache
+  -> Fireworks DeepSeek Research Plan when key exists
 ```
 
-## Backend
+## Backend Routes
 
-`backend/app.py` exposes the main API:
+- `GET /health`
+- `GET /version`
+- `GET /config`
+- `POST /search`
+- `POST /summarize`
+- `POST /paper-guidance`
+- `POST /research-plan`
+- `POST /research-plan/stream`
 
-- `GET /config` - active model configurations
-- `POST /search` - arXiv collection plus hybrid retrieval
-- `POST /summarize` - paper summary generation
-- `POST /research-plan` - non-streaming Research Plan generation
-- `POST /research-plan/stream` - streaming Research Plan generation
-- `POST /research-plan/cache-status` - cache status for selected Research Plan inputs
-- `POST /paper-guidance` - single-paper practical guidance
+## Model Routing
 
-The older `/roadmap/*` routes remain as compatibility aliases during the product rename.
+- `LOCAL_LLM_PROVIDER=auto` selects MLX on Apple Silicon and Transformers elsewhere.
+- Fast local model on AMD/ROCm: `google/gemma-2-2b-it`.
+- Fast local model on Apple Silicon: `mlx-community/gemma-2-2b-it-4bit`.
+- Research Plan model: `accounts/fireworks/models/deepseek-v4-pro` when `FIREWORKS_API_KEY` exists.
+- Research Plan fallback: local Gemma when Fireworks is not configured.
 
-## Retrieval Layer
+## Retrieval
 
 The retrieval layer lives in `backend/retrieval/`.
 
-- `bm25.py` searches exact terms across title, abstract, categories, and keywords.
-- `dense.py` uses `BAAI/bge-small-en-v1.5` through `sentence-transformers` when available.
-- `rrf.py` combines ranked lists with reciprocal rank fusion.
-- `hybrid.py` runs BM25, dense search, and RRF together.
-- `reranker.py` is a placeholder for future cross-encoder reranking.
+- `bm25.py` performs lexical keyword ranking.
+- `dense.py` performs BGE dense semantic retrieval.
+- `rrf.py` fuses BM25 and dense ranks.
+- `reranker.py` applies a BGE cross-encoder.
+- `device.py` selects GPU by default when PyTorch exposes one.
 
-RRF is used because BM25 and dense search produce different score distributions. RRF combines rankings without requiring score normalization.
-
-## Local LLM Layer
-
-`backend/llm.py` wraps local generation.
-
-Supported provider:
-
-- `mlx`
-
-Current default model (Fast Mode):
-- `mlx-community/Qwen3-4B-4bit`
-
-Task-specific model routing:
-
-- `LOCAL_LLM_MODEL`
-- `LOCAL_LLM_SUMMARY_MODEL`
-- `LOCAL_LLM_RESEARCH_PLAN_MODEL`
-
-This lets the project use communicator/instruct models for summaries and Research Plans while reserving coder models for future code-generation workflows.
-
-Provider notes:
-
-- `mlx` is intended for Apple Silicon and uses `mlx-lm`.
-- CUDA and ROCm are future migration targets, but they are not active runtime providers yet.
-
-## Caching
-
-`backend/cache.py` stores JSON cache entries under `.academicforge_cache/` by default.
-
-Cached items:
-
-- paper summaries
-- generated Research Plans
-
-The cache key includes the task, model, selected papers, summaries, and compact Research Plan context, so changing model or selected papers produces a new cache entry.
+On ROCm, PyTorch exposes AMD GPUs through the `cuda` API, so `retrieval_device: cuda` in `/version` is expected.
 
 ## Frontend
 
-`frontend/streamlit_app.py` provides a simple judge-friendly UI:
+The Streamlit UI provides:
 
-- search box
-- Research Lens control
-- ranked paper cards with category chips
-- inline Summary and Guidance panels
-- summary generation
-- streamed Research Plan rendering
+- research question input
+- Fast/Deep mode selector
+- Research Lens selector
+- ranked paper cards
+- paper selection
+- inline Summary and Guidance generation
+- streamed Research Plan generation
 - Markdown export
 
-## Why This Architecture
-
-The project avoids databases and hosted services for the hackathon MVP. Everything runs locally, is easy to explain, and can be tested with small scripts. The architecture keeps feature boundaries clear while leaving room for future sources, rerankers, and deployment paths.
+The UI talks to FastAPI through `ACADEMICFORGE_BACKEND_URL`.

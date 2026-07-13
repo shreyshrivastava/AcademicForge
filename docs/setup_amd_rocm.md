@@ -1,54 +1,58 @@
-# AMD ROCm Setup Guide
+# AMD ROCm Setup
 
-This guide walks you through setting up AcademicForge on an AMD ROCm GPU VM and starting the FastAPI backend plus Streamlit frontend.
+Use the terminal path. The old setup notebook path is no longer the recommended flow.
 
----
+```bash
+cd /workspace
+git -c http.sslVerify=false clone https://github.com/shreyshrivastava/AcademicForge.git
+cd AcademicForge
 
-## 📋 Prerequisites
+python3 -m venv venv
+source venv/bin/activate
 
-* **PyTorch (ROCm Compiled):** Ensure ROCm-specific PyTorch wheels are installed inside your virtual environment.
-* **Fireworks AI Account:** (Optional) If you plan to use Deep Mode (DeepSeek).
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --ignore-installed blinker -r requirements-local.txt
 
----
+cp .env.example .env
+```
 
-## 🚀 Running via Jupyter Notebook (Step-by-Step)
+Edit `.env` and set:
 
-If you are running the application from a Jupyter Notebook inside your VM, follow the cell instructions in `setup_amd_backend.ipynb`:
+```bash
+HF_TOKEN=your_real_hugging_face_token
+FIREWORKS_API_KEY=your_real_fireworks_key
+```
 
-### Cell 1: Clean Port 8000 & 8501
-Kills any processes holding the ports using a pure Python routine to prevent "address already in use" errors.
+Then run:
 
-### Cell 2: Configure Credentials
-Set your HF Token and Fireworks API Key.
+```bash
+pkill -f streamlit || true
+pkill -f uvicorn || true
+./start.sh
+```
 
-### Cell 3: Start FastAPI and Streamlit
-Launches uvicorn (port 8000) and Streamlit (port 8501) using the `venv/bin/python` interpreter.
+Open:
 
-### Cell 4: Open the App
-Use your notebook provider's port proxy to open Streamlit on port 8501.
+```text
+https://radeon-global.anruicloud.com/instances/<instance-id>/proxy/8501/
+```
 
----
+Verify backend and GPU routing:
 
-## ⚡ Running via Terminal (Alternative)
+```text
+https://radeon-global.anruicloud.com/instances/<instance-id>/proxy/8000/version
+```
 
-If you prefer using the VM terminal:
+Expected AMD diagnostics include:
 
-1. **Activate the environment:**
-   ```bash
-   cd /workspace/AcademicForge
-   source venv/bin/activate
-   ```
-2. **Export your credentials:**
-   ```bash
-   export HF_TOKEN="your_hf_token"
-   export FIREWORKS_API_KEY="your_fireworks_key"
-   ```
-3. **Start the servers:**
-   ```bash
-   ./start.sh
-   ```
-4. **Open Streamlit through the VM proxy:**
-   Use your notebook provider's proxy URL for port 8501. For AnruiCloud Radeon instances, it usually looks like:
-   ```bash
-   https://radeon-global.anruicloud.com/instances/<instance-id>/proxy/8501/
-   ```
+```json
+{
+  "provider": "transformers",
+  "accelerator": "rocm",
+  "llm_model": "google/gemma-2-2b-it",
+  "research_plan_model": "accounts/fireworks/models/deepseek-v4-pro",
+  "retrieval_device": "cuda"
+}
+```
+
+PyTorch reports ROCm GPUs through the `cuda` device API, so `retrieval_device: cuda` is expected on AMD ROCm.

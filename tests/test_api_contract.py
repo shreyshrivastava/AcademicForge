@@ -76,30 +76,6 @@ def test_search_endpoint_treats_balanced_as_exclusive():
         backend_app.retrieve_and_rank_papers = original_retrieve
 
 
-def test_research_plan_cache_status_endpoint_returns_status():
-    client = TestClient(app)
-    response = client.post(
-        "/research-plan/cache-status",
-        json={
-            "papers": [
-                {
-                    "title": "Paper",
-                    "authors": [],
-                    "abstract": "Abstract",
-                    "link": "https://example.com",
-                    "date": "2026-06-30",
-                }
-            ],
-            "summaries": ["Core idea\nA test."],
-            "query": "build a prototype",
-        },
-    )
-    assert response.status_code == 200
-    payload = response.json()
-    assert "cached" in payload
-    assert payload["cache"] in {"memory", "disk", "miss"}
-
-
 def test_paper_guidance_endpoint_returns_guidance():
     original_generate = backend_app.generate_ai_paper_guidance
 
@@ -127,24 +103,6 @@ def test_paper_guidance_endpoint_returns_guidance():
         }
     finally:
         backend_app.generate_ai_paper_guidance = original_generate
-
-
-def test_paper_guidance_cache_status_endpoint_returns_status():
-    client = TestClient(app)
-    response = client.post(
-        "/paper-guidance/cache-status",
-        json={
-            "title": "Paper",
-            "authors": [],
-            "abstract": "Abstract",
-            "link": "https://example.com",
-            "date": "2026-06-30",
-        },
-    )
-    assert response.status_code == 200
-    payload = response.json()
-    assert "cached" in payload
-    assert payload["cache"] in {"memory", "disk", "miss"}
 
 
 def test_research_plan_stream_endpoint_streams_text():
@@ -183,11 +141,16 @@ def test_research_plan_stream_endpoint_streams_text():
         backend_app.stream_ai_research_plan = original_stream
 
 
+def test_removed_cache_status_endpoints_are_not_available():
+    client = TestClient(app)
+    assert client.post("/research-plan/cache-status", json={}).status_code == 404
+    assert client.post("/paper-guidance/cache-status", json={}).status_code == 404
+
+
 if __name__ == "__main__":
     test_config_endpoint_returns_model_info()
     test_search_endpoint_passes_research_focus()
-    test_research_plan_cache_status_endpoint_returns_status()
     test_paper_guidance_endpoint_returns_guidance()
-    test_paper_guidance_cache_status_endpoint_returns_status()
     test_research_plan_stream_endpoint_streams_text()
+    test_removed_cache_status_endpoints_are_not_available()
     print("api contract tests passed")

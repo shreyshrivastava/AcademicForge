@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e
 
+if [ -f ".env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 # Start FastAPI backend in the background
 echo "Starting FastAPI backend..."
 if [ -z "$LOCAL_LLM_PROVIDER" ]; then

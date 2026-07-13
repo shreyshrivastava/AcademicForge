@@ -879,7 +879,7 @@ def render_status_banner(config, generation_mode):
             """
             <div class="af-helper-card">
                 <div class="af-helper-title">Backend unavailable</div>
-                <div class="af-helper-text">The interface is ready, but the backend is not responding yet. Start it with <strong>uvicorn backend.app:app --reload</strong> and refresh the page.</div>
+                <div class="af-helper-text">The interface is ready, but the backend is not responding yet. Start it with <strong>./start.sh</strong> and refresh the page.</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -987,7 +987,6 @@ def render_paper_cards(
         authors = html.escape(", ".join(paper.get("authors", [])[:5]) or "Unknown authors")
         if len(paper.get("authors", [])) > 5:
             authors += ", et al."
-        url = paper.get("url") or paper.get("link")
         source = html.escape(paper.get("source", "arxiv"))
         category_name = paper_category(paper)
         category = html.escape(category_name)
@@ -1019,20 +1018,18 @@ def render_paper_cards(
             # The newlines ensure Streamlit parses the markdown inside the HTML block
             st.markdown(f"<div class='paper-card-abstract'>\n\n{paper.get('abstract', '')}\n\n</div>", unsafe_allow_html=True)
             if selectable:
-                action_cols = st.columns([1.1, 0.9, 1.05, 1.05, 2.9])
-                select_col, open_col, summary_col, guidance_col = (
+                action_cols = st.columns([1.1, 1.05, 1.05, 3.8])
+                select_col, summary_col, guidance_col = (
                     action_cols[0],
                     action_cols[1],
                     action_cols[2],
-                    action_cols[3],
                 )
             else:
-                action_cols = st.columns([0.9, 1.05, 1.05, 3.0])
-                select_col, open_col, summary_col, guidance_col = (
+                action_cols = st.columns([1.05, 1.05, 4.0])
+                select_col, summary_col, guidance_col = (
                     None,
                     action_cols[0],
                     action_cols[1],
-                    action_cols[2],
                 )
 
             if selectable:
@@ -1045,8 +1042,6 @@ def render_paper_cards(
                     selected_set.add(label)
                 else:
                     selected_set.discard(label)
-            if url:
-                open_col.link_button("Open", url)
             summary_clicked = summary_col.button("Summary", key=f"paper-summary-button-{scope}-{paper_widget_key}")
             guidance_clicked = guidance_col.button("Guidance", key=f"paper-guidance-button-{scope}-{paper_widget_key}")
 
@@ -1062,7 +1057,7 @@ def render_paper_cards(
                     panel_placeholder.empty()
                 except requests.ConnectionError:
                     panel_placeholder.error(
-                        "The backend is not running. Start it with: uvicorn backend.app:app --reload"
+                        "The backend is not running. Start it with: ./start.sh"
                     )
                 except requests.HTTPError as exc:
                     panel_placeholder.error(f"The backend returned an error: {exc.response.text}")
@@ -1080,7 +1075,7 @@ def render_paper_cards(
                     panel_placeholder.empty()
                 except requests.ConnectionError:
                     panel_placeholder.error(
-                        "The backend is not running. Start it with: uvicorn backend.app:app --reload"
+                        "The backend is not running. Start it with: ./start.sh"
                     )
                 except requests.HTTPError as exc:
                     panel_placeholder.error(f"The backend returned an error: {exc.response.text}")
@@ -1233,7 +1228,7 @@ if should_search:
             st.session_state.selected_labels = labels[: min(3, len(labels))]
         except requests.ConnectionError:
             search_placeholder.empty()
-            st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
+            st.error("The backend is not running. Start it with: ./start.sh")
         except requests.HTTPError as exc:
             search_placeholder.empty()
             st.error(f"The backend returned an error: {exc.response.text}")
@@ -1343,7 +1338,7 @@ if papers:
             st.session_state.generated_mode = st.session_state.generation_mode
         except requests.ConnectionError:
             plan_placeholder.empty()
-            st.error("The backend is not running. Start it with: uvicorn backend.app:app --reload")
+            st.error("The backend is not running. Start it with: ./start.sh")
         except requests.HTTPError as exc:
             plan_placeholder.empty()
             st.error(f"The backend returned an error: {exc.response.text}")
