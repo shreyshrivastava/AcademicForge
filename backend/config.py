@@ -3,15 +3,27 @@ from dataclasses import dataclass
 from pathlib import Path
 import logging
 
+from backend.runtime import auto_provider
+
 logger = logging.getLogger(__name__)
 
 
 DEFAULT_PROVIDER = "transformers"
 DEFAULT_TRANSFORMERS_MODEL = "google/gemma-2-2b-it"
+DEFAULT_MLX_MODEL = "mlx-community/gemma-2-2b-it-4bit"
 DEFAULT_MAX_TOKENS = 2500
 DEFAULT_TEMPERATURE = 0.2
 
 PROVIDER_ALIASES = {
+    "amd": "transformers",
+    "apple": "mlx",
+    "apple_silicon": "mlx",
+    "auto": "auto",
+    "metal": "mlx",
+    "mlx-lm": "mlx",
+    "mlxlm": "mlx",
+    "mlx": "mlx",
+    "rocm": "transformers",
     "torch": "transformers",
     "transformer": "transformers",
     "transformers": "transformers",
@@ -41,16 +53,20 @@ class AppConfig:
 
     @classmethod
     def from_env(cls) -> "AppConfig":
-        raw_provider = os.getenv("LOCAL_LLM_PROVIDER") or os.getenv("LLM_BACKEND") or DEFAULT_PROVIDER
+        raw_provider = auto_provider()
         provider = raw_provider.strip().lower()
         provider = PROVIDER_ALIASES.get(provider, provider)
+        if provider == "auto":
+            provider = DEFAULT_PROVIDER
 
-        if provider not in ("transformers", "fireworks"):
+        if provider not in ("transformers", "fireworks", "mlx"):
             logger.warning("Unsupported local LLM provider %r. Defaulting to 'transformers'.", provider)
             provider = "transformers"
 
         if provider == "fireworks":
             default_model = os.getenv("FIREWORKS_MODEL", "accounts/fireworks/models/deepseek-v4-pro")
+        elif provider == "mlx":
+            default_model = DEFAULT_MLX_MODEL
         else:
             default_model = DEFAULT_TRANSFORMERS_MODEL
 

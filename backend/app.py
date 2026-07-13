@@ -9,10 +9,10 @@ import os
 from backend.config import get_config as get_app_config
 from backend.data_pipeline import extract_arxiv_id, not_enough_relevant_message, retrieve_and_rank_papers
 from backend.llm import provider_name, task_model_config
+from backend.runtime import runtime_version_payload
 from backend.research_plan_generator import generate_research_plan as generate_ai_research_plan
 from backend.research_plan_generator import stream_research_plan as stream_ai_research_plan
 from backend.guidance_generator import generate_paper_guidance as generate_ai_paper_guidance
-from backend.summarizer import summarize_paper as summarize_paper_with_ai
 from backend.summarizer import summarize_paper as summarize_paper_with_ai
 
 load_dotenv()
@@ -68,12 +68,15 @@ def model_for_research_plan(mode: str | None) -> str:
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Warming up models...")
+    logger.info("Warming up models and ensuring weights are cached...")
     try:
-        from backend.llm import _load_transformers_model
+        from backend.llm import _load_mlx_model, _load_transformers_model
         config = get_app_config()
+        logger.info("Runtime selected provider=%s model=%s", config.llm_provider, config.llm_model)
         if config.llm_provider == "transformers":
             _load_transformers_model(config.llm_model)
+        elif config.llm_provider == "mlx":
+            _load_mlx_model(config.llm_model)
             
         from backend.retrieval.dense import _load_sentence_transformer
         _load_sentence_transformer()
@@ -81,7 +84,7 @@ async def startup_event():
         from backend.retrieval.reranker import get_reranker_model
         get_reranker_model()
         
-        logger.info("Models warmed up successfully.")
+        logger.info("Models warmed up successfully and weights are available locally.")
     except Exception as e:
         logger.error(f"Failed to warm up models: {e}")
 
@@ -95,6 +98,9 @@ async def health_check():
         if config.llm_provider == "transformers":
             from backend.llm import _load_transformers_model
             models_ready = _load_transformers_model.cache_info().currsize > 0
+        elif config.llm_provider == "mlx":
+            from backend.llm import _load_mlx_model
+            models_ready = _load_mlx_model.cache_info().currsize > 0
         else:
             models_ready = True
     except Exception:
@@ -105,8 +111,14 @@ async def health_check():
         "backend": os.getenv("BACKEND_MODE", "unknown"),
         "provider": provider_name(),
         "model": config.llm_model,
-        "models_ready": models_ready
+        "models_ready": models_ready,
+        "runtime": runtime_version_payload(config),
     }
+
+@app.get("/version")
+async def version_check():
+    """Return the selected MLX/AMD runtime version and model routing."""
+    return runtime_version_payload(get_app_config())
 
 @app.get("/config")
 async def get_config():
@@ -201,18 +213,6 @@ async def generate_paper_guidance(paper: Paper):
     except Exception as e:
         logger.exception("Paper guidance failed paper_id=%r", paper.paper_id)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/paper-guidance/cache-status")
-async def paper_guidance_cache_status(paper: Paper):
-    """Always return cache miss since caching is disabled for judging."""
-    return {"cached": False, "cache": "miss"}
-
-
-@app.post("/research-plan/cache-status")
-async def research_plan_cache_status(request: PapersRequest):
-    """Always return cache miss since caching is disabled for judging."""
-    return {"cached": False, "cache": "miss"}
 
 
 @app.post("/research-plan/stream")

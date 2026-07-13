@@ -3,15 +3,25 @@ set -e
 
 # Start FastAPI backend in the background
 echo "Starting FastAPI backend..."
-export LOCAL_LLM_PROVIDER="transformers"
-export LOCAL_LLM_MODEL="${LOCAL_LLM_MODEL:-google/gemma-2-2b-it}"
-export LOCAL_LLM_SUMMARY_MODEL="${LOCAL_LLM_SUMMARY_MODEL:-$LOCAL_LLM_MODEL}"
-export LOCAL_LLM_GUIDANCE_MODEL="${LOCAL_LLM_GUIDANCE_MODEL:-$LOCAL_LLM_MODEL}"
-export LOCAL_LLM_RESEARCH_PLAN_MODEL="${LOCAL_LLM_RESEARCH_PLAN_MODEL:-$LOCAL_LLM_MODEL}"
-export LOCAL_LLM_DEEP_MODEL="${LOCAL_LLM_DEEP_MODEL:-$LOCAL_LLM_MODEL}"
-export ACADEMICFORGE_ENABLE_ANSWER_CACHE="${ACADEMICFORGE_ENABLE_ANSWER_CACHE:-false}"
+if [ -z "$LOCAL_LLM_PROVIDER" ]; then
+  export LOCAL_LLM_PROVIDER="auto"
+fi
+
+if [ -z "$LOCAL_LLM_MODEL" ] && [ "$LOCAL_LLM_PROVIDER" = "mlx" ]; then
+  export LOCAL_LLM_MODEL="${LOCAL_LLM_MODEL:-mlx-community/gemma-2-2b-it-4bit}"
+elif [ -z "$LOCAL_LLM_MODEL" ] && { [ "$LOCAL_LLM_PROVIDER" = "transformers" ] || [ "$LOCAL_LLM_PROVIDER" = "amd" ] || [ "$LOCAL_LLM_PROVIDER" = "rocm" ]; }; then
+  export LOCAL_LLM_MODEL="${LOCAL_LLM_MODEL:-google/gemma-2-2b-it}"
+fi
+if [ -n "$LOCAL_LLM_MODEL" ]; then
+  export LOCAL_LLM_SUMMARY_MODEL="${LOCAL_LLM_SUMMARY_MODEL:-$LOCAL_LLM_MODEL}"
+  export LOCAL_LLM_GUIDANCE_MODEL="${LOCAL_LLM_GUIDANCE_MODEL:-$LOCAL_LLM_MODEL}"
+  export LOCAL_LLM_RESEARCH_PLAN_MODEL="${LOCAL_LLM_RESEARCH_PLAN_MODEL:-$LOCAL_LLM_MODEL}"
+  export LOCAL_LLM_DEEP_MODEL="${LOCAL_LLM_DEEP_MODEL:-$LOCAL_LLM_MODEL}"
+fi
 export ACADEMICFORGE_BACKEND_URL="http://localhost:8000"
-uvicorn backend.app:app --host 0.0.0.0 --port 8000 &
+PYTHON_BIN="${PYTHON_BIN:-python}"
+STREAMLIT_BIN="${STREAMLIT_BIN:-streamlit}"
+"$PYTHON_BIN" -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
 # Wait for backend to be ready
@@ -25,6 +35,6 @@ while true; do
   sleep 2
 done
 
-# Start Streamlit frontend in the foreground on port 7860
+# Start Streamlit frontend in the foreground on port 8501
 echo "Starting Streamlit frontend..."
-streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 7860
+"$STREAMLIT_BIN" run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 8501

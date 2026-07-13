@@ -1,4 +1,5 @@
 import logging
+import re
 
 from backend.llm import generate_text, generate_text_stream, model_name
 
@@ -11,6 +12,10 @@ def _truncate(text, limit=900):
     if len(text) <= limit:
         return text
     return text[:limit].rsplit(" ", 1)[0] + "..."
+
+
+def strip_evidence_citations(text):
+    return re.sub(r"\s*\[(?:Evidence\s*)?\d+\]", "", text or "", flags=re.IGNORECASE)
 
 
 def _extract_summary_sections(summary):
@@ -78,7 +83,9 @@ def generate_research_plan(papers, summaries=None, query="", model=None, mode=No
     paper_context = build_research_plan_context(papers, summaries)
     logger.info("Research Plan generation started paper_count=%d", len(papers))
     system_prompt, user_prompt = build_research_plan_prompt(paper_context, query)
-    research_plan = generate_text(system_prompt, user_prompt, token_budget=1900, task="research_plan", model=model)
+    research_plan = strip_evidence_citations(
+        generate_text(system_prompt, user_prompt, token_budget=1900, task="research_plan", model=model)
+    )
     logger.info("Research Plan generation completed paper_count=%d", len(papers))
     return research_plan
 
@@ -98,7 +105,7 @@ def stream_research_plan(papers, summaries=None, query="", model=None, mode=None
     )
     for chunk in _clean_streamed_markdown(raw_chunks):
         chunks.append(chunk)
-        yield chunk
+        yield strip_evidence_citations(chunk)
 
     research_plan = "".join(chunks).strip()
     logger.info("Mixed Research Plan stream generation completed paper_count=%d", len(papers))
@@ -155,7 +162,7 @@ INSTRUCTIONS:
 2. Never infer the user's goals or output any User Goal Analysis or User Intent Analysis.
 3. Every recommendation (including datasets, frameworks, or architectures) must be traceable to the evidence. Do not suggest anything not present in the papers unless clearly labeled as an example.
 4. Keep the 'Research Focus' concise, maximum 150 words. Explain the main technical direction emerging from the literature.
-5. Under 'Key Findings', output a maximum of 5 bullets. Each finding must be directly supported by retrieved evidence.
+5. Under 'Key Findings', output a maximum of 5 bullets. Each finding must be directly supported by retrieved evidence, but do not include bracketed citation markers.
 6. Under 'Research Gaps', output a maximum of 5 bullets focusing on limitations, unanswered questions, and deployment challenges.
 7. Under 'Recommended Build', structure your engineering recommendations exactly with these sections:
    - Recommended Architecture
@@ -175,7 +182,7 @@ OUTPUT FORMAT:
 
 # Key Findings
 
-(Max 5 bullets, each directly supported by retrieved evidence. Include citations like [1], [2].)
+(Max 5 bullets, each directly supported by retrieved evidence. Do not include citations like [1], [2], or [Evidence 1].)
 
 # Research Gaps
 

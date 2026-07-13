@@ -48,6 +48,10 @@ class APIClient:
         response = self._request_with_retry("GET", "/config", timeout=self.timeout_health)
         return response.json()
 
+    def get_version(self) -> Dict[str, Any]:
+        response = self._request_with_retry("GET", "/version", timeout=self.timeout_health)
+        return response.json()
+
     def post_json(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         response = self._request_with_retry("POST", path, json=payload, timeout=self.timeout_generation)
         return response.json()

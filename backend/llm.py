@@ -105,6 +105,18 @@ def _load_transformers_model(selected_model):
     return model, tokenizer, torch
 
 
+@lru_cache(maxsize=2)
+def _load_mlx_model(selected_model):
+    try:
+        from mlx_lm import load
+    except ImportError as exc:
+        raise LocalLLMError(
+            "MLX backend is not installed. Install mlx-lm before using this provider."
+        ) from exc
+
+    return load(selected_model)
+
+
 def _chat_prompt(tokenizer, system_prompt, user_prompt):
     messages = [
         {"role": "system", "content": system_prompt},
@@ -150,8 +162,12 @@ class LLMService:
             return _clean_response(
                 _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model)
             )
+        if effective_provider == "mlx":
+            return _clean_response(
+                _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
+            )
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers' or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers', 'fireworks', or 'mlx'."
         )
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
@@ -163,8 +179,11 @@ class LLMService:
         if effective_provider == "fireworks":
             yield from _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model)
             return
+        if effective_provider == "mlx":
+            yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
+            return
         raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers' or 'fireworks'."
+            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers', 'fireworks', or 'mlx'."
         )
 
 
@@ -278,6 +297,67 @@ def _generate_transformers(system_prompt, user_prompt, token_budget, selected_mo
     return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
 
+def _mlx_sampler():
+    try:
+        from mlx_lm.sample_utils import make_sampler
+    except ImportError as exc:
+        raise LocalLLMError("Installed mlx-lm does not include sample_utils.make_sampler.") from exc
+
+    return make_sampler(temp=temperature(), top_p=1.0, top_k=50)
+
+
+def _generate_mlx(system_prompt, user_prompt, token_budget, selected_model):
+    try:
+        from mlx_lm import generate
+    except ImportError as exc:
+        raise LocalLLMError(
+            "MLX backend is not installed. Install mlx-lm before using this provider."
+        ) from exc
+
+    start_load = time.perf_counter()
+    model, tokenizer = _load_mlx_model(selected_model)
+    load_time = time.perf_counter() - start_load
+
+    prompt = _chat_prompt(tokenizer, system_prompt, user_prompt)
+
+    start_infer = time.perf_counter()
+    text = generate(
+        model,
+        tokenizer,
+        prompt=prompt,
+        max_tokens=token_budget or max_tokens(),
+        sampler=_mlx_sampler(),
+        verbose=False,
+    )
+    infer_time = time.perf_counter() - start_infer
+
+    logger.info("MLX model %r loaded in %.2fs. Inference completed in %.2fs.", selected_model, load_time, infer_time)
+    return text.strip()
+
+
+def _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model):
+    try:
+        from mlx_lm import stream_generate
+    except ImportError as exc:
+        raise LocalLLMError(
+            "MLX backend is not installed. Install mlx-lm before using this provider."
+        ) from exc
+
+    model, tokenizer = _load_mlx_model(selected_model)
+    prompt = _chat_prompt(tokenizer, system_prompt, user_prompt)
+
+    for response in stream_generate(
+        model,
+        tokenizer,
+        prompt=prompt,
+        max_tokens=token_budget or max_tokens(),
+        sampler=_mlx_sampler(),
+    ):
+        text = getattr(response, "text", response)
+        if text:
+            yield text
+
+
 def _get_openai_client():
     try:
         from openai import OpenAI
@@ -331,5 +411,9 @@ def _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selecte
         stream=True,
     )
     for chunk in response:
-        if chunk.choices[0].delta.content is not None:
-            yield chunk.choices[0].delta.content
+        if not getattr(chunk, "choices", None):
+            continue
+        delta = getattr(chunk.choices[0], "delta", None)
+        content = getattr(delta, "content", None)
+        if content is not None:
+            yield content

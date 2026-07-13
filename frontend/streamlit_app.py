@@ -12,14 +12,28 @@ import streamlit as st
 from frontend.api_client import APIClient
 
 api_client = APIClient()
+
+
+def display_model_name(model):
+    if not model:
+        return "configured model"
+    model_name = str(model).split("/")[-1]
+    return model_name.removesuffix("-4bit")
+
+
+def display_mode_label(mode, model):
+    mode_name = "Fast Mode" if mode == "fast" else "Deep Mode"
+    return f"{mode_name} - {display_model_name(model)}"
+
+
 MODE_OPTIONS = {
     "fast": {
-        "label": "Fast Mode (Local MLX/Rocm)",
+        "label": "Fast Mode - gemma-2-2b-it",
         "short": "Fast",
         "purpose": "Quick insights, shorter responses.",
     },
     "deep": {
-        "label": "Deep Mode (DeepSeek-v4-Pro)",
+        "label": "Deep Mode - deepseek-v4-pro",
         "short": "Deep",
         "purpose": "Detailed analysis, prototype guidance.",
     },
@@ -178,8 +192,11 @@ def render_list_or_body(text, ordered=False):
 
 
 def render_citation_spans(text):
-    escaped = html.escape(text)
-    return re.sub(r"\[(\d+)\]", r'<span class="cite">[\1]</span>', escaped)
+    return html.escape(strip_evidence_citations(text))
+
+
+def strip_evidence_citations(text):
+    return re.sub(r"\s*\[(?:Evidence\s*)?\d+\]", "", text or "", flags=re.IGNORECASE)
 
 
 def pulse_loading_html(label):
@@ -357,30 +374,12 @@ def stream_research_plan(papers, summaries, query, generation_mode):
     )
 
 
-def research_plan_cache_status(papers, summaries, query, generation_mode):
-    return post_json(
-        "/research-plan/cache-status",
-        {
-            "papers": papers,
-            "summaries": summaries,
-            "query": query,
-            "generation_mode": generation_mode,
-        },
-    )
-
-
-def paper_guidance_cache_status(paper, generation_mode):
-    payload = dict(paper)
-    payload["generation_mode"] = generation_mode
-    return post_json("/paper-guidance/cache-status", payload)
-
-
-def paper_cache_id(paper):
+def paper_widget_id(paper):
     return paper.get("paper_id") or paper.get("url") or paper.get("link") or paper["title"]
 
 
-def guidance_cache_id(paper, generation_mode):
-    return f"{generation_mode}:{paper_cache_id(paper)}"
+def paper_display_id(paper, generation_mode):
+    return f"{generation_mode}:{paper_widget_id(paper)}"
 
 
 def paper_label(index, paper):
@@ -416,9 +415,10 @@ def applied_focus_categories(research_lens):
 def mode_config(config, generation_mode):
     public_modes = (config or {}).get("generation_modes", {})
     fallback = MODE_OPTIONS[generation_mode]
+    model = public_modes.get(generation_mode, {}).get("model", "configured model")
     return {
-        "label": public_modes.get(generation_mode, {}).get("label", fallback["label"]),
-        "model": public_modes.get(generation_mode, {}).get("model", "configured model"),
+        "label": display_mode_label(generation_mode, model) if model != "configured model" else fallback["label"],
+        "model": model,
         "purpose": public_modes.get(generation_mode, {}).get("purpose", fallback["purpose"]),
     }
 
@@ -914,16 +914,15 @@ def render_results_table(papers):
 
 def render_technical_dashboard(papers, config=None):
     with st.expander("Technical dashboard", expanded=False):
-        st.caption("Retrieval diagnostics and model/runtime details.")
+        st.caption("Retrieval diagnostics and model details.")
         if config:
             llm_models = config.get("llm_models", {})
-            metric_cols = st.columns(4)
-            metric_cols[0].metric("Provider", config.get("llm_provider", "unknown"))
-            metric_cols[1].metric("Summary model", llm_models.get("summary", "unknown"))
-            metric_cols[2].metric("Guidance model", llm_models.get("guidance", "unknown"))
-            metric_cols[3].metric(
+            metric_cols = st.columns(3)
+            metric_cols[0].metric("Summary model", display_model_name(llm_models.get("summary")))
+            metric_cols[1].metric("Guidance model", display_model_name(llm_models.get("guidance")))
+            metric_cols[2].metric(
                 "Research Plan model",
-                llm_models.get("research_plan", "unknown"),
+                display_model_name(llm_models.get("research_plan")),
             )
 
         category_counts = {}
@@ -980,8 +979,9 @@ def render_paper_cards(
 
     for index, paper in enumerate(papers):
         summary = summaries[index] if index < len(summaries) else None
-        cache_id = paper_cache_id(paper)
-        guidance_id = guidance_cache_id(paper, generation_mode)
+        paper_widget_key = paper_widget_id(paper)
+        display_key = paper_display_id(paper, generation_mode)
+        paper_outputs = st.session_state.paper_outputs.setdefault(display_key, {})
         label = paper_label(all_labels.index(paper) + 1, paper) if paper in all_labels else paper_label(index + 1, paper)
         title = html.escape(paper["title"])
         authors = html.escape(", ".join(paper.get("authors", [])[:5]) or "Unknown authors")
@@ -1003,9 +1003,8 @@ def render_paper_cards(
             meta_parts.append(html.escape(citation_text))
         metadata_line = " · ".join(meta_parts)
 
-        if "on_demand_summaries" not in st.session_state:
-            st.session_state.on_demand_summaries = {}
-        inline_summary = summary or st.session_state.on_demand_summaries.get(cache_id)
+        inline_summary = summary or paper_outputs.get("summary")
+        inline_guidance = paper_outputs.get("guidance")
 
         with st.container(border=True):
             st.markdown(
@@ -1040,7 +1039,7 @@ def render_paper_cards(
                 checked = select_col.checkbox(
                     "Select",
                     value=label in selected_set,
-                    key=f"select-paper-{scope}-{cache_id}",
+                    key=f"select-paper-{scope}-{paper_widget_key}",
                 )
                 if checked:
                     selected_set.add(label)
@@ -1048,20 +1047,19 @@ def render_paper_cards(
                     selected_set.discard(label)
             if url:
                 open_col.link_button("Open", url)
-            summary_clicked = summary_col.button("Summary", key=f"paper-summary-button-{scope}-{cache_id}")
-            guidance_clicked = guidance_col.button("Guidance", key=f"paper-guidance-button-{scope}-{cache_id}")
+            summary_clicked = summary_col.button("Summary", key=f"paper-summary-button-{scope}-{paper_widget_key}")
+            guidance_clicked = guidance_col.button("Guidance", key=f"paper-guidance-button-{scope}-{paper_widget_key}")
 
             panel_placeholder = st.empty()
-            if summary_clicked and not inline_summary:
+            if summary_clicked:
                 panel_placeholder.markdown(
                     paper_insight_loading_html("Summary", "Summarizing this paper..."),
                     unsafe_allow_html=True,
                 )
                 try:
                     inline_summary = summarize_paper(paper, st.session_state.generation_mode)
-                    st.session_state.on_demand_summaries[cache_id] = inline_summary
+                    paper_outputs["summary"] = inline_summary
                     panel_placeholder.empty()
-                    st.rerun()
                 except requests.ConnectionError:
                     panel_placeholder.error(
                         "The backend is not running. Start it with: uvicorn backend.app:app --reload"
@@ -1071,21 +1069,15 @@ def render_paper_cards(
                 except requests.RequestException as exc:
                     panel_placeholder.error(f"Could not reach the backend: {exc}")
 
-            if guidance_clicked and guidance_id not in st.session_state.paper_guidance:
+            if guidance_clicked:
                 panel_placeholder.markdown(
                     paper_insight_loading_html("Guidance", "Generating guidance..."),
                     unsafe_allow_html=True,
                 )
                 try:
-                    status = paper_guidance_cache_status(paper, generation_mode)
-                    if status.get("cached"):
-                        panel_placeholder.markdown(
-                            paper_insight_loading_html("Guidance", "Loading cached guidance..."),
-                            unsafe_allow_html=True,
-                        )
-                    st.session_state.paper_guidance[guidance_id] = generate_paper_guidance(paper, generation_mode)
+                    inline_guidance = generate_paper_guidance(paper, generation_mode)
+                    paper_outputs["guidance"] = inline_guidance
                     panel_placeholder.empty()
-                    st.rerun()
                 except requests.ConnectionError:
                     panel_placeholder.error(
                         "The backend is not running. Start it with: uvicorn backend.app:app --reload"
@@ -1097,11 +1089,8 @@ def render_paper_cards(
 
             if inline_summary:
                 st.markdown(paper_insight_panel_html("Summary", inline_summary), unsafe_allow_html=True)
-            if guidance_id in st.session_state.paper_guidance:
-                st.markdown(
-                    paper_insight_panel_html("Guidance", st.session_state.paper_guidance[guidance_id]),
-                    unsafe_allow_html=True,
-                )
+            if inline_guidance:
+                st.markdown(paper_insight_panel_html("Guidance", inline_guidance), unsafe_allow_html=True)
 
     if selectable:
         valid_all_labels = [paper_label(index, paper) for index, paper in enumerate(all_labels, start=1)]
@@ -1118,17 +1107,6 @@ st.markdown(
     '<div class="af-subtitle">Question → Papers → Plan</div>',
     unsafe_allow_html=True,
 )
-
-with st.sidebar:
-    st.header("Backend Config")
-    health = api_client.health_check()
-    st.write(f"**Mode:** VERCEL PROXY")
-    if health.get("status") == "ok":
-        st.success("Backend: Online")
-        st.write(f"**Provider:** {health.get('provider')}")
-        st.write(f"**Model:** {health.get('model')}")
-    else:
-        st.error(f"Backend: Offline\n\n{health.get('message', 'Unknown error')}")
 
 try:
     config = get_config()
@@ -1153,10 +1131,8 @@ if "generated_labels" not in st.session_state:
     st.session_state.generated_labels = []
 if "generated_mode" not in st.session_state:
     st.session_state.generated_mode = ""
-if "paper_guidance" not in st.session_state:
-    st.session_state.paper_guidance = {}
-if "on_demand_summaries" not in st.session_state:
-    st.session_state.on_demand_summaries = {}
+if "paper_outputs" not in st.session_state:
+    st.session_state.paper_outputs = {}
 if "generation_mode" not in st.session_state:
     st.session_state.generation_mode = "fast"
 if "research_lens" not in st.session_state:
@@ -1178,7 +1154,7 @@ with st.container(border=True, key="search_shell"):
     st.session_state.generation_mode = st.radio(
         "Analysis Mode",
         options=["fast", "deep"],
-        format_func=lambda x: MODE_OPTIONS[x]["label"],
+        format_func=lambda x: mode_config(config, x)["label"],
         horizontal=True,
         label_visibility="collapsed",
     )
@@ -1186,8 +1162,8 @@ with st.container(border=True, key="search_shell"):
 
     search_cols = st.columns([5, 1.05], vertical_alignment="bottom", gap="medium")
     research_question = search_cols[0].text_input(
-        "Question or link",
-        placeholder="Ask a research question or add a link",
+        "Research question",
+        placeholder="Ask a research question",
         value=default_query,
         label_visibility="collapsed",
     )
@@ -1249,7 +1225,7 @@ if should_search:
             st.session_state.research_plan_elapsed = None
             st.session_state.generated_labels = []
             st.session_state.generated_mode = ""
-            st.session_state.paper_guidance = {}
+            st.session_state.paper_outputs = {}
             labels = [
                 paper_label(index, paper)
                 for index, paper in enumerate(st.session_state.papers, start=1)
@@ -1320,28 +1296,6 @@ if papers:
     else:
         st.warning("Select at least one paper to generate a Research Plan.")
 
-    if selected_papers and st.session_state.summaries and selected_labels == st.session_state.generated_labels:
-        cache_placeholder = st.empty()
-        try:
-            cache_placeholder.markdown(
-                pulse_loading_html("Checking Research Plan cache..."),
-                unsafe_allow_html=True,
-            )
-            status = research_plan_cache_status(
-                selected_papers,
-                st.session_state.summaries,
-                st.session_state.last_query or research_question.strip(),
-                st.session_state.generation_mode,
-            )
-            cache_placeholder.empty()
-            if status.get("cached"):
-                st.success(f"Research Plan cache: ready from {status.get('cache')} cache.")
-            else:
-                st.info(f"Research Plan cache: miss. Next generation will run {active_mode['label']}.")
-        except requests.RequestException:
-            cache_placeholder.empty()
-            pass
-
     with st.container(border=True):
         control_cols = st.columns([3, 1.25])
         control_cols[0].markdown(
@@ -1365,11 +1319,6 @@ if papers:
         try:
             selected_summaries = []
             for paper in selected_papers:
-                cache_id = paper_cache_id(paper)
-                if cache_id in st.session_state.on_demand_summaries:
-                    selected_summaries.append(st.session_state.on_demand_summaries[cache_id])
-                    continue
-
                 with plan_placeholder.container():
                     render_research_plan_loading_state("Summarizing selected evidence...")
                 summary = summarize_paper(paper, st.session_state.generation_mode)
@@ -1387,7 +1336,7 @@ if papers:
                 st.session_state.generation_mode,
             ):
                 research_plan_chunks.append(chunk)
-            st.session_state.research_plan = "".join(research_plan_chunks).strip()
+            st.session_state.research_plan = strip_evidence_citations("".join(research_plan_chunks)).strip()
             st.session_state.research_plan_elapsed = time.perf_counter() - research_plan_started
             plan_placeholder.empty()
             st.session_state.generated_labels = selected_labels
@@ -1415,10 +1364,7 @@ if papers:
     if can_show_generated_output:
         if st.session_state.research_plan_elapsed is not None:
             elapsed = st.session_state.research_plan_elapsed
-            if elapsed < 1:
-                st.success(f"Research Plan loaded from cache in {elapsed:.2f}s.")
-            else:
-                st.info(f"Research Plan generated with {active_mode['label']} in {elapsed:.2f}s.")
+            st.info(f"Research Plan generated with {active_mode['label']} in {elapsed:.2f}s.")
         render_research_plan_panel(st.session_state.research_plan)
 
         markdown = "## Research Plan\n\n"
