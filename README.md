@@ -79,22 +79,27 @@ On AMD ROCm, the diagnostics should show `"accelerator":"rocm"`. Retrieval uses 
 Live demo: [academicforge-demo.streamlit.app](https://academicforge-demo.streamlit.app/)
 
 The hosted Streamlit Cloud version is a lightweight preview of AcademicForge,
-not the full hackathon build. It is designed to show the core research-planning
-flow in a public, cost-controlled environment without requiring local GPUs,
-model downloads, Fireworks credits, or a running FastAPI backend.
+not the full hackathon build. It keeps the original Streamlit interface from
+the main app, but routes actions through a cloud-safe demo runtime so the public
+URL can show the research-planning flow without requiring local GPUs, model
+downloads, Fireworks credits, or a running FastAPI backend.
 
-The demo intentionally uses a separate Streamlit entry point:
+The demo intentionally uses a separate Streamlit entry point that launches the
+same UI with cloud-safe settings:
 
 ```text
 frontend/streamlit_cloud_app.py
 ```
 
-This public version does not run the complete interface, local MLX/ROCm compute
-path, full backend workflow, or production model/API configuration. Most of the
-full application features are available only when running the project locally
-from this repository. The hosted demo focuses on a stripped-down Research Plan
-workflow that illustrates how the retrieval-to-plan experience is intended to
-work.
+This public version uses the original UI layout, live academic search, ranked
+paper cards, Research Lens selection, retrieval diagnostics, selectable
+evidence, downloadable Markdown plans, and lightweight Summary, Guidance, and
+Research Plan panels. The Summary and Guidance panels are evidence-based
+previews derived from paper titles, abstracts, sources, and ranking metadata.
+
+The hosted demo does not run the local MLX/ROCm compute path, FastAPI backend,
+or production model/API configuration. The complete model-backed experience is
+available when running the project locally from this repository.
 
 To protect usage and avoid unintended API spend, the hosted demo:
 
@@ -109,6 +114,11 @@ For the best and complete experience, run the full application locally using the
 setup instructions below. The local path is the intended version for the full
 hackathon workflow, including FastAPI, Streamlit, hybrid retrieval, reranking,
 local MLX/ROCm generation, and optional Fireworks-based synthesis.
+
+Small Gemma-family models can be enabled only in environments that can satisfy
+the required Hugging Face access, model download, and compute requirements. They
+are intentionally not enabled by default in the hosted demo so the public app
+remains stable and inexpensive to run.
 
 See `docs/streamlit_cloud.md` for Streamlit Cloud deployment settings and
 optional Fireworks controls.
