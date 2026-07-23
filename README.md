@@ -74,21 +74,44 @@ curl http://127.0.0.1:8000/version
 
 On AMD ROCm, the diagnostics should show `"accelerator":"rocm"`. Retrieval uses the PyTorch device name `"cuda"` even on ROCm, so `"retrieval_device":"cuda"` means the BGE retrieval models are on the AMD GPU through PyTorch/ROCm.
 
-## Streamlit Cloud Demo
+## Hosted Demo
 
-For a low-cost public demo, use the standalone Streamlit entry point:
+Live demo: [academicforge-demo.streamlit.app](https://academicforge-demo.streamlit.app/)
+
+The hosted Streamlit Cloud version is a lightweight preview of AcademicForge,
+not the full hackathon build. It is designed to show the core research-planning
+flow in a public, cost-controlled environment without requiring local GPUs,
+model downloads, Fireworks credits, or a running FastAPI backend.
+
+The demo intentionally uses a separate Streamlit entry point:
 
 ```text
 frontend/streamlit_cloud_app.py
 ```
 
-This cloud version does not start FastAPI, does not download local model weights,
-and does not call paid LLM APIs by default. It runs live paper retrieval with
-lightweight dependencies, falls back to synthetic demo records when public paper
-APIs fail, and allows one cloud analysis per IP address using a salted hash.
+This public version does not run the complete interface, local MLX/ROCm compute
+path, full backend workflow, or production model/API configuration. Most of the
+full application features are available only when running the project locally
+from this repository. The hosted demo focuses on a stripped-down Research Plan
+workflow that illustrates how the retrieval-to-plan experience is intended to
+work.
 
-See `docs/streamlit_cloud.md` for Streamlit Cloud settings and optional
-Fireworks controls.
+To protect usage and avoid unintended API spend, the hosted demo:
+
+- does not call paid LLM APIs by default;
+- does not use the full local model compute path;
+- limits each IP address to one cloud analysis using a salted hash;
+- stores usage counts without storing raw IP addresses;
+- falls back to lightweight demo data when public academic-source APIs are
+  unavailable.
+
+For the best and complete experience, run the full application locally using the
+setup instructions below. The local path is the intended version for the full
+hackathon workflow, including FastAPI, Streamlit, hybrid retrieval, reranking,
+local MLX/ROCm generation, and optional Fireworks-based synthesis.
+
+See `docs/streamlit_cloud.md` for Streamlit Cloud deployment settings and
+optional Fireworks controls.
 
 ## AMD VM Setup
 
