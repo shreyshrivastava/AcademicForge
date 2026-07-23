@@ -886,6 +886,23 @@ def render_status_banner(config, generation_mode):
         )
         return
 
+    if config.get("llm_provider") == "cloud_demo":
+        st.markdown(
+            """
+            <div class="af-helper-card">
+                <div class="af-helper-title">Hosted demo version</div>
+                <div class="af-helper-text">
+                    This public demo keeps the original AcademicForge interface, but uses a
+                    cloud-safe deterministic runtime. It does not run the local FastAPI,
+                    MLX/ROCm, full Gemma, or paid Fireworks path by default. Research Plan
+                    generation is limited to one use per IP address, and live search may
+                    fall back to sample data if public academic APIs rate-limit.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     return
 
 

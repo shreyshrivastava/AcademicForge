@@ -101,6 +101,27 @@ The hosted demo does not run the local MLX/ROCm compute path, FastAPI backend,
 or production model/API configuration. The complete model-backed experience is
 available when running the project locally from this repository.
 
+### Known limitations of the hosted demo
+
+The public demo is intentionally constrained so it can stay available on
+Streamlit Community Cloud without unexpected cost. These are the main
+limitations reviewers should understand:
+
+- Research Plan generation is limited to one use per IP address, stored as a
+  salted hash rather than a raw IP address.
+- Summary, Guidance, and Research Plan outputs are deterministic previews based
+  on paper titles, abstracts, source metadata, and ranking signals. They are not
+  full Gemma, MLX, ROCm, or Fireworks model generations.
+- Public academic-source APIs can rate-limit or fail. When that happens, the
+  demo falls back to a small synthetic sample so the interface remains usable.
+- Dense retrieval and reranking use lightweight fallback behavior on Streamlit
+  Cloud because sentence-transformer weights are not downloaded there.
+- The demo works from abstracts and metadata only; it does not read full PDFs or
+  verify every claim inside the full paper.
+- The local SQLite usage limiter can reset if Streamlit Cloud restarts,
+  rebuilds, or redeploys the app. It is a cost-control mechanism, not
+  authentication.
+
 To protect usage and avoid unintended API spend, the hosted demo:
 
 - does not call paid LLM APIs by default;
