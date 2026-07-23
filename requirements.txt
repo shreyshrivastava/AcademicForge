@@ -1,0 +1,7 @@
+# Lightweight requirements for Streamlit Cloud.
+# Local MLX/ROCm demos should keep using requirements-local.txt.
+streamlit>=1.37.0
+arxiv>=1.4.0
+requests>=2.31.0
+numpy>=1.24.0
+openai>=1.0.0

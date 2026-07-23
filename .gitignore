@@ -2,8 +2,10 @@
 __pycache__/
 *.py[cod]
 .venv/
+.venv-cloud/
 venv/
 .DS_Store
 .streamlit/
 .academicforge_cache/
+.academicforge_cloud/
 benchmark-results.*

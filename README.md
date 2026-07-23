@@ -74,6 +74,22 @@ curl http://127.0.0.1:8000/version
 
 On AMD ROCm, the diagnostics should show `"accelerator":"rocm"`. Retrieval uses the PyTorch device name `"cuda"` even on ROCm, so `"retrieval_device":"cuda"` means the BGE retrieval models are on the AMD GPU through PyTorch/ROCm.
 
+## Streamlit Cloud Demo
+
+For a low-cost public demo, use the standalone Streamlit entry point:
+
+```text
+frontend/streamlit_cloud_app.py
+```
+
+This cloud version does not start FastAPI, does not download local model weights,
+and does not call paid LLM APIs by default. It runs live paper retrieval with
+lightweight dependencies, falls back to synthetic demo records when public paper
+APIs fail, and allows one cloud analysis per IP address using a salted hash.
+
+See `docs/streamlit_cloud.md` for Streamlit Cloud settings and optional
+Fireworks controls.
+
 ## AMD VM Setup
 
 On the Radeon VM used during testing:
