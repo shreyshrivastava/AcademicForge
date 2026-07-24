@@ -153,12 +153,6 @@ A good short demo query:
 Reducing hallucinations in retrieval augmented generation
 ```
 
-For an AMD-focused demo:
-
-```text
-How do I optimize FlashAttention on AMD MI300?
-```
-
 ## Tests
 
 After dependencies are installed:
