@@ -153,7 +153,11 @@ class LLMService:
 
     def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
+        config = get_config()
+        if config.remote_llm_enabled and selected_model == config.remote_llm_model:
+            effective_provider = "remote"
+        else:
+            effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
         if effective_provider == "transformers":
             return _clean_response(
                 _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
@@ -162,6 +166,27 @@ class LLMService:
             return _clean_response(
                 _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model)
             )
+        if effective_provider == "remote":
+            try:
+                return _clean_response(
+                    _generate_remote(
+                        system_prompt,
+                        user_prompt,
+                        token_budget,
+                        selected_model,
+                        config.remote_llm_base_url,
+                        config.remote_llm_api_key,
+                        config.remote_llm_provider,
+                    )
+                )
+            except Exception as exc:
+                logger.warning("Remote Deep Mode failed; falling back to local model: %s", exc)
+                fallback_model = config.llm_model
+                if config.llm_provider == "mlx":
+                    return _clean_response(_generate_mlx(system_prompt, user_prompt, token_budget, fallback_model))
+                return _clean_response(
+                    _generate_transformers(system_prompt, user_prompt, token_budget, fallback_model)
+                )
         if effective_provider == "mlx":
             return _clean_response(
                 _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
@@ -172,12 +197,31 @@ class LLMService:
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
         selected_model = model or model_name(task)
-        effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
+        config = get_config()
+        if config.remote_llm_enabled and selected_model == config.remote_llm_model:
+            effective_provider = "remote"
+        else:
+            effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
         if effective_provider == "transformers":
             yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
             return
         if effective_provider == "fireworks":
             yield from _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model)
+            return
+        if effective_provider == "remote":
+            try:
+                yield from _generate_remote_stream(
+                    system_prompt,
+                    user_prompt,
+                    token_budget,
+                    selected_model,
+                    config.remote_llm_base_url,
+                    config.remote_llm_api_key,
+                    config.remote_llm_provider,
+                )
+            except Exception as exc:
+                logger.warning("Remote Deep Mode stream failed; falling back to local model: %s", exc)
+                yield self.generate(system_prompt, user_prompt, token_budget, task, config.llm_model)
             return
         if effective_provider == "mlx":
             yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
@@ -369,6 +413,64 @@ def _get_openai_client():
         raise LocalLLMError(
             "OpenAI client not installed. Run `pip install openai`."
         ) from exc
+
+
+def _get_remote_client(base_url, api_key):
+    try:
+        from openai import OpenAI
+        return OpenAI(base_url=base_url, api_key=api_key)
+    except ImportError as exc:
+        raise LocalLLMError(
+            "OpenAI client not installed. Run `pip install openai`."
+        ) from exc
+
+
+def _remote_request_options(token_budget):
+    base_budget = token_budget or max_tokens()
+    return {
+        "max_tokens": min(base_budget * 2 + 500, 4096),
+        "temperature": 0.6,
+    }
+
+
+def _generate_remote(system_prompt, user_prompt, token_budget, selected_model, base_url, api_key, provider):
+    client = _get_remote_client(base_url, api_key)
+    options = _remote_request_options(token_budget)
+    if provider == "groq":
+        options["reasoning_effort"] = os.getenv("REMOTE_LLM_REASONING_EFFORT", "medium")
+    response = client.chat.completions.create(
+        model=selected_model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        **options,
+        stream=False,
+    )
+    return response.choices[0].message.content
+
+
+def _generate_remote_stream(system_prompt, user_prompt, token_budget, selected_model, base_url, api_key, provider):
+    client = _get_remote_client(base_url, api_key)
+    options = _remote_request_options(token_budget)
+    if provider == "groq":
+        options["reasoning_effort"] = os.getenv("REMOTE_LLM_REASONING_EFFORT", "medium")
+    response = client.chat.completions.create(
+        model=selected_model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        **options,
+        stream=True,
+    )
+    for chunk in response:
+        if not getattr(chunk, "choices", None):
+            continue
+        delta = getattr(chunk.choices[0], "delta", None)
+        content = getattr(delta, "content", None)
+        if content is not None:
+            yield content
 
 
 def _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model):

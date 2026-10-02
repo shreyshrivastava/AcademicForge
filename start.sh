@@ -16,7 +16,7 @@ fi
 
 if [ -z "$LOCAL_LLM_MODEL" ] && { [ "$LOCAL_LLM_PROVIDER" = "mlx" ] || { [ "$LOCAL_LLM_PROVIDER" = "auto" ] && [ "$(uname -s)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ]; }; }; then
   export LOCAL_LLM_MODEL="${LOCAL_LLM_MODEL:-mlx-community/gemma-2-2b-it-4bit}"
-elif [ -z "$LOCAL_LLM_MODEL" ] && { [ "$LOCAL_LLM_PROVIDER" = "transformers" ] || [ "$LOCAL_LLM_PROVIDER" = "amd" ] || [ "$LOCAL_LLM_PROVIDER" = "rocm" ] || [ "$LOCAL_LLM_PROVIDER" = "auto" ]; }; then
+elif [ -z "$LOCAL_LLM_MODEL" ] && { [ "$LOCAL_LLM_PROVIDER" = "transformers" ] || [ "$LOCAL_LLM_PROVIDER" = "amd" ] || [ "$LOCAL_LLM_PROVIDER" = "rocm" ] || [ "$LOCAL_LLM_PROVIDER" = "cuda" ] || [ "$LOCAL_LLM_PROVIDER" = "nvidia" ] || [ "$LOCAL_LLM_PROVIDER" = "pytorch" ] || [ "$LOCAL_LLM_PROVIDER" = "auto" ]; }; then
   export LOCAL_LLM_MODEL="${LOCAL_LLM_MODEL:-google/gemma-2-2b-it}"
 fi
 if [ -n "$LOCAL_LLM_MODEL" ]; then

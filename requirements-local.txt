@@ -7,9 +7,8 @@ requests>=2.31.0
 httpx>=0.24.0
 uvicorn>=0.22.0
 
---extra-index-url https://download.pytorch.org/whl/rocm6.0
-
-# PyTorch / AMD ROCm GPU Acceleration Backend (Transformers)
+# PyTorch backend. Install a platform-specific requirements file below when using
+# a CUDA or ROCm GPU.
 torch
 transformers>=4.38.0
 accelerate>=0.26.0

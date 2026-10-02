@@ -19,7 +19,7 @@ Streamlit UI
   -> selected evidence papers
   -> local Gemma summaries and guidance
   -> compact Research Plan context
-  -> Fireworks DeepSeek Research Plan when key exists
+  -> local Gemma Research Plan, or opt-in Fireworks DeepSeek
 ```
 
 ## Backend Routes
@@ -35,11 +35,14 @@ Streamlit UI
 
 ## Model Routing
 
-- `LOCAL_LLM_PROVIDER=auto` selects MLX on Apple Silicon and Transformers elsewhere.
+- `LOCAL_LLM_PROVIDER=auto` selects MLX on Apple Silicon and Transformers/PyTorch elsewhere.
+- The Transformers/PyTorch backend supports both NVIDIA CUDA and AMD ROCm. The
+  application uses the same code path for both because PyTorch exposes both
+  accelerators through its CUDA device API.
 - Fast local model on AMD/ROCm: `google/gemma-2-2b-it`.
 - Fast local model on Apple Silicon: `mlx-community/gemma-2-2b-it-4bit`.
-- Research Plan model: `accounts/fireworks/models/deepseek-v4-pro` when `FIREWORKS_API_KEY` exists.
-- Research Plan fallback: local Gemma when Fireworks is not configured.
+- Research Plan defaults to local Gemma.
+- Fireworks DeepSeek is used only when `LOCAL_LLM_USE_FIREWORKS=true`.
 
 ## Retrieval
 
@@ -51,7 +54,7 @@ The retrieval layer lives in `backend/retrieval/`.
 - `reranker.py` applies a BGE cross-encoder.
 - `device.py` selects GPU by default when PyTorch exposes one.
 
-On ROCm, PyTorch exposes AMD GPUs through the `cuda` API, so `retrieval_device: cuda` in `/version` is expected.
+On ROCm, PyTorch exposes AMD GPUs through the `cuda` API, so `retrieval_device: cuda` in `/version` is expected. On NVIDIA, the same field indicates CUDA-backed retrieval.
 
 ## Frontend
 

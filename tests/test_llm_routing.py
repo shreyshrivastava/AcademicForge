@@ -100,11 +100,19 @@ def test_research_plan_prefers_fireworks_when_key_is_present():
         "LOCAL_LLM_RESEARCH_PLAN_MODEL",
         "FIREWORKS_API_KEY",
         "FIREWORKS_MODEL",
+        "LOCAL_LLM_USE_FIREWORKS",
+        "REMOTE_LLM_USE_FOR_DEEP",
+        "REMOTE_LLM_PROVIDER",
+        "REMOTE_LLM_BASE_URL",
+        "REMOTE_LLM_MODEL",
+        "REMOTE_LLM_API_KEY",
+        "GROQ_API_KEY",
     )}
     try:
         os.environ["LOCAL_LLM_PROVIDER"] = "transformers"
         os.environ["LOCAL_LLM_MODEL"] = "google/gemma-2-2b-it"
         os.environ["FIREWORKS_API_KEY"] = "test-key"
+        os.environ["LOCAL_LLM_USE_FIREWORKS"] = "true"
         os.environ.pop("LOCAL_LLM_DEEP_MODEL", None)
         os.environ.pop("LOCAL_LLM_RESEARCH_PLAN_MODEL", None)
         os.environ.pop("FIREWORKS_MODEL", None)
@@ -127,17 +135,53 @@ def test_research_plan_falls_back_to_local_without_fireworks_key():
         "LOCAL_LLM_DEEP_MODEL",
         "LOCAL_LLM_RESEARCH_PLAN_MODEL",
         "FIREWORKS_API_KEY",
+        "LOCAL_LLM_USE_FIREWORKS",
     )}
     try:
         os.environ["LOCAL_LLM_PROVIDER"] = "transformers"
         os.environ["LOCAL_LLM_MODEL"] = "google/gemma-2-2b-it"
         os.environ.pop("FIREWORKS_API_KEY", None)
+        os.environ.pop("LOCAL_LLM_USE_FIREWORKS", None)
         os.environ.pop("LOCAL_LLM_DEEP_MODEL", None)
         os.environ.pop("LOCAL_LLM_RESEARCH_PLAN_MODEL", None)
 
         app_config = config.AppConfig.from_env()
 
         assert app_config.llm_research_plan_model == "google/gemma-2-2b-it"
+    finally:
+        for name, value in saved.items():
+            _restore_env(name, value)
+
+
+def test_groq_deep_mode_uses_remote_model_and_keeps_mlx_fast_model():
+    saved = {name: os.environ.get(name) for name in (
+        "LOCAL_LLM_PROVIDER",
+        "LOCAL_LLM_MODEL",
+        "LOCAL_LLM_DEEP_MODEL",
+        "LOCAL_LLM_RESEARCH_PLAN_MODEL",
+        "REMOTE_LLM_USE_FOR_DEEP",
+        "REMOTE_LLM_PROVIDER",
+        "REMOTE_LLM_BASE_URL",
+        "REMOTE_LLM_MODEL",
+        "REMOTE_LLM_API_KEY",
+        "GROQ_API_KEY",
+    )}
+    try:
+        os.environ["LOCAL_LLM_PROVIDER"] = "mlx"
+        os.environ["LOCAL_LLM_MODEL"] = "mlx-community/gemma-2-2b-it-4bit"
+        os.environ["REMOTE_LLM_USE_FOR_DEEP"] = "true"
+        os.environ["REMOTE_LLM_PROVIDER"] = "groq"
+        os.environ["REMOTE_LLM_MODEL"] = "openai/gpt-oss-120b"
+        os.environ["GROQ_API_KEY"] = "test-key"
+        os.environ.pop("LOCAL_LLM_DEEP_MODEL", None)
+        os.environ.pop("LOCAL_LLM_RESEARCH_PLAN_MODEL", None)
+
+        app_config = config.AppConfig.from_env()
+
+        assert app_config.llm_model == "mlx-community/gemma-2-2b-it-4bit"
+        assert app_config.remote_llm_enabled
+        assert app_config.llm_research_plan_model == "openai/gpt-oss-120b"
+        assert app_config.model_for_task_and_mode("research_plan", "deep") == "openai/gpt-oss-120b"
     finally:
         for name, value in saved.items():
             _restore_env(name, value)

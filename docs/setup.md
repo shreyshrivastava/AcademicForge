@@ -17,12 +17,28 @@ python -m pip install --ignore-installed blinker -r requirements-local.txt
 cp .env.example .env
 ```
 
+For a cloud machine without MLX, install the PyTorch backend for its GPU:
+
+```bash
+# NVIDIA CUDA
+python -m pip install --ignore-installed blinker -r requirements-cuda.txt
+
+# AMD ROCm
+python -m pip install --ignore-installed blinker -r requirements-rocm.txt
+```
+
+Both GPU paths use the same `transformers` backend. PyTorch selects CUDA or
+ROCm at runtime, so the application and API routes do not change between them.
+Set `LOCAL_LLM_PROVIDER=transformers` in `.env` when deploying to a cloud GPU.
+The default model is `google/gemma-2-2b-it`; set `LOCAL_LLM_MODEL` to another
+Transformers-compatible model if needed.
+
 Edit `.env` and add real tokens if needed.
 
 ## Required Keys
 
 - `HF_TOKEN`: needed for gated Hugging Face models such as Gemma.
-- `FIREWORKS_API_KEY`: optional, but recommended. When present, Research Plan generation uses Fireworks DeepSeek.
+- `FIREWORKS_API_KEY`: optional credential for remote generation. It is not used unless `LOCAL_LLM_USE_FIREWORKS=true`.
 
 ## Run
 
@@ -65,11 +81,24 @@ https://radeon-global.anruicloud.com/instances/<instance-id>/proxy/8000/version
 
 Do not use `VERCEL_API_URL` or `/spaces/...` URLs.
 
+## NVIDIA CUDA Notes
+
+Install the CUDA-specific requirements on a CUDA-enabled image, then verify the
+runtime before starting the app:
+
+```bash
+python -m pip install --ignore-installed blinker -r requirements-cuda.txt
+LOCAL_LLM_PROVIDER=transformers curl http://127.0.0.1:8000/version
+```
+
+The response should report `"accelerator":"cuda"` when PyTorch can access the
+NVIDIA GPU.
+
 ## Current Routing
 
 - Fast Mode summaries and guidance use local Gemma.
-- Research Plan uses Fireworks DeepSeek when `FIREWORKS_API_KEY` is present.
-- Research Plan falls back to local Gemma when no Fireworks key exists.
+- Research Plan uses local Gemma by default.
+- Set `LOCAL_LLM_USE_FIREWORKS=true` to explicitly route Research Plan generation to Fireworks.
 - Dense retrieval and reranking use GPU by default when PyTorch exposes one.
 - Set `ACADEMICFORGE_RETRIEVAL_DEVICE=cpu` to force retrieval to CPU.
 

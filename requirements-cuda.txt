@@ -1,0 +1,5 @@
+# Common AcademicForge dependencies plus the CUDA PyTorch wheel.
+-r requirements-local.txt
+
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch

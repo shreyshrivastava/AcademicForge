@@ -10,6 +10,9 @@ from backend.retrieval import hybrid_search, rerank_results
 from backend.retrieval.bm25 import bm25_search
 from backend.retrieval.dense import dense_search
 from backend.retrieval.models import result_to_paper
+from backend.jev import enrich_papers_with_jev, rerank_papers_with_jev
+from backend.config import get_config
+from backend.search_cache import cache_key, get_cached, store
 
 
 logger = logging.getLogger(__name__)
@@ -259,6 +262,7 @@ def rank_papers(query: str, papers: list[dict], top_k: int = RERANK_POOL_SIZE) -
         result_to_paper(result)
         for result in rerank_results(query, retrieved, top_k=top_k)
     ]
+    ranked = rerank_papers_with_jev(query, ranked)
     logger.info("Papers ranked pool_size=%d", len(ranked))
     return ranked
 
@@ -415,6 +419,10 @@ def select_evidence_set(
     preferred_categories: list[str] | None = None,
 ) -> list[dict]:
     """Select a balanced 8-10 paper evidence set from the reranked pool."""
+
+    def in_rank_order(papers: list[dict]) -> list[dict]:
+        return sorted(papers, key=lambda paper: paper.get("metadata", {}).get("selection_rank", 0))
+
     selected = []
     selected_ids = set()
     preferred_set = {category for category in (preferred_categories or []) if category}
@@ -434,8 +442,8 @@ def select_evidence_set(
                 paper["metadata"]["category_focus_matched"] = True
                 _append_unique(selected, selected_ids, paper)
                 if len(selected) >= target:
-                    return selected
-        return selected
+                    return in_rank_order(selected)
+        return in_rank_order(selected)
 
     for category, quota in CORE_CATEGORY_QUOTAS.items():
         for paper in [item for item in annotated if item["metadata"]["academicforge_category"] == category]:
@@ -443,7 +451,7 @@ def select_evidence_set(
                 break
             _append_unique(selected, selected_ids, paper)
             if len(selected) >= target:
-                return selected
+                return in_rank_order(selected)
 
     for paper in annotated:
         _append_unique(selected, selected_ids, paper)
@@ -459,12 +467,19 @@ def select_evidence_set(
             for category in sorted({paper.get("metadata", {}).get("academicforge_category") for paper in selected})
         },
     )
-    return selected
+    return in_rank_order(selected)
 
 
 def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None = None) -> list[dict]:
     """End-to-end retrieval pipeline used by the API."""
     original_query = query.strip()
+    config = get_config()
+    key = cache_key(original_query, preferred_categories, config.search_mode)
+    cached = get_cached(key)
+    if cached is not None:
+        logger.info("Search cache hit query=%r result_count=%d", original_query, len(cached))
+        return cached
+
     search_query = rewrite_search_query(original_query)
     logger.info(
         "Retrieval query original_query=%r rewritten_query=%r source_query=%r",
@@ -475,6 +490,8 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
     candidates, direct_id = search_live_candidates(search_query)
     if direct_id:
         selected = select_evidence_set(candidates, target=1)
+        selected = enrich_papers_with_jev(original_query, selected)
+        store(key, selected)
         return selected
     papers = filter_relevant_papers(original_query, candidates)
     if len(papers) < FINAL_EVIDENCE_TARGET:
@@ -501,6 +518,7 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
     ranked = rank_papers(query, papers)
     selected = select_evidence_set(ranked, preferred_categories=preferred_categories)
     _log_final_selection(original_query, selected)
+    store(key, selected)
     return selected
 
 

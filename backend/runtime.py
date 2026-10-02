@@ -4,8 +4,8 @@ import importlib.util
 from functools import lru_cache
 
 
-RUNTIME_PROFILE = "MLX+AMD"
-APP_VERSION = "academicforge-local-mlx-amd"
+RUNTIME_PROFILE = "MLX+CUDA+ROCm"
+APP_VERSION = "academicforge-portable-inference"
 
 
 @lru_cache(maxsize=1)
@@ -21,6 +21,8 @@ def detect_runtime() -> dict:
         "accelerator": "cpu",
         "device": "cpu",
         "torch_available": False,
+        "cuda_available": False,
+        "cuda_version": None,
         "rocm_available": False,
         "mlx_available": False,
     }
@@ -38,6 +40,8 @@ def detect_runtime() -> dict:
         report["torch_available"] = True
         hip_version = getattr(torch.version, "hip", None)
         cuda_available = bool(torch.cuda.is_available())
+        report["cuda_available"] = cuda_available
+        report["cuda_version"] = getattr(torch.version, "cuda", None)
         report["rocm_available"] = bool(hip_version and cuda_available)
         report["torch_hip_version"] = hip_version
         if cuda_available:

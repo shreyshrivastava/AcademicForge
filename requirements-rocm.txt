@@ -1,0 +1,5 @@
+# Common AcademicForge dependencies plus the AMD ROCm PyTorch wheel.
+-r requirements-local.txt
+
+--extra-index-url https://download.pytorch.org/whl/rocm6.0
+torch
