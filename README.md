@@ -276,18 +276,37 @@ python tests/test_retrieval.py
 
 ## Screenshots And Proof
 
+### Architecture At A Glance
+
+The runtime is deliberately layered: the UI and FastAPI routes stay stable
+while retrieval, caching, OpenJev, and local inference can be selected by
+configuration.
+
+![AcademicForge isometric architecture](docs/assets/academicforge-architecture.svg)
+
 ### ROCm Runtime Proof
 
 ![AcademicForge AMD ROCm runtime version endpoint](docs/assets/amd-rocm-version-proof.png)
 
 The `/version` endpoint shows the app running on Linux with the Transformers backend, ROCm acceleration enabled, and an AMD Radeon device detected.
 
+### Search Experience
+
+![AcademicForge search results](docs/assets/academicforge-search-results.png)
+
+The live interface keeps the research question, analysis mode, research lens,
+and ranked paper evidence in one readable flow.
+
 ### Additional Demo Proof To Capture
 
-- Search results with BM25, dense, RRF, and categories.
-- Summary output.
-- Guidance output.
-- Research Plan output.
+- Search results with BM25, dense, RRF, categories, and the Fast/Quality mode badge.
+- Quality Mode results with the final OpenJev reranking metadata.
+- Summary and paper guidance for a selected paper.
+- Combined Research Plan generated from two or more selected papers.
+
+These views are intentionally kept as product screenshots rather than
+decorative illustrations: they show the judge exactly what can be tested in
+the live demo.
 
 ## Repository Layout
 
