@@ -76,9 +76,21 @@ Unit tests separately check metric arithmetic, duplicate rejection, empty retrie
 
 ## Generated-output faithfulness screen
 
-`benchmarks/faithfulness.py` retrieves papers for 20 fixed questions, runs the same summary function used by the application, and checks each generated sentence against all sentences in the selected abstracts using normalized `BAAI/bge-small-en-v1.5` embeddings. A sentence is flagged as supported when its highest cosine similarity is at least 0.62.
+`benchmarks/faithfulness.py` retrieves papers for 20 fixed questions, runs the same summary function used by the application, and compares each generated sentence with sentences from the selected abstracts using normalized `BAAI/bge-small-en-v1.5` embeddings. This is a screening heuristic, not factuality verification: semantic similarity can accept a related but contradicted claim.
 
-The [faithfulness artifact](faithfulness.json) contains a real local-Gemma run: 20 outputs, 63 generated sentences, and 63 heuristic support decisions. It does not establish factual correctness. Embedding similarity can miss valid paraphrases, and it can accept a semantically related but contradicted sentence. The [blind human-evaluation template](human_eval_template.csv) contains the same 20 query IDs without model labels or ratings.
+The original local-Gemma run contains 20 outputs and 63 sentence-level screening decisions, but “63/63 supported” is not a factuality claim. Run the deterministic mismatch and corruption controls before interpreting it:
+
+```bash
+python -m benchmarks.faithfulness --device cuda --controls-from docs/benchmarks/faithfulness.json
+```
+
+The resulting [control artifact](faithfulness_controls.json) reports real-support, mismatched-support, injected-claim flagging, and reversed-conclusion flagging at thresholds 0.50 through 0.80. If reversed conclusions remain unflagged, cosine similarity cannot distinguish them; use an entailment/contradiction model or human review. The blind sheet is built with:
+
+```bash
+python -m scripts.build_human_eval
+```
+
+It uses Gemma versus Fireworks when a Fireworks output is available with `FIREWORKS_API_KEY`; otherwise it uses Gemma versus Gemma with a deterministic corrupted sentence so raters can test whether they catch the corruption. The separate answer key is ignored by Git.
 
 Run it with:
 

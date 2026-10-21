@@ -34,6 +34,7 @@ DEFAULT_QUERIES = ROOT / "benchmarks" / "queries.json"
 DEFAULT_OUTPUT = ROOT / "docs" / "benchmarks" / "faithfulness.json"
 DEFAULT_EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 DEFAULT_THRESHOLD = 0.62
+CONTROL_THRESHOLDS = [round(0.50 + index * 0.05, 2) for index in range(7)]
 
 
 def split_sentences(text: str) -> list[str]:
@@ -123,6 +124,72 @@ class AbstractSupportChecker:
             "support_rate": supported_count / len(sentences) if sentences else 0.0,
             "sentences": sentences,
         }
+
+    def assess_thresholds(self, abstracts: list[str], summary: str, thresholds=CONTROL_THRESHOLDS) -> list[dict]:
+        """Embed once and retain scores for a fixed, auditable threshold grid."""
+        summary_sentences = split_sentences(summary)
+        abstract_sentences = [sentence for abstract in abstracts for sentence in split_sentences(abstract)]
+        summary_embeddings = self.model.encode(summary_sentences, normalize_embeddings=True) if summary_sentences else []
+        abstract_embeddings = self.model.encode(abstract_sentences, normalize_embeddings=True) if abstract_sentences else []
+        records = score_sentence_embeddings(summary_sentences, abstract_sentences, summary_embeddings, abstract_embeddings, 1.1)
+        return [{"threshold": threshold, "records": [{**record, "supported": record["max_similarity"] is not None and record["max_similarity"] >= threshold} for record in records]} for threshold in thresholds]
+
+
+def corrupt_summary(summary: str, query: str) -> dict:
+    """Create two deterministic, fluent unsupported controls without an LLM."""
+    sentences = split_sentences(summary)
+    if not sentences:
+        return {"unsupported": summary, "reversed": summary, "target_indices": []}
+    unsupported = list(sentences)
+    unsupported[0] = f"For {query}, the evidence establishes a universal causal effect in every setting."
+    reversed_sentences = list(sentences)
+    replacements = (("improves", "does not improve"), ("reduce", "increase"), ("increases", "does not increase"), ("more", "less"))
+    for index, sentence in enumerate(reversed_sentences):
+        lower = sentence.lower()
+        for positive, negative in replacements:
+            if positive in lower:
+                start = lower.index(positive)
+                reversed_sentences[index] = sentence[:start] + negative + sentence[start + len(positive):]
+                return {"unsupported": " ".join(unsupported), "reversed": " ".join(reversed_sentences), "target_indices": [0, index]}
+    reversed_sentences[-1] = "The evidence does not support the conclusion described above."
+    return {"unsupported": " ".join(unsupported), "reversed": " ".join(reversed_sentences), "target_indices": [0, len(sentences) - 1]}
+
+
+def control_summary(records: list[dict], threshold: float) -> dict:
+    total = len(records)
+    supported = sum(record["max_similarity"] is not None and record["max_similarity"] >= threshold for record in records)
+    return {"sentences": total, "supported": supported, "rate": supported / total if total else 0.0}
+
+
+def run_controls(source: Path, checker: AbstractSupportChecker) -> dict:
+    """Score mismatch and deterministic corruption controls for an existing run."""
+    artifact = json.loads(source.read_text(encoding="utf-8"))
+    entries = artifact["results"]["queries"]
+    real, mismatch, unsupported, reversed_records, examples = [], [], [], [], []
+    for index, entry in enumerate(entries):
+        output = entry["outputs"][0]
+        summary = output["summary"]
+        own_abstracts = [paper.get("abstract", "") for paper in entry["papers"]]
+        other = entries[(index + 1) % len(entries)]
+        other_abstracts = [paper.get("abstract", "") for paper in other["papers"]]
+        corruption = corrupt_summary(summary, entry["query"])
+        real_scores = checker.assess_thresholds(own_abstracts, summary)[0]["records"]
+        mismatch_scores = checker.assess_thresholds(other_abstracts, summary)[0]["records"]
+        unsupported_scores = checker.assess_thresholds(own_abstracts, corruption["unsupported"])[0]["records"]
+        reversed_scores = checker.assess_thresholds(own_abstracts, corruption["reversed"])[0]["records"]
+        real.extend(real_scores); mismatch.extend(mismatch_scores)
+        unsupported.append(unsupported_scores[0])
+        reversed_records.append(reversed_scores[corruption["target_indices"][1]])
+        examples.append({"id": entry["id"], "mismatch_query_id": other["id"], "unsupported_summary": corruption["unsupported"], "reversed_summary": corruption["reversed"]})
+    rows = []
+    for threshold in CONTROL_THRESHOLDS:
+        row = {"threshold": threshold, "real_supported": control_summary(real, threshold), "mismatched_supported": control_summary(mismatch, threshold), "unsupported_claim_flagged": {"sentences": len(unsupported), "flagged": sum(record["max_similarity"] is None or record["max_similarity"] < threshold for record in unsupported)}, "reversed_conclusion_flagged": {"sentences": len(reversed_records), "flagged": sum(record["max_similarity"] is None or record["max_similarity"] < threshold for record in reversed_records)}}
+        row["unsupported_claim_flagged"]["rate"] = row["unsupported_claim_flagged"]["flagged"] / len(unsupported)
+        row["reversed_conclusion_flagged"]["rate"] = row["reversed_conclusion_flagged"]["flagged"] / len(reversed_records)
+        row["separation"] = row["real_supported"]["rate"] - row["mismatched_supported"]["rate"] + row["unsupported_claim_flagged"]["rate"]
+        rows.append(row)
+    best = max(rows, key=lambda row: (row["separation"], row["reversed_conclusion_flagged"]["rate"], -row["threshold"]))
+    return {"source_artifact": str(source), "method": "BGE cosine similarity controls", "thresholds": rows, "selected_threshold": best["threshold"], "selection": "Maximized real-vs-mismatch separation plus unsupported-claim flagging; reversed conclusions are reported separately.", "reversed_conclusions_separated": bool(best["reversed_conclusion_flagged"]["rate"] > 0), "examples": examples}
 
 
 def load_queries(path: Path) -> list[dict]:
@@ -226,6 +293,8 @@ def parse_args():
     parser.add_argument("--embedding-model", default=DEFAULT_EMBEDDING_MODEL)
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
     parser.add_argument("--paper-limit", type=int, default=3)
+    parser.add_argument("--controls-from", type=Path, help="Run controls against an existing faithfulness artifact")
+    parser.add_argument("--controls-output", type=Path, default=ROOT / "docs" / "benchmarks" / "faithfulness_controls.json")
     return parser.parse_args()
 
 
@@ -240,6 +309,13 @@ def main():
     device = select_retrieval_device()
     queries = load_queries(args.queries)
     checker = AbstractSupportChecker(args.embedding_model, device, args.threshold)
+    if args.controls_from:
+        controls = run_controls(args.controls_from, checker)
+        controls["generated_at"] = datetime.now(timezone.utc).isoformat()
+        controls["environment"] = {"platform": platform.platform(), "python": platform.python_version(), "embedding_device": device}
+        write_json_atomically(args.controls_output, controls)
+        print(f"Wrote faithfulness control artifact: {args.controls_output}")
+        return
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "method": {
