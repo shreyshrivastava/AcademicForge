@@ -37,3 +37,44 @@ def aggregate(rows, seed=42, resamples=1000):
             'bootstrap_95_percent_interval': [means[int(resamples * 0.025)], means[min(resamples - 1, int(resamples * 0.975))]],
         }
     return output
+
+
+def paired_bootstrap_difference(candidate_rows, baseline_rows, key, seed=42, resamples=1000):
+    """Return a paired query-bootstrap comparison against a baseline system.
+
+    The null tested is no mean difference. The two-sided p-value is estimated
+    from centered paired differences, while the interval is computed from the
+    observed paired differences. Query order must be identical across systems.
+    """
+    if len(candidate_rows) != len(baseline_rows) or not candidate_rows:
+        raise ValueError("Paired bootstrap requires equally sized non-empty result sets")
+    differences = [candidate[key] - baseline[key] for candidate, baseline in zip(candidate_rows, baseline_rows)]
+    rng = random.Random(seed)
+    observed = statistics.fmean(differences)
+    samples = sorted(
+        statistics.fmean(rng.choices(differences, k=len(differences)))
+        for _ in range(resamples)
+    )
+    centered = [value - observed for value in differences]
+    null_rng = random.Random(seed)
+    null_samples = [
+        statistics.fmean(null_rng.choices(centered, k=len(centered)))
+        for _ in range(resamples)
+    ]
+    p_value = min(
+        1.0,
+        2 * min(
+            sum(sample <= 0 for sample in null_samples) / resamples,
+            sum(sample >= 0 for sample in null_samples) / resamples,
+        ),
+    )
+    return {
+        "mean_difference": observed,
+        "bootstrap_95_percent_interval": [
+            samples[int(resamples * 0.025)],
+            samples[min(resamples - 1, int(resamples * 0.975))],
+        ],
+        "two_sided_p_value": p_value,
+        "resamples": resamples,
+        "seed": seed,
+    }

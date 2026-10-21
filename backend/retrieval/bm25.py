@@ -7,9 +7,40 @@ from backend.retrieval.models import RetrievalResult, paper_to_result
 
 TOKEN_RE = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_+-]*")
 
+# This compact English list is used only by the opt-in benchmark ablation.
+# Default application retrieval continues to use tokenize() unchanged.
+ENGLISH_STOPWORDS = frozenset({
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "in",
+    "is", "it", "of", "on", "or", "that", "the", "to", "was", "were", "with",
+})
+
 
 def tokenize(text: str) -> list[str]:
     return [token.lower() for token in TOKEN_RE.findall(text or "")]
+
+
+def stem_and_remove_stopwords(text: str) -> list[str]:
+    """Apply a small deterministic English suffix stemmer for the ablation only.
+
+    This deliberately avoids a new runtime dependency. It is not a replacement
+    for a full linguistic stemmer and is never selected by default in the app.
+    """
+    tokens = []
+    for token in tokenize(text):
+        if token in ENGLISH_STOPWORDS:
+            continue
+        if len(token) > 5 and token.endswith("ies"):
+            token = token[:-3] + "y"
+        elif len(token) > 5 and token.endswith("ing"):
+            token = token[:-3]
+        elif len(token) > 4 and token.endswith("ed"):
+            token = token[:-2]
+        elif len(token) > 4 and token.endswith("es"):
+            token = token[:-2]
+        elif len(token) > 3 and token.endswith("s") and not token.endswith("ss"):
+            token = token[:-1]
+        tokens.append(token)
+    return tokens
 
 
 def paper_text(paper: dict) -> str:
@@ -37,9 +68,10 @@ class BM25Index:
     Scoring and tie order match bm25_search; labels never enter this index.
     """
 
-    def __init__(self, papers: list[dict]):
+    def __init__(self, papers: list[dict], analyzer=tokenize):
         self.papers = papers
-        self.frequencies = [Counter(tokenize(paper_text(paper))) for paper in papers]
+        self.analyzer = analyzer
+        self.frequencies = [Counter(analyzer(paper_text(paper))) for paper in papers]
         self.lengths = [sum(counts.values()) for counts in self.frequencies]
         self.doc_freqs = Counter()
         for counts in self.frequencies:
@@ -47,7 +79,7 @@ class BM25Index:
         self.avg_doc_len = sum(self.lengths) / max(len(papers), 1)
 
     def search(self, query: str, top_k: int = 50) -> list[RetrievalResult]:
-        query_tokens = tokenize(query)
+        query_tokens = self.analyzer(query)
         if not query_tokens or not self.papers or top_k <= 0:
             return []
         k1, b = 1.5, 0.75

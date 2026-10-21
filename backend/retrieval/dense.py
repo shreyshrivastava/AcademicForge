@@ -99,6 +99,69 @@ def _lexical_dense_fallback(query: str, papers: list[dict], top_k: int) -> list[
     return results
 
 
+class DenseIndex:
+    """Prepared dense index used by evaluation and reusable fixed-corpus search.
+
+    The application-facing dense_search function keeps its existing behavior.
+    This class keeps corpus embeddings resident so benchmark latency excludes
+    model loading and document encoding, as a prepared-index measurement should.
+    """
+
+    def __init__(self, papers: list[dict]):
+        self.papers = papers
+        self.model = _load_sentence_transformer()
+        self.backend = MODEL_NAME if self.model is not None else "lexical_fallback"
+        self._fallback_counts = None
+        self._embeddings = None
+        if self.model is None:
+            self._fallback_counts = [Counter(tokenize(paper_text(paper))) for paper in papers]
+        else:
+            self._embeddings = self.model.encode(
+                [paper_text(paper) for paper in papers],
+                normalize_embeddings=True,
+            )
+
+    def search(self, query: str, top_k: int = 50) -> list[RetrievalResult]:
+        if not query.strip() or not self.papers or top_k <= 0:
+            return []
+
+        if self.model is None:
+            query_counts = Counter(tokenize(query))
+            if not query_counts:
+                return []
+            scored = []
+            for paper, paper_counts in zip(self.papers, self._fallback_counts):
+                vocabulary = set(query_counts) | set(paper_counts)
+                score = _cosine(
+                    [query_counts[token] for token in vocabulary],
+                    [paper_counts[token] for token in vocabulary],
+                )
+                if score > 0:
+                    result = paper_to_result(paper)
+                    result.metadata["dense_backend"] = "lexical_fallback"
+                    result.metadata["dense_score"] = score
+                    scored.append((score, result))
+        else:
+            query_embedding = self.model.encode(query, normalize_embeddings=True)
+            scored = []
+            for paper, embedding in zip(self.papers, self._embeddings):
+                score = _dot(query_embedding, embedding)
+                result = paper_to_result(paper)
+                result.metadata["dense_backend"] = MODEL_NAME
+                result.metadata["dense_device"] = str(
+                    getattr(self.model, "device", select_retrieval_device())
+                )
+                result.metadata["dense_score"] = score
+                scored.append((score, result))
+
+        ranked = sorted(scored, key=lambda item: item[0], reverse=True)[:top_k]
+        results = []
+        for rank, (_, result) in enumerate(ranked, start=1):
+            result.dense_rank = rank
+            results.append(result)
+        return results
+
+
 def dense_search(query: str, papers: list[dict], top_k: int = 50) -> list[RetrievalResult]:
     if not query.strip() or not papers:
         return []
