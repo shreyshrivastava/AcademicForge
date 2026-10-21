@@ -17,7 +17,7 @@ from starlette.concurrency import run_in_threadpool
 load_dotenv(os.getenv("ACADEMICFORGE_ENV_FILE", ".env"))
 
 from backend.config import get_config as get_app_config
-from backend.data_pipeline import not_enough_relevant_message, retrieve_and_rank_papers
+from backend.data_pipeline import not_enough_relevant_message, retrieve_and_rank_papers, extract_arxiv_id, rewrite_search_query
 from backend.errors import ServiceError
 from backend.execution import GENERATION_CAPACITY, SEARCH_CAPACITY, execute
 from backend.health import readiness, warmup
@@ -34,6 +34,7 @@ from backend.schemas import (
 )
 from backend.streaming import events
 from backend.sources import diagnostics
+from backend.search_context import contextualize_query
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -149,13 +150,22 @@ async def get_config():
 
 
 def _search(request):
-    papers = retrieve_and_rank_papers(request.query, normalize_research_categories(request.categories))
+    categories = normalize_research_categories(request.categories)
+    if request.domain:
+        papers = retrieve_and_rank_papers(request.query, categories, domain=request.domain)
+    else:
+        papers = retrieve_and_rank_papers(request.query, categories)
     state = diagnostics()
     if any(paper.get("metadata", {}).get("dense_backend") == "lexical_fallback" for paper in papers):
         state["warnings"].append("Semantic ranking is unavailable; keyword scoring is being used.")
     if any(paper.get("metadata", {}).get("reranker_backend") == "original_order" for paper in papers):
         state["warnings"].append("The reranker is unavailable; the previous ranking is being used.")
-    return {"papers": papers, "message": not_enough_relevant_message() if not papers else "", **state}
+    message = not_enough_relevant_message() if not papers else ""
+    if not papers and request.domain:
+        message = f"Not enough relevant papers found in {request.domain}. Try a more specific query or another field."
+    return {"papers": papers, "message": message, **state,
+            "domain": request.domain, "search_query": request.query if extract_arxiv_id(request.query)
+            else rewrite_search_query(contextualize_query(request.query, request.domain))}
 
 
 @app.post("/search", response_model=SearchResponse)
@@ -183,10 +193,17 @@ def paper_guidance_response(text):
     return {"guidance": text}
 
 
+def research_goal(request):
+    if not request.domain:
+        return request.query
+    return (f"{request.query}\nSearch field: {request.domain}\n"
+            f"Search interpretation: {contextualize_query(request.query, request.domain)}")
+
+
 @app.post("/research-plan", response_model=ResearchPlanResponse)
 async def generate_research_plan(request: PapersRequest):
     return await execute(GENERATION_CAPACITY, generated, "research_plan", generate_ai_research_plan,
-                         [paper.model_dump() for paper in request.papers], request.summaries, request.query,
+                         [paper.model_dump() for paper in request.papers], request.summaries, research_goal(request),
                          model=model_for_research_plan(request.generation_mode), mode=request.generation_mode)
 
 
@@ -201,7 +218,7 @@ async def stream_research_plan(request: PapersRequest, http_request: Request):
     lease = GENERATION_CAPACITY.reserve()
     try:
         iterator = iter(stream_ai_research_plan(
-            [paper.model_dump() for paper in request.papers], request.summaries, request.query,
+            [paper.model_dump() for paper in request.papers], request.summaries, research_goal(request),
             model=model_for_research_plan(request.generation_mode), mode=request.generation_mode,
         ))
         return StreamingResponse(events(iterator, lease, http_request.state.request_id),

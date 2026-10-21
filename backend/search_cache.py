@@ -21,11 +21,12 @@ def _ttl_seconds() -> float:
         return 300.0
 
 
-def cache_key(query: str, categories: list[str] | None, search_mode: str) -> str:
+def cache_key(query: str, categories: list[str] | None, search_mode: str, domain: str = "") -> str:
     state = {
         "query": " ".join(query.split()).lower(),
         "categories": sorted(categories or []),
         "search_mode": search_mode,
+        "domain": " ".join(domain.split()).casefold(),
     }
     encoded = json.dumps(state, sort_keys=True, ensure_ascii=True)
     return sha256(encoded.encode("utf-8")).hexdigest()

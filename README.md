@@ -85,10 +85,22 @@ curl http://127.0.0.1:8000/version
 ## Try it
 
 1. Enter a question, such as **“Reducing hallucinations in retrieval augmented generation.”**
-2. Choose an analysis mode and research lens, then search for papers.
+2. Choose a **Search field**, analysis mode, and research lens, then search for papers. For RAG or RAGAS, choose **Computer science & AI**. Use **Other field…** to enter a subject such as quantum physics.
 3. Select the papers you want to explore.
 4. Generate a summary or guidance for an individual paper.
 5. Create a research plan from your selected papers and download the Markdown output.
+
+### Search in a specific field
+
+Use **Search field** to distinguish terms that mean different things in different subjects:
+
+- **Computer science & AI:** expands RAG to retrieval augmented generation and recognizes RAGAS, including “rag as” and “rag and as.”
+- **Music & arts:** keeps the music meaning of ragas.
+- **Medicine & health** and **Energy & environment:** narrow results to those fields.
+- **Other field…:** enter your own subject. Custom fields match their words in paper titles, abstracts, and available categories.
+- **All fields:** keeps the existing broad search behavior.
+
+The app previews the interpreted query, labels the field used for the displayed results, and asks you to search again after changing fields. It keeps separate cached results for each field and carries the original question and chosen field into research plans. See [search field behavior](docs/search-fields.md) for details.
 
 ## How it works
 

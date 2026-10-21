@@ -14,6 +14,7 @@ from backend.jev import enrich_papers_with_jev, rerank_papers_with_jev
 from backend.config import get_config
 from backend.search_cache import cache_key, get_cached, store
 from backend.errors import SourceUnavailable
+from backend.search_context import contextualize_query, matches_field, field_kind
 from backend.sources import begin_search, diagnostics, get_source, source_status, search_diagnostics
 
 
@@ -465,19 +466,28 @@ def select_evidence_set(
     return in_rank_order(selected)
 
 
-def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None = None) -> list[dict]:
+def _filter_for_field(query, papers, domain):
+    if field_kind(domain) != 'all':
+        # Explicit user intent takes precedence over the old automatic domain guess.
+        # The field predicate has already filtered candidates; hybrid ranking handles topic relevance.
+        return papers
+    return filter_relevant_papers(query, papers)
+
+
+def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None = None, domain: str = "") -> list[dict]:
     """End-to-end retrieval pipeline used by the API."""
     begin_search()
     original_query = query.strip()
     config = get_config()
-    key = cache_key(original_query, preferred_categories, config.search_mode)
+    key = cache_key(original_query, preferred_categories, config.search_mode, domain)
+    intent_query = contextualize_query(original_query, domain) if not extract_arxiv_id(original_query) else original_query
     cached = get_cached(key)
     if cached is not None:
         logger.info("Search cache hit result_count=%d", len(cached))
         search_diagnostics.set({"sources": {"cache": "fresh"}, "warnings": []})
         return cached
 
-    search_query = rewrite_search_query(original_query)
+    search_query = rewrite_search_query(intent_query)
     logger.info(
         "Retrieval query original_query=%r rewritten_query=%r source_query=%r",
         original_query,
@@ -486,12 +496,14 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
     )
     candidates, direct_id = search_live_candidates(search_query)
     if direct_id:
+        candidates = [paper for paper in candidates if matches_field(paper, original_query, domain)]
         selected = select_evidence_set(candidates, target=1)
         selected = enrich_papers_with_jev(original_query, selected)
         if not diagnostics()["warnings"]:
             store(key, selected)
         return selected
-    papers = filter_relevant_papers(original_query, candidates)
+    candidates = [paper for paper in candidates if matches_field(paper, original_query, domain)]
+    papers = _filter_for_field(intent_query, candidates, domain)
     if len(papers) < FINAL_EVIDENCE_TARGET and not diagnostics()["warnings"]:
         logger.info(
             "Expanding source search original_query=%r relevant_count=%d target=%d expanded_candidates=%d",
@@ -507,7 +519,8 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
         except SourceUnavailable:
             expanded_candidates = []  # Keep evidence from the first successful fetch.
         candidates = _dedupe_papers([*candidates, *expanded_candidates])
-        papers = filter_relevant_papers(original_query, candidates)
+        candidates = [paper for paper in candidates if matches_field(paper, original_query, domain)]
+        papers = _filter_for_field(intent_query, candidates, domain)
     if len(papers) < MIN_RELEVANT_PAPERS:
         logger.warning(
             "Not enough relevant papers original_query=%r relevant_count=%d",
@@ -515,7 +528,7 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
             len(papers),
         )
         return []
-    ranked = rank_papers(query, papers)
+    ranked = rank_papers(intent_query, papers)
     selected = select_evidence_set(ranked, preferred_categories=preferred_categories)
     _log_final_selection(original_query, selected)
     if not diagnostics()["warnings"]:

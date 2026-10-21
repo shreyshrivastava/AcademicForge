@@ -11,6 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 from frontend.api_client import APIClient
 from frontend.workflow import paper_output_key
+from backend.search_context import FIELD_PRESETS, contextualize_query
 from frontend.styles import apply_card_styles
 from frontend.components import (
     paper_insight_loading_html,
@@ -110,8 +111,8 @@ def get_config():
     return api_client.get_config()
 
 
-def search_papers(query, categories=None):
-    return post_json("/search", {"query": query, "categories": categories or []})
+def search_papers(query, categories=None, domain=""):
+    return post_json("/search", {"query": query, "categories": categories or [], "domain": domain})
 
 
 def summarize_paper(paper, generation_mode="fast"):
@@ -137,13 +138,14 @@ def generate_paper_guidance(paper, generation_mode):
     return response.get("guidance", "")
 
 
-def stream_research_plan(papers, summaries, query, generation_mode):
+def stream_research_plan(papers, summaries, query, generation_mode, domain=""):
     yield from api_client.stream_post(
         "/research-plan/stream",
         {
             "papers": papers,
             "summaries": summaries,
             "query": query,
+            "domain": domain,
             "generation_mode": generation_mode,
         }
     )
@@ -488,6 +490,12 @@ if "last_search_focus" not in st.session_state:
     st.session_state.last_search_focus = []
 if "search_message" not in st.session_state:
     st.session_state.search_message = ""
+if "last_search_domain" not in st.session_state:
+    st.session_state.last_search_domain = ""
+if "last_search_query" not in st.session_state:
+    st.session_state.last_search_query = ""
+if "last_search_identity" not in st.session_state:
+    st.session_state.last_search_identity = None
 
 default_query = st.query_params.get("query", "")
 
@@ -508,12 +516,20 @@ with st.container(border=True, key="search_shell"):
         value=default_query,
         label_visibility="collapsed",
     )
-    auto_run_search = (
-        st.query_params.get("run") == "1"
-        and research_question.strip()
-        and st.session_state.last_query != research_question.strip()
-    )
     manual_search = search_cols[1].button("Search", type="primary", width="stretch")
+
+    field_choice = st.selectbox(
+        "Search field", ["All fields", *FIELD_PRESETS, "Other field…"], key="search_field",
+        help="Choose the subject you mean. For example, RAG in AI or ragas in music. Custom fields match their words in paper titles, abstracts, and categories.",
+    )
+    custom_field = ""
+    if field_choice == "Other field…":
+        custom_field = st.text_input("Enter a field", placeholder="For example: quantum computing", max_chars=120, key="custom_search_field")
+    search_domain = custom_field.strip() if field_choice == "Other field…" else ("" if field_choice == "All fields" else field_choice)
+    search_is_valid = field_choice != "Other field…" or bool(custom_field.strip())
+    interpreted_query = contextualize_query(research_question, search_domain) if research_question.strip() else ""
+    if search_domain and interpreted_query != research_question.strip():
+        st.caption(f"Searching for: {interpreted_query}")
 
     st.markdown(
         """
@@ -543,11 +559,18 @@ active_mode = mode_config(config, st.session_state.generation_mode)
 
 render_selection_guidance(0, len(focus_categories), st.session_state.generation_mode)
 
+search_identity = (research_question.strip(), search_domain, tuple(focus_categories))
+auto_run_search = (
+    st.query_params.get("run") == "1" and bool(research_question.strip())
+    and st.session_state.last_search_identity != search_identity
+)
 should_search = manual_search or auto_run_search
 
 if should_search:
     if not research_question.strip():
         st.warning("Please enter a research question.")
+    elif not search_is_valid:
+        st.warning("Enter a field or choose All fields before searching.")
     else:
         try:
             search_placeholder = st.empty()
@@ -555,13 +578,16 @@ if should_search:
                 pulse_loading_html("Searching live research sources..."),
                 unsafe_allow_html=True,
             )
-            search_payload = search_papers(research_question.strip(), focus_categories)
+            search_payload = search_papers(research_question.strip(), focus_categories, search_domain)
             for warning in search_payload.get("warnings", []):
                 st.warning(warning)
             st.session_state.papers = search_payload.get("papers", [])
             st.session_state.search_message = search_payload.get("message", "")
             search_placeholder.empty()
             st.session_state.last_query = research_question.strip()
+            st.session_state.last_search_domain = search_domain
+            st.session_state.last_search_query = search_payload.get("search_query") or interpreted_query
+            st.session_state.last_search_identity = search_identity
             st.session_state.last_search_focus = list(focus_categories)
             st.session_state.summaries = []
             st.session_state.research_plan = ""
@@ -585,6 +611,10 @@ if should_search:
             st.error(f"Could not reach the backend: {exc}")
 
 papers = st.session_state.papers
+if st.session_state.last_query:
+    st.caption(f"Results for: {st.session_state.last_query} · Field: {st.session_state.last_search_domain or 'All fields'}")
+    if st.session_state.last_search_identity != search_identity:
+        st.info("Search settings have changed. Press Search to update these results.")
 if papers:
     st.subheader("Paper Results")
     labels = [paper_label(index, paper) for index, paper in enumerate(papers, start=1)]
@@ -679,6 +709,7 @@ if papers:
                 st.session_state.summaries,
                 st.session_state.last_query or research_question.strip(),
                 st.session_state.generation_mode,
+                st.session_state.last_search_domain,
             ):
                 research_plan_chunks.append(chunk)
                 plan_placeholder.markdown("".join(research_plan_chunks))
@@ -717,6 +748,7 @@ if papers:
 
         markdown = "## Research Plan\n\n"
         markdown += f"### Research question\n{st.session_state.last_query or research_question.strip()}\n\n"
+        markdown += f"Search field: {st.session_state.last_search_domain or 'All fields'}\n\n"
         for paper, summary in zip(selected_papers, st.session_state.summaries):
             markdown += f"### {paper['title']}\n\n{summary}\n\n"
         markdown += "### Combined Research Plan\n"
@@ -733,6 +765,6 @@ if papers:
         )
 elif st.session_state.last_query:
     st.markdown(
-        '<div class="af-empty-state">No evidence was found for that query. Try broadening the wording, switching research focus, or using a more specific question.</div>',
+        f'<div class="af-empty-state">{html.escape(st.session_state.search_message or "No evidence was found. Try broadening the query or choosing another search field.")}</div>',
         unsafe_allow_html=True,
     )

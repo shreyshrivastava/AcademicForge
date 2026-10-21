@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 GenerationMode = Literal["fast", "deep"]
+SearchDomain = Annotated[str, StringConstraints(strip_whitespace=True, max_length=120, pattern=r"^[^\x00-\x1f]*$")]
 Category = Literal[
     "Balanced", "Foundational", "Survey", "Recent", "Implementation Focused",
     "Evaluation Focused", "Alternative Approach", "Contrarian View",
@@ -15,6 +16,7 @@ Category = Literal[
 class SearchRequest(BaseModel):
     query: ShortText
     categories: list[Category] = Field(default_factory=list, max_length=8)
+    domain: SearchDomain = ""
 
 
 class Paper(BaseModel):
@@ -39,6 +41,7 @@ class PapersRequest(BaseModel):
     papers: list[Paper] = Field(min_length=1, max_length=10)
     summaries: list[Annotated[str, Field(max_length=5000)]] = Field(default_factory=list, max_length=10)
     query: str = Field(default="", max_length=2000)
+    domain: SearchDomain = ""
     generation_mode: GenerationMode = "fast"
 
     @model_validator(mode="after")
@@ -53,6 +56,8 @@ class SearchResponse(BaseModel):
     message: str = ""
     warnings: list[str] = Field(default_factory=list)
     sources: dict[str, str] = Field(default_factory=dict)
+    domain: str = ""
+    search_query: str = ""
 
 
 class GenerationResponse(BaseModel):
