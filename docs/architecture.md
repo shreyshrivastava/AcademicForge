@@ -23,7 +23,7 @@ Streamlit UI
        -> on-demand Summary
        -> on-demand Guidance
        -> selected papers
-  -> compact Research Plan context
+  -> selected-paper Research Plan context
   -> streamed Research Plan
 ```
 
@@ -59,7 +59,8 @@ distributions. It combines rankings without requiring score normalization.
 `backend/llm.py` wraps generation behind two providers:
 
 - `transformers` - local PyTorch inference for AMD ROCm environments
-- `fireworks` - optional cloud model path for deeper synthesis
+- `fireworks` - optional cloud model path for deeper synthesis when a Fireworks
+  model ID and `FIREWORKS_API_KEY` are configured
 
 Current default local model:
 
@@ -71,6 +72,11 @@ Task-specific model routing:
 - `LOCAL_LLM_SUMMARY_MODEL`
 - `LOCAL_LLM_GUIDANCE_MODEL`
 - `LOCAL_LLM_RESEARCH_PLAN_MODEL`
+- `LOCAL_LLM_DEEP_MODEL` for the optional Deep Mode model
+
+Fast Mode uses the configured local model for summaries, guidance, and
+Research Plans. Deep Mode is not a separate mandatory service: it only routes
+to Fireworks when its configured model ID is a Fireworks model.
 
 ## Frontend
 
@@ -86,5 +92,18 @@ Task-specific model routing:
 ## Deployment
 
 The AMD notebook path runs the FastAPI backend and Streamlit frontend locally on
-the VM, then exposes Streamlit through an Ngrok tunnel when the notebook
-provider blocks Streamlit WebSockets through its native reverse proxy.
+the VM. `start.sh` can expose Streamlit through an Ngrok tunnel when the
+notebook provider blocks Streamlit WebSockets through its native reverse proxy.
+
+## Deployment Profiles
+
+| Capability | `amd-rocm-only` | `streamlit-cloud-demo` |
+| --- | --- | --- |
+| Runtime | FastAPI plus Streamlit on the AMD VM | One Streamlit process |
+| Fast Mode | Local Gemma through PyTorch/ROCm | Lightweight demo generator |
+| Deep Mode | Optional Fireworks model | Visible but disabled |
+| Credentials | Hugging Face token for gated weights; Fireworks key only for Deep Mode | None |
+
+The Cloud branch shares the same retrieval and user workflow, but it must not
+be described as the AMD/Gemma runtime. Its in-process adapter is documented in
+its own `docs/architecture.md`.

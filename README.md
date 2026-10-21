@@ -1,8 +1,8 @@
 # AcademicForge
 
-AcademicForge is a local-first, AI-powered research-to-implementation engine that translates academic papers into production-ready system architectures and engineering blueprints.
+AcademicForge is a local-first, AI-powered research-to-plan engine that turns academic papers into evidence-grounded technical decisions and implementation-ready Research Plans.
 
-Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicForge acts as an explainable, self-hosted research copilot. It combines hybrid document retrieval, Reciprocal Rank Fusion (RRF), local vector embeddings, and streamed local LLM inference to compile multiple research papers into structured **Research Plans** and **Builder Guidance**.
+Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicForge acts as an explainable, self-hosted research copilot. It combines hybrid document retrieval, Reciprocal Rank Fusion (RRF), local vector embeddings, and streamed generation to compile selected research papers into structured **Research Plans** and **Builder Guidance**.
 
 ---
 
@@ -12,10 +12,10 @@ Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicF
 *   **Backend:** FastAPI, Uvicorn, Python 3.11+
 *   **Frontend:** Streamlit
 *   **Retrieval:** BM25 (Lexical), Dense Embeddings (`BAAI/bge-small-en-v1.5`), Reciprocal Rank Fusion (RRF), Cross-Encoder Reranking (`BAAI/bge-reranker-base`)
-*   **Inference Backends:** 
-    *   `transformers` (Native AMD ROCm PyTorch backend for evaluation)
-    *   `fireworks` (DeepSeek-v4-Pro cloud reasoning for deep analysis)
-*   **Models:** `google/gemma-2-2b-it` (Fast Mode Containerized), `deepseek-v4-pro` (Deep Mode)
+*   **Inference Backends:**
+    *   `transformers` (local PyTorch/ROCm Fast Mode)
+    *   `fireworks` (optional Deep Mode when configured)
+*   **Default Fast Model:** `google/gemma-2-2b-it`
 
 ---
 
@@ -43,6 +43,12 @@ Scientific Literature (arXiv & Semantic Scholar)
 
 It fetches candidate papers live, merges their rankings, filters out weak associations, allows the user to select the exact evidence to ground the synthesis, and generates a structured, streamable **Research Plan** and **Builder Guidance** tailored directly for code implementation.
 
+The interface follows one product flow:
+
+```text
+Question -> Papers -> Plan
+```
+
 ---
 
 ## 🤖 Why Not Just Use ChatGPT Deep Research?
@@ -54,7 +60,7 @@ While ChatGPT is an excellent generalist search agent, AcademicForge offers sign
 | **Explainable Retrieval** | Explicitly displays BM25 lexical rank, dense semantic rank, and Reciprocal Rank Fusion (RRF) scores in the UI. | Black box search selection with no rank transparency. |
 | **Strict Context Grounding** | Prompts are injected *only* with retrieved paper metadata and summary abstracts. No hallucinated citations. | Relies on web crawls and parametric memory, which frequently invent paper details. |
 | **Data Privacy & IP Control** | Can run 100% locally on your own hardware (AMD ROCm). No corporate code or unpublished ideas leave your machine. | Requires uploading proprietary concepts and queries to third-party OpenAI endpoints. |
-| **Local Cache Performance** | Model and retrieval resources stay resident during runtime while generated answers remain live. | Re-runs search queries and synthesis scripts from scratch, costing time and API limits. |
+| **Local-first runtime** | The AMD deployment can keep model and retrieval resources resident during a session while generated responses are produced live. | Depends on a hosted provider's runtime and policies. |
 | **Targeted Engineering Output** | Structured specifically to output project names, component architectures, difficulty levels, and tradeoffs. | Outputs generic literature reviews or academic summaries. |
 
 ---
@@ -124,8 +130,8 @@ AcademicForge routes generation requests to optimize quality and speed:
 
 | Model Role | Model | Inference Backend | Description |
 | :--- | :--- | :--- | :--- |
-| **Fast Mode (Default)** | `google/gemma-2-2b-it` | `transformers` (ROCm) | Ultra-fast local model used for query routing, paper summarization, and quick plans. Guarantees < 30s response time. |
-| **Deep Mode** | `deepseek-v4-pro` | `fireworks` | Massive server-grade reasoning model used for comprehensive Research Plans, system design, and complex tradeoffs. |
+| **Fast Mode (Default)** | `google/gemma-2-2b-it` | `transformers` (ROCm) | Local model for paper summaries, guidance, and fast Research Plans. |
+| **Deep Mode (optional)** | `LOCAL_LLM_DEEP_MODEL` | `fireworks` when the selected model uses a Fireworks model ID | Higher-cost path for more detailed Research Plans when Fireworks credentials and a Deep Model are configured. |
 | **Cross-Encoder** | `BAAI/bge-reranker-base` | `transformers` (PyTorch) | Heavy cross-encoder for final retrieval reranking (deep cross-attention). |
 | **Dense Embeddings** | `BAAI/bge-small-en-v1.5` | `transformers` (PyTorch) | Computes 384-dimensional query and abstract dense vectors. |
 | **Dense Fallback** | Cosine Similarity Vectorizer | Pure Python / `numpy` | Local cosine-similarity fallback if `sentence-transformers` is missing. |
@@ -134,8 +140,8 @@ AcademicForge routes generation requests to optimize quality and speed:
 
 AcademicForge routes between two fundamentally different classes of LLMs to balance speed, cost, and intelligence:
 
-1. **Gemma 2 (Fast Mode / Local Inference):** We utilize `google/gemma-2-2b-it` via PyTorch/ROCm on the local AMD hardware. As a 2-billion parameter model, it is incredibly lightweight but highly capable. This allows the backend to perform rapid query routing, parallel paper summarization, and quick exploration locally without any network latency or API costs. This guarantees the strict sub-30-second response time for exploratory tasks.
-2. **DeepSeek-v4-Pro (Deep Mode / Cloud Inference):** For the final synthesis step (generating the complex Builder Guidance or the massive Research Plan), we offload the generation to DeepSeek via Fireworks AI. Generating a high-fidelity system architecture from 8 distinct academic papers requires a frontier-class reasoning model with heavy `<think>` capability. By reserving the cloud API solely for this final heavy-lifting step, we maximize output quality while minimizing API token burn.
+1. **Gemma 2 (Fast Mode / Local Inference):** `google/gemma-2-2b-it` runs through PyTorch/ROCm on AMD hardware. This keeps routine summaries, paper guidance, and initial Research Plans local, avoiding a per-request inference API dependency.
+2. **Optional Deep Mode / Cloud Inference:** A Fireworks model can be configured through `LOCAL_LLM_DEEP_MODEL` and `FIREWORKS_API_KEY`. This separates the lightweight local workflow from an optional higher-cost synthesis path; it is not required for Fast Mode.
 
 ---
 
@@ -178,7 +184,7 @@ AcademicForge provides full compatibility with AMD GPU platforms through the PyT
 AcademicForge has been packaged as a fully compliant Docker container for the AMD Developer Hackathon.
 
 1. **Pre-baked Weights**: `google/gemma-2-2b-it` is downloaded into the image layer during `docker build`, ensuring the container is ready instantly (sub-60 seconds rule).
-2. **Dynamic Streaming**: The PyTorch/ROCm backend processes requests incredibly fast (sub-30 seconds rule).
+2. **Live generation**: Search and generation are performed from the user query and selected papers; the application does not serve prewritten answers for evaluation prompts.
 3. **Cache Disabled**: Disk caching is globally disabled in the backend for automated scoring to prove generation occurs live.
 
 For detailed instructions on running the system natively on an AMD Notebook VM, please see **[docs/setup_amd_rocm.md](docs/setup_amd_rocm.md)**.
@@ -232,7 +238,9 @@ cp .env.example .env
 
 | Variable | Default | Allowed Values | Description |
 | :--- | :--- | :--- | :--- |
-| `LOCAL_LLM_PROVIDER` | `transformers` | `transformers`, `fireworks` | The local inference engine backend to use. |
+| `LOCAL_LLM_PROVIDER` | `transformers` | `transformers`, `fireworks` | Provider used by the configured model ID. |
+| `LOCAL_LLM_MODEL` | `google/gemma-2-2b-it` | Hugging Face model ID | Fast Mode model. |
+| `LOCAL_LLM_DEEP_MODEL` | Fast Mode model | Fireworks or Hugging Face model ID | Optional Deep Mode model. A Fireworks ID activates the Fireworks provider for that request. |
 | `LOCAL_LLM_MAX_TOKENS` | `700` | Positive integer | The token budget limit for LLM generation. |
 | `LOCAL_LLM_TEMPERATURE` | `0.2` | Float `0.0 - 1.0` | Temperature setting (lower = more deterministic). |
 | `ACADEMICFORGE_CACHE_DIR` | `.academicforge_cache` | Path string | Target directory to store disk cache. |
