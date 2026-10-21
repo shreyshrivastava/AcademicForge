@@ -1,366 +1,167 @@
 # AcademicForge
 
-## Streamlit Cloud demo branch
+AcademicForge is an AI research engineer for turning a question into a focused, evidence-grounded **Research Plan**.
 
-This branch is prepared for a lightweight public Streamlit Cloud demo. It keeps the same AcademicForge workflow and UI, runs live paper retrieval inside the Streamlit process, and uses a lightweight evidence-grounded demo generator instead of loading GPU-scale local models.
-
-Deep Mode remains visible in the interface so viewers can understand the full product workflow, but Fireworks AI / DeepSeek is intentionally disabled on Streamlit Cloud. The app shows a demo notice when Deep Mode is selected. Use the AMD GPU branch for the full local Gemma + optional Fireworks/DeepSeek deployment.
-
-Streamlit Cloud settings:
-
-- Repository: `shreyshrivastava/AcademicForge`
-- Branch: `streamlit-cloud-demo`
-- Main file path: `frontend/streamlit_app.py`
-- Python dependencies: `requirements.txt`
-
-AcademicForge is a local-first, AI-powered research-to-implementation engine that translates academic papers into production-ready system architectures and engineering blueprints.
-
-Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, AcademicForge acts as an explainable, self-hosted research copilot. It combines hybrid document retrieval, Reciprocal Rank Fusion (RRF), local vector embeddings, and streamed local LLM inference to compile multiple research papers into structured **Research Plans** and **Builder Guidance**.
-
----
-
-## 🚀 Hero Section
-
-### Tech Stack
-*   **Backend:** FastAPI, Uvicorn, Python 3.11+
-*   **Frontend:** Streamlit
-*   **Retrieval:** BM25 (Lexical), Dense Embeddings (`BAAI/bge-small-en-v1.5`), Reciprocal Rank Fusion (RRF), Cross-Encoder Reranking (`BAAI/bge-reranker-base`)
-*   **Inference Backends:** 
-    *   `transformers` (Native AMD ROCm PyTorch backend for evaluation)
-    *   `fireworks` (DeepSeek-v4-Pro cloud reasoning for deep analysis)
-*   **Models:** `google/gemma-2-2b-it` (Fast Mode Containerized), `deepseek-v4-pro` (Deep Mode)
-
----
-
-## 📋 Problem Statement
-
-Research-minded developers, engineers, and startup founders face three primary friction points when dealing with scientific literature:
-
-1.  **Information Overload:** A simple search on arXiv yields hundreds of pages. Sorting through abstracts, introduction chapters, and mathematical notation is incredibly slow.
-2.  **Fragmented Workflows:** Builders must jump between academic databases, PDF viewers, search engines, and generic chat inputs to collect ideas, compare models, and translate them into code.
-3.  **The Jargon-to-Code Gap:** Academic papers are optimized for publication metrics, not execution. Converting a theoretical mathematical formula into a database schema, component list, or system architecture is a highly manual, error-prone translation task.
-
----
-
-## 💡 The Solution: A Research-to-Implementation Copilot
-
-AcademicForge is not a generic conversation bot; it is a developer-centric RAG pipeline designed to automate the research-to-build workflow:
+Designed for the **AMD Developer Hackathon (Track 3: Unicorn Track)**, it brings live academic retrieval, hybrid ranking, paper-level insight, and selected-paper synthesis into one workflow:
 
 ```text
-Scientific Literature (arXiv & Semantic Scholar)
-  ──[Hybrid Retrieval & RRF Fusion]──>
-    Curated Evidence Set & Explanable Ranks
-      ──[Local LLM Pipeline Routing]──>
-        Structured, Actionable Research & Build Plans
+Question -> Papers -> Plan
 ```
 
-It fetches candidate papers live, merges their rankings, filters out weak associations, allows the user to select the exact evidence to ground the synthesis, and generates a structured, streamable **Research Plan** and **Builder Guidance** tailored directly for code implementation.
+This branch is the public **Streamlit Cloud demo** of AcademicForge. It deliberately preserves the product workflow and visual style of the AMD deployment while using a lightweight, in-process generation path that can run without a private API key or GPU.
 
 ---
 
-## 🤖 Why Not Just Use ChatGPT Deep Research?
+## Runtime Profiles
 
-While ChatGPT is an excellent generalist search agent, AcademicForge offers significant engineering and workflow advantages for developer applications:
+| Capability | AMD GPU branch (`amd-rocm-only`) | This Streamlit Cloud demo |
+| --- | --- | --- |
+| Interface | Streamlit | Same Streamlit interface and Research Lens workflow |
+| Retrieval | Live arXiv + Semantic Scholar, hybrid ranking | Same live sources and hybrid ranking, with resilient lexical fallback |
+| Fast Mode | Local `google/gemma-2-2b-it` through PyTorch/ROCm | Lightweight, evidence-grounded demo generator |
+| Deep Mode | Optional Fireworks AI / DeepSeek when configured | Visible for product context, disabled with an in-app explanation |
+| Backend | FastAPI on the AMD VM | In-process adapter inside the Streamlit process |
+| Secrets required | Hugging Face token for gated weights; Fireworks key only for Deep Mode | None |
 
-| Feature | AcademicForge | ChatGPT Deep Research |
-| :--- | :--- | :--- |
-| **Explainable Retrieval** | Explicitly displays BM25 lexical rank, dense semantic rank, and Reciprocal Rank Fusion (RRF) scores in the UI. | Black box search selection with no rank transparency. |
-| **Strict Context Grounding** | Prompts are injected *only* with retrieved paper metadata and summary abstracts. No hallucinated citations. | Relies on web crawls and parametric memory, which frequently invent paper details. |
-| **Data Privacy & IP Control** | Can run 100% locally on your own hardware (AMD ROCm). No corporate code or unpublished ideas leave your machine. | Requires uploading proprietary concepts and queries to third-party OpenAI endpoints. |
-| **Local Cache Performance** | Model and retrieval resources stay resident during runtime while generated answers remain live. | Re-runs search queries and synthesis scripts from scratch, costing time and API limits. |
-| **Targeted Engineering Output** | Structured specifically to output project names, component architectures, difficulty levels, and tradeoffs. | Outputs generic literature reviews or academic summaries. |
-
----
-
-## ✨ Features
-
-*   **Multi-Source Candidate Search:** Live query ingestion fetching candidate matches from both **arXiv** and **Semantic Scholar**.
-*   **Query Rewrite Engine:** Preprocesses casual user input into academic-friendly keywords.
-*   **Dual-Engine Hybrid Retrieval:** Lexical matching (BM25) combined with dense vector semantic search (`BAAI/bge-small-en-v1.5` embeddings).
-*   **Reciprocal Rank Fusion (RRF):** Merges rank lists mathematically to prevent score-distribution bias.
-*   **Cross-Encoder Reranking:** Applies a heavy `BAAI/bge-reranker-base` cross-encoder to the top fused results for extremely precise semantic relevance.
-*   **Structured Research Lenses:** Dynamic candidate weighting (Balanced, Foundational, Survey, Implementation Focused, Evaluation Focused, Alternative Approach, Contrarian View).
-*   **Task-Specific Model Routing:** Routes queries to distinct models for fast summarization vs. deep research plans.
-*   **Streamed Generation:** High-performance, incremental token streaming for real-time UI rendering.
-*   **Explainable Ranks:** Cards display raw search scores and metadata chips directly.
-*   **Builder Guidance:** Single-click practical guidance generated for individual papers.
+The Cloud demo does **not** claim to run Gemma, AMD ROCm, Fireworks, or DeepSeek. For the full local-first model experience, use the `amd-rocm-only` branch.
 
 ---
 
-## 📐 System Architecture
+## Problem
 
-The following diagram maps the query-to-build pipeline:
+Research-minded builders have to translate scattered academic papers into a concrete engineering decision. Paper search tools return lists. Generic assistants often produce ungrounded summaries. AcademicForge keeps papers as visible inputs, lets the user choose the most relevant ones, then produces one coherent Research Plan.
+
+---
+
+## Product Workflow
+
+1. Ask a research question or paste an arXiv link.
+2. Choose one Research Lens: Balanced, Foundational, Survey, Implementation Focused, Evaluation Focused, Alternative Approach, or Contrarian View.
+3. Review paper cards, each with a source, category, abstract, and on-demand Summary or Guidance.
+4. Select the papers that should ground the answer.
+5. Generate one Research Plan focused on what to build, key findings, tradeoffs, and next steps.
+
+Paper cards are inputs. The Research Plan is the product output.
+
+---
+
+## Architecture
 
 ```mermaid
 graph TD
-    Question[User Question] --> QR[Query Rewrite Engine]
-    QR -->|arXiv API| ArXiv[arXiv Search]
-    QR -->|Semantic Scholar API| SemScholar[Semantic Scholar Search]
-    ArXiv --> Pool[Candidate Pool]
-    SemScholar --> Pool
-    Pool --> BM25[BM25 Lexical Ranker]
-    Pool --> Dense[Dense Semantic Embeddings]
+    Q[Research question or arXiv link] --> UI[Streamlit UI]
+    UI --> Client[APIClient]
+    Client --> Sources[Live arXiv and Semantic Scholar search]
+    Sources --> Pool[Candidate paper pool]
+    Pool --> BM25[BM25 lexical ranking]
+    Pool --> Dense[Dense ranking when available]
     BM25 --> RRF[Reciprocal Rank Fusion]
     Dense --> RRF
-    RRF --> Rerank[Cross-Encoder Reranking]
-    Rerank --> Filter[Relevance Filtering & Lens Selection]
-    Filter --> Ev[Evidence Selection]
-    Ev --> Summary[Concise Paper Summaries]
-    Ev --> Plan[Research Plan Generation]
-    Ev --> Guidance[Single-Paper Builder Guidance]
+    RRF --> Rerank[Cross-encoder reranking when available]
+    Rerank --> Lens[Research Lens and relevance selection]
+    Lens --> Cards[Paper cards]
+    Cards --> Summary[On-demand Summary]
+    Cards --> Guidance[On-demand Guidance]
+    Cards --> Selected[Selected papers]
+    Selected --> Plan[Evidence-grounded demo Research Plan]
 ```
 
----
+### Cloud-specific execution path
 
-## 🔍 Retrieval Pipeline
+In this branch, `frontend/api_client.py` detects that no `ACADEMICFORGE_BACKEND_URL` is configured. It then calls the existing retrieval, summary, guidance, and Research Plan modules inside the Streamlit process. This removes the need to host a second FastAPI service on Streamlit Cloud.
 
-### 1. BM25 Lexical Ranker
-Matches exact keyword overlap across titles, abstracts, categories, and tags. This ensures that specific model names, algorithms, or technical terms are surfaced accurately.
-
-### 2. Dense Semantic Search
-Uses `BAAI/bge-small-en-v1.5` (a 384-dimensional dense vector embedding model) to calculate cosine similarity. This surfaces papers that discuss similar concepts using different terminology.
-*   *Fallback Behavior:* If `sentence-transformers` is not installed, the dense search module falls back to a lexical cosine-similarity vectorizer, keeping the app functional.
-
-### 3. Reciprocal Rank Fusion (RRF)
-Fuses the rankings from BM25 and Dense search using the standard formula:
-$$RRF(d) = \sum_{m \in M} \frac{1}{k + r_m(d)}$$
-(where $k = 60$). RRF does not require score normalization, which prevents dense search scores from dominating lexical matches.
-
-### 4. Cross-Encoder Reranking
-After RRF surfaces a broad pool of highly relevant candidates, AcademicForge passes the top 30 papers through a heavy cross-encoder (`BAAI/bge-reranker-base`). Unlike bi-encoders (dense embeddings) which encode the query and document separately, a cross-encoder passes the query and document through the transformer simultaneously, allowing deep cross-attention at every layer. This dramatically increases final retrieval precision before evidence selection.
+The adapter keeps the same logical API contracts used by the AMD deployment: `/search`, `/summarize`, `/paper-guidance`, and `/research-plan/stream`. It uses a lightweight deterministic demo generator so the public demo starts quickly and needs no private credentials.
 
 ---
 
-## 🤖 AI Models
+## Retrieval Pipeline
 
-AcademicForge routes generation requests to optimize quality and speed:
+AcademicForge fetches new candidates for each query; it does not rely on a fixed paper corpus.
 
-| Model Role | Model | Inference Backend | Description |
-| :--- | :--- | :--- | :--- |
-| **Fast Mode (Default)** | `google/gemma-2-2b-it` | `transformers` (ROCm) | Ultra-fast local model used for query routing, paper summarization, and quick plans. Guarantees < 30s response time. |
-| **Deep Mode** | `deepseek-v4-pro` | `fireworks` | Massive server-grade reasoning model used for comprehensive Research Plans, system design, and complex tradeoffs. |
-| **Cross-Encoder** | `BAAI/bge-reranker-base` | `transformers` (PyTorch) | Heavy cross-encoder for final retrieval reranking (deep cross-attention). |
-| **Dense Embeddings** | `BAAI/bge-small-en-v1.5` | `transformers` (PyTorch) | Computes 384-dimensional query and abstract dense vectors. |
-| **Dense Fallback** | Cosine Similarity Vectorizer | Pure Python / `numpy` | Local cosine-similarity fallback if `sentence-transformers` is missing. |
+- **arXiv and Semantic Scholar:** live candidate sources.
+- **BM25:** exact-term matching across title, abstract, and metadata.
+- **Dense ranking:** semantic similarity with `BAAI/bge-small-en-v1.5` when `sentence-transformers` is available. A lexical cosine fallback keeps the demo usable when it is not.
+- **RRF:** combines lexical and semantic rank lists without comparing incompatible raw scores.
+- **Cross-encoder reranking:** uses `BAAI/bge-reranker-base` when available; otherwise retains the fused order.
+- **Relevance and domain checks:** discard low-relevance candidates and avoid synthesizing an obviously unrelated evidence set.
+- **Research Lens:** influences candidate selection and the style of the resulting plan. `Balanced` means no category restriction.
 
-### Why This Hybrid Model Architecture?
-
-AcademicForge routes between two fundamentally different classes of LLMs to balance speed, cost, and intelligence:
-
-1. **Gemma 2 (Fast Mode / Local Inference):** We utilize `google/gemma-2-2b-it` via PyTorch/ROCm on the local AMD hardware. As a 2-billion parameter model, it is incredibly lightweight but highly capable. This allows the backend to perform rapid query routing, parallel paper summarization, and quick exploration locally without any network latency or API costs. This guarantees the strict sub-30-second response time for exploratory tasks.
-2. **DeepSeek-v4-Pro (Deep Mode / Cloud Inference):** For the final synthesis step (generating the complex Builder Guidance or the massive Research Plan), we offload the generation to DeepSeek via Fireworks AI. Generating a high-fidelity system architecture from 8 distinct academic papers requires a frontier-class reasoning model with heavy `<think>` capability. By reserving the cloud API solely for this final heavy-lifting step, we maximize output quality while minimizing API token burn.
+This gives the Cloud demo the same retrieval story as the AMD application without requiring it to download GPU-scale model weights.
 
 ---
 
-## ⚙️ Backend Architecture (FastAPI)
+## Generation Modes
 
-The FastAPI server (`backend/app.py`) is structured to expose clean, stateless API contracts:
+### Fast Mode (Demo)
 
-*   `GET /config` - Serves current model configuration.
-*   `POST /search` - Ingests queries, calls arXiv/Semantic Scholar, merges and ranks candidates.
-*   `POST /summarize` - Runs the local LLM summarization pipeline for a selected paper.
-*   `POST /research-plan` - Generates a structured research plan synchronously.
-*   `POST /research-plan/stream` - High-performance streaming endpoint returning plan tokens chunk-by-chunk.
-*   `POST /research-plan/cache-status` - Compatibility endpoint for UI cache checks.
-*   `POST /paper-guidance` - Exposes single-paper implementation guidance.
+Fast Mode creates concise paper summaries, practical paper guidance, and a structured Research Plan from the selected papers and their abstracts. It is intentionally a lightweight public demonstration of the AcademicForge workflow, not a substitute for the local Gemma model.
+
+### Deep Mode (Disabled in this demo)
+
+Deep Mode remains visible so users can understand the full product architecture. Selecting it shows a clear notice rather than silently failing: the full DeepSeek/Fireworks path is available only in the AMD deployment with the required API credentials.
 
 ---
 
-## 🖥️ Frontend (Streamlit)
+## Run Locally
 
-The web client (`frontend/streamlit_app.py`) implements a card-based research lens dashboard:
-1.  **Search Console:** Input research goals and select Category Filters (e.g., Balanced, Foundational, Implementation Focused).
-2.  **Ranking Panel:** Lists cards for each paper showing its source, author list, BM25/Dense ranks, and abstract snippets.
-3.  **Synthesis Controller:** Trigger summarization for papers, select specific papers to load into context, select Generation Mode (Fast or Deep), and stream the generated Research Plan directly.
-4.  **Download Bundle:** Exposes a single-click Markdown export button to save the entire generated plan locally.
-
----
-
-## 🔴 AMD Integration (ROCm)
-
-AcademicForge provides full compatibility with AMD GPU platforms through the PyTorch-based `transformers` provider:
-
-1.  **ROCm PyTorch Integration:** By setting `LOCAL_LLM_PROVIDER=transformers`, the app switches its inference engine to PyTorch. When run inside a ROCm-capable environment, the model automatically offloads weights to AMD GPUs via `device_map="auto"`.
-2.  **Model Loading Optimization:** Models are loaded using `torch_dtype="auto"` to automatically leverage FP16 or BF16 precision depending on the target AMD Instinct or Radeon GPU hardware.
-3.  **In-Memory Dense Search:** Sentence-Transformers runs natively on ROCm devices for ultra-fast vector embedding generation.
-
----
-
-## 🛠️ Deployment & Automated Evaluation
-
-AcademicForge has been packaged as a fully compliant Docker container for the AMD Developer Hackathon.
-
-1. **Pre-baked Weights**: `google/gemma-2-2b-it` is downloaded into the image layer during `docker build`, ensuring the container is ready instantly (sub-60 seconds rule).
-2. **Dynamic Streaming**: The PyTorch/ROCm backend processes requests incredibly fast (sub-30 seconds rule).
-3. **Cache Disabled**: Disk caching is globally disabled in the backend for automated scoring to prove generation occurs live.
-
-For detailed instructions on running the system natively on an AMD Notebook VM, please see **[docs/setup_amd_rocm.md](docs/setup_amd_rocm.md)**.
-
-### Quick Start (AMD Notebook VM Terminal)
-1. Open a terminal in your VM and navigate to the project directory.
-2. Activate the environment: `source venv/bin/activate`
-3. Export your API keys:
-   ```bash
-   export HF_TOKEN="your_hf_token"
-   export FIREWORKS_API_KEY="your_fireworks_key" # Optional for Deep Mode
-   ```
-4. Run the startup script (this starts FastAPI and Streamlit inside the notebook VM, then exposes Streamlit through Ngrok):
-   ```bash
-   ./start.sh
-   ```
-5. Open the printed `https://...ngrok-free.app` URL. Do not open the VM's internal `localhost` Streamlit URL from your laptop.
-
----
-
-## 💻 Local Development
-
-### 1. Setup Environment
 ```bash
-# Clone the repository
-git clone https://github.com/shreyshrivastava/AcademicForge.git
+git clone -b streamlit-cloud-demo https://github.com/shreyshrivastava/AcademicForge.git
 cd AcademicForge
-
-# Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
-
-# Install requirements
-pip install -r requirements-local.txt
+pip install -r requirements.txt
+streamlit run frontend/streamlit_app.py
 ```
 
-### 2. Optional: Install Dense Embeddings Support
-```bash
-pip install sentence-transformers
-```
-
-### 3. Configure Environments
-Copy the example config file to initialize your settings:
-```bash
-cp .env.example .env
-```
+No backend process or API key is required for this demo branch.
 
 ---
 
-## 📋 Environment Variables
+## Deploy to Streamlit Cloud
 
-| Variable | Default | Allowed Values | Description |
-| :--- | :--- | :--- | :--- |
-| `LOCAL_LLM_PROVIDER` | `transformers` | `transformers`, `fireworks` | The local inference engine backend to use. |
-| `LOCAL_LLM_MAX_TOKENS` | `700` | Positive integer | The token budget limit for LLM generation. |
-| `LOCAL_LLM_TEMPERATURE` | `0.2` | Float `0.0 - 1.0` | Temperature setting (lower = more deterministic). |
-| `ACADEMICFORGE_CACHE_DIR` | `.academicforge_cache` | Path string | Target directory to store disk cache. |
-| `ACADEMICFORGE_BACKEND_URL` | `http://localhost:8000` | URL string | The API backend URL used by the Streamlit app. |
+Use these deployment settings:
 
----
+- **Repository:** `https://github.com/shreyshrivastava/AcademicForge`
+- **Branch:** `streamlit-cloud-demo`
+- **Main file path:** `frontend/streamlit_app.py`
+- **Requirements file:** `requirements.txt`
 
-## ⚡ Running the Project
-
-### 1. Start the Backend API
-```bash
-source venv/bin/activate
-uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
-```
-Check health:
-```bash
-curl http://127.0.0.1:8000/config
-```
-
-### 2. Start the Streamlit Frontend
-In a separate terminal window:
-```bash
-source venv/bin/activate
-streamlit run frontend/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
-```
-Open [http://127.0.0.1:8501](http://127.0.0.1:8501) in your browser.
-
-### 3. Run Automated Tests
-AcademicForge maintains a test suite checking local logic, cache integrity, model config, and API contracts. Run all tests with:
-```bash
-source venv/bin/activate
-python tests/test_cache.py
-python tests/test_generation_pipeline.py
-python tests/test_llm_routing.py
-python tests/test_api_contract.py
-python tests/test_retrieval.py
-```
-
-## 📝 Demo Scripts
-
-### Recommended Search Queries:
-1.  `reduce AI hallucination` (AI Domain)
-2.  `photovoltaic solar grid forecasting` (Energy Domain)
-3.  `automated test suite code debugging` (Software Domain)
-4.  `diet exercise calorie restriction lipid metabolism` (Health Domain)
-
-### Standard Demo Flow:
-1.  Type `reduce AI hallucination` into the search box.
-2.  Review the cards: highlight how **BM25 Rank** captures exact phrases and **Dense Rank** finds conceptual matches.
-3.  Select three relevant papers.
-4.  Generate summaries to show local cache speed.
-5.  Switch mode to **Deep Mode (Gemma)** and generate a streamed **Research Plan**. Note the structural breakdown (Core Architecture, Component details, difficulty levels).
-6.  Click **Download Markdown** to show final file delivery.
+Do not set `ACADEMICFORGE_BACKEND_URL` in Streamlit Cloud secrets. Leaving it unset activates the self-contained demo runtime.
 
 ---
 
-## 📂 Repository Structure
+## Repository Map
 
 ```text
 AcademicForge/
-├── .academicforge_cache/    # Local JSON cache directory
-├── .agents/                 # Workspace customizations (skills)
 ├── backend/
-│   ├── retrieval/
-│   │   ├── __init__.py
-│   │   ├── bm25.py          # Local lexical keyword ranker
-│   │   ├── dense.py         # Local dense vector retriever (BGE / cosine)
-│   │   ├── hybrid.py        # Combines BM25 & dense retrievals
-│   │   ├── models.py        # Retrieval data schemas
-│   │   ├── reranker.py      # Cross-encoder placeholder
-│   │   └── rrf.py           # Reciprocal Rank Fusion implementation
-│   ├── app.py               # FastAPI backend exposing search/generation routes
-│   ├── cache.py             # Memory + disk caching implementation
-│   ├── config.py            # Environment-aware application configuration
-│   ├── data_pipeline.py     # Main search & ranking orchestration
-│   ├── llm.py               # LLM facade (Transformers/Fireworks)
-│   ├── pdf_parser.py        # PDF parser placeholder
-│   └── research_plan_generator.py # Streamed Research Plan & Guidance prompts
-├── docs/
-│   ├── architecture.md      # High-level architecture documentation
-│   ├── repository-audit.md  # Audit notes
-│   ├── roadmap.md           # Product roadmap and known limitations
-│   └── setup.md             # Detailed installation and launch instructions
+│   ├── data_pipeline.py            # live retrieval, ranking, relevance, lens selection
+│   ├── retrieval/                  # BM25, dense search, RRF, reranking
+│   ├── summarizer.py               # paper summaries
+│   ├── guidance_generator.py       # per-paper practical guidance
+│   └── research_plan_generator.py  # selected-paper Research Plan generation
 ├── frontend/
-│   └── streamlit_app.py     # Streamlit web interface
-├── scripts/
-│   └── run_local.py         # Multi-process orchestrator script
-├── tests/
-│   ├── test_api_contract.py # FastAPI contract verification tests
-│   ├── test_cache.py        # Caching logic tests
-│   ├── test_generation_pipeline.py # Core LLM generation flow tests
-│   ├── test_llm_routing.py  # LLM model routing config tests
-│   └── test_retrieval.py    # BM25/Dense/RRF verification tests
-├── requirements-local.txt   # Package dependencies
-└── README.md                # Main project description & judge guide
+│   ├── api_client.py               # HTTP client or Streamlit Cloud in-process adapter
+│   └── streamlit_app.py            # responsive product UI
+├── docs/
+│   └── architecture.md             # detailed deployment architecture
+└── requirements.txt                # lean Cloud dependency set
 ```
 
 ---
 
-## 🔮 Future Roadmap
+## Limitations of the Public Demo
 
-*   **Full-PDF Parsing:** Move from abstract-only metadata extraction to reading full scientific PDFs dynamically using `pypdf`.
-*   **Cross-Encoder Reranking:** Enable deep post-retrieval reranking using cross-encoders (`BAAI/bge-reranker-base`) inside `backend/retrieval/reranker.py`.
-*   **Multi-Paper File Upload:** Allow users to upload their own research PDFs to be ingested into the local vector space alongside live arXiv/Semantic Scholar downloads.
-*   **Enterprise Document Pools:** Add support for indexing proprietary enterprise manuals, specs, or documents.
-*   **Direct AMD Developer Cloud Deployment:** Provide Docker Compose files optimized for one-click template deployments on ROCm-capable virtual hosts.
+- External paper APIs may rate-limit anonymous requests.
+- The demo generator is intentionally lightweight and should not be represented as local Gemma or DeepSeek inference.
+- Deep Mode is not available without the AMD deployment and Fireworks configuration.
 
 ---
 
-## 📄 License
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+## Full Product Deployment
 
----
+For local Gemma inference on AMD ROCm hardware and the optional Fireworks Deep Mode, use the [`amd-rocm-only`](https://github.com/shreyshrivastava/AcademicForge/tree/amd-rocm-only) branch.
 
-## 🤝 Acknowledgements
-*   **arXiv API** and **Semantic Scholar API** for search candidate indices.
-*   **AMD Developer Hackathon** sponsors and organizers.
-**Hugging Face Transformers** teams for model serving utilities.
+## License
+
+MIT. See [LICENSE](LICENSE).

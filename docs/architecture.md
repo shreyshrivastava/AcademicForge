@@ -1,90 +1,85 @@
-# Architecture
+# Streamlit Cloud Demo Architecture
 
-AcademicForge is an AMD notebook-oriented research-to-plan system. It uses a
-Streamlit frontend, a FastAPI backend, live academic retrieval, hybrid ranking,
-and Transformers-based local inference for ROCm-compatible AMD GPU deployment.
+This branch keeps AcademicForge's research workflow and interface while using a
+self-contained demo runtime suited to Streamlit Cloud. It is not the AMD ROCm
+deployment; that implementation lives on `amd-rocm-only`.
 
 ## High-Level Flow
 
 ```text
 Streamlit UI
-  -> FastAPI backend
+  -> APIClient chooses an in-process demo adapter when no backend URL exists
   -> live source search
        -> arXiv
        -> Semantic Scholar
   -> candidate paper pool
   -> retrieval layer
        -> BM25 lexical ranking
-       -> dense semantic ranking
+       -> dense semantic ranking when dependencies are available
        -> reciprocal rank fusion
-       -> cross-encoder reranking
-  -> Research Lens selection
+       -> cross-encoder reranking when dependencies are available
+  -> relevance and Research Lens selection
   -> ranked paper cards
        -> on-demand Summary
        -> on-demand Guidance
        -> selected papers
-  -> compact Research Plan context
-  -> streamed Research Plan
+  -> lightweight evidence-grounded Research Plan
 ```
 
-## Backend
+## Deployment Adapter
 
-`backend/app.py` exposes the main API:
+`frontend/api_client.py` normally talks to FastAPI through
+`ACADEMICFORGE_BACKEND_URL`. Streamlit Cloud hosts one Streamlit process, so
+this branch switches to an in-process adapter when that variable is absent.
 
-- `GET /health` - backend and model readiness status
-- `GET /config` - active model configuration
-- `POST /search` - arXiv and Semantic Scholar collection plus hybrid retrieval
-- `POST /summarize` - paper summary generation
-- `POST /paper-guidance` - single-paper practical guidance
-- `POST /research-plan` - non-streaming Research Plan generation
-- `POST /research-plan/stream` - streaming Research Plan generation
-- `POST /research-plan/cache-status` - cache compatibility endpoint
-- `POST /paper-guidance/cache-status` - cache compatibility endpoint
+The adapter invokes the same product modules used by the server deployment:
+
+- `backend.data_pipeline.retrieve_and_rank_papers()` for live search
+- `backend.summarizer.summarize_paper()` for a paper summary
+- `backend.guidance_generator.generate_paper_guidance()` for paper guidance
+- `backend.research_plan_generator.stream_research_plan()` for the selected-paper plan
+
+It presents the same logical endpoints to the UI, so the Streamlit interaction
+model remains consistent with the AMD build without requiring an HTTP backend.
 
 ## Retrieval Layer
 
-The retrieval layer lives in `backend/retrieval/`.
+The retrieval modules are shared with the AMD build.
 
-- `bm25.py` searches exact terms across title, abstract, categories, and keywords.
-- `dense.py` uses `BAAI/bge-small-en-v1.5` through `sentence-transformers` when available.
-- `rrf.py` combines ranked lists with reciprocal rank fusion.
-- `hybrid.py` runs BM25, dense search, and RRF together.
-- `reranker.py` applies `BAAI/bge-reranker-base` as the final cross-encoder ranking step.
+- `bm25.py` ranks exact language in titles, abstracts, categories, and tags.
+- `dense.py` uses `BAAI/bge-small-en-v1.5` when `sentence-transformers` is
+  installed, otherwise it uses a local lexical cosine fallback.
+- `rrf.py` merges lexical and semantic rankings.
+- `hybrid.py` coordinates BM25, dense ranking, and RRF.
+- `reranker.py` uses `BAAI/bge-reranker-base` when it is installed and keeps
+  the fused order if it cannot load.
 
-RRF is used because BM25 and dense search produce different score
-distributions. It combines rankings without requiring score normalization.
+Live sources are queried per request. Relevance checks and a domain mismatch
+guard prevent unrelated papers from becoming synthesis input. Research Lens is
+mutually exclusive: `Balanced` supplies no category filter; any other lens
+supplies exactly one category preference.
 
-## Model Layer
+## Generation Modes
 
-`backend/llm.py` wraps generation behind two providers:
+### Fast Mode (Demo)
 
-- `transformers` - local PyTorch inference for AMD ROCm environments
-- `fireworks` - optional cloud model path for deeper synthesis
+The demo provider turns retrieved title and abstract evidence into concise
+summaries, project-oriented guidance, and structured Research Plans. It is a
+lightweight public product demonstration and does not load a Gemma model.
 
-Current default local model:
+### Deep Mode (Visible, disabled)
 
-- `google/gemma-2-2b-it`
+The UI retains Deep Mode to explain the full product experience. It is disabled
+in this public branch because Fireworks credentials should not be embedded in a
+public Streamlit deployment. The UI explicitly directs a user to the AMD build
+for the optional DeepSeek/Fireworks route.
 
-Task-specific model routing:
+## What Is Different From the AMD Deployment
 
-- `LOCAL_LLM_MODEL`
-- `LOCAL_LLM_SUMMARY_MODEL`
-- `LOCAL_LLM_GUIDANCE_MODEL`
-- `LOCAL_LLM_RESEARCH_PLAN_MODEL`
-
-## Frontend
-
-`frontend/streamlit_app.py` provides the user workflow:
-
-- search box for questions or paper links
-- mutually exclusive Research Lens control
-- ranked paper cards with category chips
-- on-demand Summary and Guidance actions
-- selected-paper Research Plan generation
-- technical dashboard for retrieval and model details
-
-## Deployment
-
-The AMD notebook path runs the FastAPI backend and Streamlit frontend locally on
-the VM, then exposes Streamlit through an Ngrok tunnel when the notebook
-provider blocks Streamlit WebSockets through its native reverse proxy.
+| Area | Streamlit Cloud demo | AMD deployment |
+| --- | --- | --- |
+| Process layout | One Streamlit process | Streamlit plus FastAPI |
+| Fast inference | Lightweight demo provider | Local Gemma through PyTorch/ROCm |
+| Deep inference | Disabled | Optional Fireworks/DeepSeek |
+| Secrets | Not required | Hugging Face token; Fireworks key only for Deep Mode |
+| Primary purpose | Public workflow demo | Full local-first AI research assistant |
