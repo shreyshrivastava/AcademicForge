@@ -77,10 +77,24 @@ try:
 except Exception as e:
     print(f"[Warning] nvidia-smi command not available: {e}")
 
-# 2. Check PyTorch CUDA availability
-import torch
-
+# 2. Check PyTorch CUDA availability via isolated subprocess
+# Running this check in a subprocess prevents pre-loading NumPy into the main
+# kernel memory before pinned requirements are installed in Section 3.
+check_code = \"\"\"
+import sys, torch
 if not torch.cuda.is_available():
+    sys.exit(2)
+device_props = torch.cuda.get_device_properties(0)
+total_vram_gb = device_props.total_memory / (1024 ** 3)
+print(f"Device:       {torch.cuda.get_device_name(0)}")
+print(f"Total VRAM:   {total_vram_gb:.2f} GB")
+print(f"CUDA Version: {torch.version.cuda}")
+print(f"PyTorch:      {torch.__version__}")
+\"\"\"
+
+gpu_proc = subprocess.run([sys.executable, "-c", check_code], capture_output=True, text=True)
+
+if gpu_proc.returncode != 0:
     print("\\n" + "!" * 70, file=sys.stderr)
     print("ERROR: No CUDA GPU detected in this Google Colab session!", file=sys.stderr)
     print("Please follow these steps:", file=sys.stderr)
@@ -90,16 +104,10 @@ if not torch.cuda.is_available():
     print("!" * 70 + "\\n", file=sys.stderr)
     raise SystemExit(1)
 
-gpu_name = torch.cuda.get_device_name(0)
-device_props = torch.cuda.get_device_properties(0)
-total_vram_gb = device_props.total_memory / (1024 ** 3)
-
 print("=" * 60)
 print("GPU HARDWARE CHECK PASSED:")
-print(f"  Device:       {gpu_name}")
-print(f"  Total VRAM:   {total_vram_gb:.2f} GB")
-print(f"  CUDA Version: {torch.version.cuda}")
-print(f"  PyTorch:      {torch.__version__}")
+for line in gpu_proc.stdout.strip().splitlines():
+    print(f"  {line}")
 print("=" * 60)"""))
 
     # Section 2
@@ -206,6 +214,7 @@ Handles the blinker/distutils ignore-installed issue before installing pinned pa
 
     cells.append(nbf.v4.new_code_cell("""import subprocess
 import sys
+import os
 from pathlib import Path
 
 print("Installing dependencies from bundle requirements-gpu.txt...")
@@ -237,11 +246,27 @@ except subprocess.CalledProcessError as exc:
     print(f"\\nERROR: Dependency installation failed with exit code {exc.returncode}!", file=sys.stderr)
     raise SystemExit(1)
 
-# 3. Print verified package versions
-import torch
-import transformers
-import sentence_transformers
-import accelerate
+# 3. Verify installed package versions
+# If NumPy was upgraded on disk while previously loaded in kernel memory,
+# catch the binary mismatch cleanly and explain the restart step.
+try:
+    import torch
+    import transformers
+    import sentence_transformers
+    import accelerate
+except ImportError as exc:
+    err_str = str(exc)
+    if "numpy" in err_str.lower() or "_slice" in err_str or "umath" in err_str:
+        print("\\n" + "=" * 70)
+        print("NOTICE: Dependencies have been successfully installed on disk.")
+        print("Because NumPy was previously loaded in kernel memory, a one-time session")
+        print("restart is required to bind the new compiled C-extensions:")
+        print("  1. In the Colab menu, click: Runtime > Restart session (Ctrl+M .)")
+        print("  2. Continue running from Section 4 (all installed packages remain on disk).")
+        print("=" * 70 + "\\n")
+        raise SystemExit(0)
+    else:
+        raise
 
 print("\\n" + "=" * 60)
 print("DEPENDENCY VERIFICATION COMPLETE:")
