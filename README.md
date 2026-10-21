@@ -300,7 +300,6 @@ python -m compileall -q backend frontend scripts tests benchmarks
 bash -n start.sh
 ```
 
-CI runs unit checks on Linux and macOS with Python 3.12 and 3.14. Unit tests use fake models and providers, so they do not download weights or call paid APIs. GPU inference needs separate hardware verification.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and [docs/setup.md](docs/setup.md) for additional setup notes.
 
