@@ -1,0 +1,71 @@
+{
+  "optional_dependencies": {
+    "sentence_transformers": false,
+    "torch": false,
+    "fastapi": false,
+    "dotenv": false
+  },
+  "startup_exceptions": [],
+  "inputs": [
+    "Research question"
+  ],
+  "selectboxes": [],
+  "runtime_retrieve_signature": "(query: 'str', categories: 'list[str] | None' = None) -> 'dict'",
+  "source_outage": {
+    "paper_count": 4,
+    "sources": [
+      "synthetic_demo"
+    ],
+    "message": ""
+  },
+  "outage_search_ui_exceptions": [],
+  "outage_search_ui_errors": [],
+  "buttons": [
+    "Search",
+    "Summary",
+    "Guidance",
+    "Summary",
+    "Guidance",
+    "Summary",
+    "Guidance",
+    "Summary",
+    "Guidance",
+    "Generate Research Plan"
+  ],
+  "plan_ui_exceptions": [],
+  "plan_ui_errors": [],
+  "plan_created": true,
+  "second_plan_ui_errors": [
+    "The backend returned an error: This IP address has already used the public cloud request."
+  ],
+  "one_live_match": {
+    "sources": [
+      "synthetic_demo"
+    ],
+    "retains_live_paper": false
+  },
+  "missing_direct_id": {
+    "papers": [],
+    "message": ""
+  },
+  "enable_llm_provider": "cloud_demo",
+  "enable_llm_summary": "What this paper contributes\n\nGrounded Retrieval for Reducing Hallucinations in Language Models is tr",
+  "shared_identifier_without_headers": "local-dev-client",
+  "logs": "Cross-encoder reranking failed: No module named 'sentence_transformers'. Falling back to default order.\nCross-encoder reranking failed: No module named 'sentence_transformers'. Falling back to default order.\nCross-encoder reranking failed: No module named 'sentence_transformers'. Falling back to default order.\n",
+  "python": "3.14.3",
+  "packages": {
+    "streamlit": "1.66.0",
+    "arxiv": "4.0.1",
+    "openai": "3.35.1",
+    "requests": "2.34.2",
+    "numpy": "2.5.4",
+    "pytest": "9.1.1"
+  },
+  "method": "AppTest with controlled source fixtures; no live academic or paid generation calls",
+  "demo_commit": "e548bb33f39496e579728cea459779d6be6ab70c",
+  "main_commit": "1d1c437d5f17c3df808828805a29caa7149e5c49",
+  "existing_tests": {
+    "passed": 12,
+    "command": "python -m pytest tests/test_cloud_usage_limiter.py tests/test_retrieval.py -q"
+  }
+}

@@ -19,6 +19,8 @@ Run it locally on Apple Silicon, NVIDIA CUDA, or AMD ROCm. Summaries, paper guid
 
 ## Getting started
 
+For a lightweight demo without API keys or a backend, use the [standalone Streamlit profile](docs/streamlit_cloud.md). It shares this interface and live search, uses BM25 ranking and a small open-source CPU model, and falls back to extractive evidence analysis when the model is unavailable.
+
 You need Python 3.12–3.14 with `venv` support, Git, and an internet connection for paper searches and initial model downloads. Choose the dependency file for your hardware below. GPU setups also need a working CUDA or ROCm environment.
 
 ### 1. Download the project

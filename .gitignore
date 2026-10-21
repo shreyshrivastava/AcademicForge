@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .venv/
+.venv-demo/
 venv/
 .DS_Store
 .streamlit/

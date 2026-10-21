@@ -1,6 +1,6 @@
 # Setup
 
-AcademicForge runs locally or on a GPU VM. Use Python 3.12–3.14. Deployment uses the same FastAPI and Streamlit processes on every platform.
+AcademicForge runs locally or on a GPU VM with FastAPI and Streamlit. Use Python 3.12–3.14. The [standalone demo](streamlit_cloud.md) runs entirely inside Streamlit with lightweight ranking and abstract-based previews.
 
 ## Local installation
 

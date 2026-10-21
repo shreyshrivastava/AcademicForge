@@ -2,6 +2,7 @@ from urllib.parse import quote_plus, urlparse
 from datetime import date
 import logging
 import re
+from types import SimpleNamespace
 
 import xml.etree.ElementTree as ET
 import requests
@@ -474,11 +475,12 @@ def _filter_for_field(query, papers, domain):
     return filter_relevant_papers(query, papers)
 
 
-def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None = None, domain: str = "") -> list[dict]:
+def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None = None, domain: str = "", *, lightweight=False) -> list[dict]:
     """End-to-end retrieval pipeline used by the API."""
     begin_search()
     original_query = query.strip()
-    config = get_config()
+    # The standalone profile never reads generation credentials or initializes models.
+    config = SimpleNamespace(search_mode="standalone_bm25") if lightweight else get_config()
     key = cache_key(original_query, preferred_categories, config.search_mode, domain)
     intent_query = contextualize_query(original_query, domain) if not extract_arxiv_id(original_query) else original_query
     cached = get_cached(key)
@@ -498,7 +500,8 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
     if direct_id:
         candidates = [paper for paper in candidates if matches_field(paper, original_query, domain)]
         selected = select_evidence_set(candidates, target=1)
-        selected = enrich_papers_with_jev(original_query, selected)
+        if not lightweight:
+            selected = enrich_papers_with_jev(original_query, selected)
         if not diagnostics()["warnings"]:
             store(key, selected)
         return selected
@@ -521,14 +524,20 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
         candidates = _dedupe_papers([*candidates, *expanded_candidates])
         candidates = [paper for paper in candidates if matches_field(paper, original_query, domain)]
         papers = _filter_for_field(intent_query, candidates, domain)
-    if len(papers) < MIN_RELEVANT_PAPERS:
+    if not papers:
         logger.warning(
             "Not enough relevant papers original_query=%r relevant_count=%d",
             original_query,
             len(papers),
         )
         return []
-    ranked = rank_papers(intent_query, papers)
+    if lightweight:
+        ranked = [result_to_paper(result) for result in bm25_search(intent_query, papers, top_k=RERANK_POOL_SIZE)]
+        for paper in ranked:
+            paper["metadata"].update({"ranking_backend": "bm25", "dense_backend": "disabled",
+                                      "reranker_backend": "disabled"})
+    else:
+        ranked = rank_papers(intent_query, papers)
     selected = select_evidence_set(ranked, preferred_categories=preferred_categories)
     _log_final_selection(original_query, selected)
     if not diagnostics()["warnings"]:

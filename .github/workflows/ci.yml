@@ -5,6 +5,28 @@ on:
 permissions:
   contents: read
 jobs:
+  standalone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python: ['3.11', '3.12', '3.14']
+    env:
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      ACADEMICFORGE_ENV_FILE: /nonexistent/academicforge-test.env
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.1'
+          python-version: ${{ matrix.python }}
+      - run: uv venv
+      - run: uv pip install --require-hashes -r frontend/requirements.txt
+      - run: uv pip install 'pytest>=9.1,<10'
+      - run: .venv/bin/python -m pytest tests/test_streamlit_demo.py tests/test_evidence_analysis.py tests/test_small_model.py -q
+      - run: .venv/bin/python -c "import importlib.util; assert all(importlib.util.find_spec(m) is None for m in ['torch', 'sentence_transformers', 'mlx_lm', 'fastapi', 'openai'])"
+      - run: uv pip check
   unit:
     strategy:
       fail-fast: false

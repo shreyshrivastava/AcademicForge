@@ -20,6 +20,7 @@ def isolated_runtime(monkeypatch):
     monkeypatch.setenv("LOCAL_LLM_PROVIDER", "transformers")
     monkeypatch.setenv("LOCAL_LLM_MODEL", "test/local-model")
     monkeypatch.setenv("ACADEMICFORGE_SEARCH_MODE", "fast")
+    monkeypatch.setenv("ACADEMICFORGE_DEMO_MODEL_ENABLED", "false")
     monkeypatch.setattr("backend.retrieval.dense._load_sentence_transformer", lambda: None)
 
     def unavailable():

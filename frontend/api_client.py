@@ -9,6 +9,13 @@ from dotenv import load_dotenv
 import requests
 
 
+def create_api_client():
+    if os.getenv("ACADEMICFORGE_FRONTEND_MODE", "").lower() in {"streamlit_demo", "cloud_demo"}:
+        from frontend.demo_runtime import DemoClient
+        return DemoClient()
+    return APIClient()
+
+
 class StreamError(requests.RequestException):
     """A stream ended without a complete, usable answer."""
 

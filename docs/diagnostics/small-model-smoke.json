@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-21",
+  "model": "google/flan-t5-small",
+  "artifact_repo": "onnx-community/flan-t5-small-ONNX",
+  "artifact_revision": "76988c16f73cadb2c2e13e2d7d85608944223105",
+  "runtime": "onnxruntime 1.31.0, CPUExecutionProvider, two intra-op threads",
+  "host": "local macOS Apple Silicon; not Streamlit Cloud",
+  "checks": {
+    "python311_cached_load_seconds": 1.587,
+    "python311_short_prompt_generation_seconds": 0.050958833,
+    "python311_short_prompt_peak_process_rss_bytes": 296124416,
+    "python314_real_paper_app_test": {
+      "arxiv_id": "2309.15217v2",
+      "summary_provider": "onnx_cpu",
+      "fallback": false,
+      "summary": "We propose a framework for reference-free evaluation of RAG pipelines.",
+      "search_papers": 1,
+      "ui_exceptions": 0,
+      "ui_errors": 0,
+      "workflow_peak_process_rss_bytes": 435306496
+    },
+    "main_live_search": {
+      "http_status": 200,
+      "papers": 10,
+      "query": "rag as",
+      "domain": "Computer science & AI"
+    },
+    "standalone_live_search": {
+      "papers": 10,
+      "query": "rag as",
+      "domain": "Computer science & AI"
+    },
+    "source_limitation": "Semantic Scholar returned HTTP 429 in broad searches; arXiv supplied results and a partial-source warning was shown."
+  },
+  "scope": "Smoke checks and local runtime observations, not a quality benchmark, cold-download timing, or guarantee of hosted resource use."
+}
