@@ -6,10 +6,12 @@ AcademicForge has a reproducible ablation runner for the production retrieval cl
 
 No full ablation artifact is published yet. The runner was started on this Apple Silicon machine, but BGE dense retrieval and cross-encoder reranking did not complete within the practical evaluation window. The runner therefore wrote no partial or estimated results. It fails rather than silently treating its lexical dense fallback as a BGE result.
 
+<!-- BEGIN GENERATED ABLATION TABLE -->
 | Dataset | BM25 | Stemmed BM25 | BGE dense | RRF | RRF + cross-encoder |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | BEIR SciFact | Prior baseline below | Not yet measured | Not yet measured | Not yet measured | Not yet measured |
 | BEIR NFCorpus | Not yet measured | Not yet measured | Not yet measured | Not yet measured | Not yet measured |
+<!-- END GENERATED ABLATION TABLE -->
 
 Run the complete ablation on an available CUDA, ROCm, MPS, or CPU device:
 

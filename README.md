@@ -14,13 +14,12 @@ Run it locally on Apple Silicon, NVIDIA CUDA, or AMD ROCm. Summaries, paper guid
 
 The reproducible ablation runner evaluates the production retrieval components on BEIR SciFact and NFCorpus. It is deliberately guarded: it refuses to write a result artifact when BGE dense retrieval or the BGE cross-encoder is unavailable. A full supported-device run has not completed in this checkout, so no hybrid or reranker metrics are claimed yet.
 
-| System | SciFact | NFCorpus | Published result |
-| :--- | :--- | :--- | :--- |
-| BM25, no stemming | Existing baseline available | Not yet run | [SciFact baseline](docs/benchmarks/scifact-bm25.json) |
-| BM25 with stemming and stopword removal | Not yet run | Not yet run | None |
-| BGE dense | Not yet run | Not yet run | None |
-| BM25 + BGE RRF | Not yet run | Not yet run | None |
-| RRF + BGE cross-encoder rerank | Not yet run | Not yet run | None |
+<!-- BEGIN GENERATED ABLATION TABLE -->
+| Dataset | BM25 | Stemmed BM25 | BGE dense | RRF | RRF + cross-encoder |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| BEIR SciFact | Prior baseline below | Not yet measured | Not yet measured | Not yet measured | Not yet measured |
+| BEIR NFCorpus | Not yet measured | Not yet measured | Not yet measured | Not yet measured | Not yet measured |
+<!-- END GENERATED ABLATION TABLE -->
 
 Run the complete ablation on a device where BGE embedding and reranking can finish:
 

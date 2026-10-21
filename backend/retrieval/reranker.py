@@ -32,7 +32,31 @@ def get_reranker_model():
         return _get_reranker_model()
 
 
-def rerank_results(query: str, results: list[RetrievalResult], top_k: int = 5) -> list[RetrievalResult]:
+def score_pairs_length_sorted(model, pairs: list[tuple[str, str]], batch_size: int = 32):
+    """Score pairs in shorter batches first, then restore their original order.
+
+    Sorting only changes padding efficiency.  The returned score at each index
+    still belongs to the corresponding input pair, so ranking semantics remain
+    unchanged.
+    """
+    if batch_size < 1:
+        raise ValueError("batch_size must be at least 1")
+    ordered = sorted(enumerate(pairs), key=lambda item: len(item[1][0]) + len(item[1][1]))
+    ordered_scores = model.predict([pair for _, pair in ordered], batch_size=batch_size)
+    if len(ordered_scores) != len(pairs):
+        raise ValueError("Cross-encoder returned a score count that does not match the input pairs")
+    scores = [None] * len(pairs)
+    for (original_index, _), score in zip(ordered, ordered_scores):
+        scores[original_index] = score
+    return scores
+
+
+def rerank_results(
+    query: str,
+    results: list[RetrievalResult],
+    top_k: int = 5,
+    batch_size: int = 32,
+) -> list[RetrievalResult]:
     if not results:
         return []
 
@@ -40,7 +64,7 @@ def rerank_results(query: str, results: list[RetrievalResult], top_k: int = 5) -
         model = get_reranker_model()
         # Pair the query with each document's title and abstract
         pairs = [(query, f"{r.title}\n{r.abstract}") for r in results]
-        scores = model.predict(pairs)
+        scores = score_pairs_length_sorted(model, pairs, batch_size=batch_size)
 
         # Sort results based on score descending
         scored = sorted(zip(results, scores), key=lambda x: x[1], reverse=True)

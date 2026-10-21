@@ -342,7 +342,7 @@ def test_rerank_results_cross_encoder(monkeypatch):
     ]
 
     class Reranker:
-        def predict(self, pairs):
+        def predict(self, pairs, batch_size):
             return [0.1, 0.9]  # Deliberately reverse the original ordering.
 
     monkeypatch.setattr("backend.retrieval.reranker.get_reranker_model", lambda: Reranker())
@@ -354,6 +354,19 @@ def test_rerank_results_cross_encoder(monkeypatch):
 
     # Test empty list
     assert rerank_results("test", []) == []
+
+
+def test_length_sorted_cross_encoder_batches_restore_original_scores():
+    from backend.retrieval.reranker import score_pairs_length_sorted
+
+    pairs = [("query", "very long document text"), ("query", "short")]
+
+    class Reranker:
+        def predict(self, batch, batch_size):
+            assert batch_size == 2
+            return [len(document) for _, document in batch]
+
+    assert score_pairs_length_sorted(Reranker(), pairs, batch_size=2) == [23, 5]
 
 
 if __name__ == "__main__":

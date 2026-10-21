@@ -17,6 +17,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import random
 import statistics
 import subprocess
 import sys
@@ -147,7 +148,25 @@ def append_measurement(results, rows, latencies, name, query_id, ranked, relevan
     )
 
 
-def run_dataset(dataset_id: str, archive: Path, k: int):
+def select_query_ids(qrels: dict, max_queries: int | None) -> list[str]:
+    """Return a stable full split or a seed-42 deterministic subsample."""
+    query_ids = sorted(qrels, key=lambda value: int(value) if value.isdigit() else value)
+    if max_queries is None or max_queries >= len(query_ids):
+        return query_ids
+    if max_queries < 1:
+        raise ValueError("max_queries must be at least 1")
+    return sorted(random.Random(42).sample(query_ids, max_queries), key=lambda value: int(value) if value.isdigit() else value)
+
+
+def run_dataset(
+    dataset_id: str,
+    archive: Path,
+    k: int,
+    max_queries: int | None = None,
+    rerank_depth: int = 50,
+    batch_size: int = 32,
+    progress: bool = False,
+):
     dataset = DATASETS[dataset_id]
     papers, queries, qrels = load_dataset(archive, dataset_id)
 
@@ -175,7 +194,10 @@ def run_dataset(dataset_id: str, archive: Path, k: int):
         {name: [] for name in SYSTEMS},
     )
     reranker_backend = "unavailable"
-    for query_id in sorted(qrels, key=lambda value: int(value) if value.isdigit() else value):
+    query_ids = select_query_ids(qrels, max_queries)
+    total_queries = len(query_ids)
+    run_started = time.perf_counter()
+    for position, query_id in enumerate(query_ids, start=1):
         query = queries[query_id]
         relevant = qrels[query_id]
 
@@ -205,7 +227,9 @@ def run_dataset(dataset_id: str, archive: Path, k: int):
         append_measurement(per_query, metric_rows, latencies, "rrf", query_id, fused_results, relevant, rrf_elapsed, k)
 
         started = time.perf_counter()
-        reranked_results = rerank_results(query, fused_results, top_k=k)
+        reranked_results = rerank_results(
+            query, fused_results[:rerank_depth], top_k=rerank_depth, batch_size=batch_size
+        )
         rerank_elapsed = time.perf_counter() - started
         reranker_backend = next(
             (result.metadata.get("reranker_backend") for result in reranked_results if result.metadata.get("reranker_backend")),
@@ -222,6 +246,14 @@ def run_dataset(dataset_id: str, archive: Path, k: int):
             rrf_elapsed + rerank_elapsed,
             k,
         )
+        if progress and (position % 10 == 0 or position == total_queries):
+            elapsed = time.perf_counter() - run_started
+            eta = (elapsed / position) * (total_queries - position) if position else 0.0
+            print(
+                f"[{dataset_id}] {position}/{total_queries} queries; elapsed {elapsed:.1f}s; ETA {eta:.1f}s",
+                file=sys.stderr,
+                flush=True,
+            )
 
     if reranker_backend != "BAAI/bge-reranker-base":
         raise RuntimeError(
@@ -251,7 +283,9 @@ def run_dataset(dataset_id: str, archive: Path, k: int):
         "dataset_url": dataset["url"],
         "dataset_sha256": dataset["sha256"],
         "documents": len(papers),
-        "queries": len(qrels),
+        "queries": len(query_ids),
+        "full_split_queries": len(qrels),
+        "query_ids": query_ids,
         "positive_judgments": sum(map(len, qrels.values())),
         "cutoff": k,
         "prepared_index_seconds": {
@@ -271,6 +305,8 @@ def run_dataset(dataset_id: str, archive: Path, k: int):
             "dense_model": MODEL_NAME,
             "reranker_model": "BAAI/bge-reranker-base",
             "rrf_k": 60,
+            "rerank_depth": rerank_depth,
+            "reranker_batch_size": batch_size,
             "bootstrap_resamples": 1000,
             "bootstrap_seed": 42,
         },
@@ -284,12 +320,22 @@ def main():
     parser.add_argument("--device", default="auto", choices=("auto", "cpu", "cuda", "mps"))
     parser.add_argument("--output", type=Path, default=ROOT / "docs/benchmarks/retrieval-ablation.json")
     parser.add_argument("--k", type=int, default=10)
+    parser.add_argument("--max-queries", type=int, help="Deterministic seed-42 subsample of test queries")
+    parser.add_argument("--rerank-depth", type=int, default=50, help="RRF candidates passed to the cross-encoder")
+    parser.add_argument("--batch-size", type=int, default=32, help="Cross-encoder batch size")
+    parser.add_argument("--progress", action="store_true", help="Log elapsed time and ETA every 10 queries")
     args = parser.parse_args()
     os.environ["ACADEMICFORGE_RETRIEVAL_DEVICE"] = args.device
 
     selected = [dataset.strip() for dataset in args.datasets.split(",") if dataset.strip()]
     if not selected or any(dataset not in DATASETS for dataset in selected):
         parser.error("--datasets must contain one or both of: scifact,nfcorpus")
+    if args.max_queries is not None and args.max_queries < 1:
+        parser.error("--max-queries must be at least 1")
+    if args.rerank_depth < args.k:
+        parser.error("--rerank-depth must be at least --k")
+    if args.batch_size < 1:
+        parser.error("--batch-size must be at least 1")
     reports = []
     for dataset_id in selected:
         archive = ROOT / ".academicforge_cache/benchmarks" / f"{dataset_id}.zip"
@@ -297,9 +343,24 @@ def main():
             if not args.download:
                 parser.error(f"{DATASETS[dataset_id]['label']} is missing. Use --download.")
             download(archive, DATASETS[dataset_id])
-        reports.append(run_dataset(dataset_id, archive, args.k))
+        reports.append(
+            run_dataset(
+                dataset_id,
+                archive,
+                args.k,
+                max_queries=args.max_queries,
+                rerank_depth=args.rerank_depth,
+                batch_size=args.batch_size,
+                progress=args.progress,
+            )
+        )
 
     version = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    labels = []
+    if args.max_queries is not None:
+        labels.append("subsample")
+    if args.rerank_depth != 50:
+        labels.append("reduced-depth")
     report = {
         "benchmark": "AcademicForge retrieval ablation",
         "run_started_utc": datetime.now(timezone.utc).isoformat(),
@@ -311,6 +372,9 @@ def main():
             "retrieval_device_requested": args.device,
         },
         "scope": "Prepared-index retrieval only; excludes model load, corpus encoding, network, generation, and UI.",
+        "result_classification": "benchmark result" if not labels else ", ".join(labels),
+        "is_full_benchmark": not labels,
+        "result_labels": labels,
         "datasets": reports,
         "limitations": [
             "Metrics use official positive qrels; unjudged documents are treated as nonrelevant.",
