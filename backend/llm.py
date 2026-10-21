@@ -50,7 +50,7 @@ def provider_name():
 
 
 def model_name(task=None):
-    return get_config().model_for_task(task)
+    return get_config().model_for_task_and_mode(task, None)
 
 
 def task_model_config():
