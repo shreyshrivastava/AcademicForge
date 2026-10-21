@@ -1,12 +1,46 @@
 # AcademicForge
 
-Turn a research question into a practical research plan. AcademicForge finds papers from arXiv and Semantic Scholar, helps you understand them, and builds a plan from the papers you choose.
+AcademicForge is for a graduate student who has found several papers and needs to decide what to implement next. Unlike a paper finder that stops at retrieval, it lets the student select evidence and produces one implementation-oriented Research Plan from that chosen set.
 
 Run it locally on Apple Silicon, NVIDIA CUDA, or AMD ROCm. Summaries, paper guidance, and research plans use a local model by default, with optional cloud providers for generation.
 
 ![AcademicForge search results](docs/assets/academicforge-search-results.png)
 
-[Getting started](#getting-started) · [How it works](#how-it-works) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](CONTRIBUTING.md)
+[Getting started](#getting-started) · [How it works](#how-it-works) · [Evidence](#evidence) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](CONTRIBUTING.md)
+
+## Evidence
+
+### Retrieval ablation status
+
+The reproducible ablation runner evaluates the production retrieval components on BEIR SciFact and NFCorpus. It is deliberately guarded: it refuses to write a result artifact when BGE dense retrieval or the BGE cross-encoder is unavailable. A full supported-device run has not completed in this checkout, so no hybrid or reranker metrics are claimed yet.
+
+| System | SciFact | NFCorpus | Published result |
+| :--- | :--- | :--- | :--- |
+| BM25, no stemming | Existing baseline available | Not yet run | [SciFact baseline](docs/benchmarks/scifact-bm25.json) |
+| BM25 with stemming and stopword removal | Not yet run | Not yet run | None |
+| BGE dense | Not yet run | Not yet run | None |
+| BM25 + BGE RRF | Not yet run | Not yet run | None |
+| RRF + BGE cross-encoder rerank | Not yet run | Not yet run | None |
+
+Run the complete ablation on a device where BGE embedding and reranking can finish:
+
+```bash
+python -m benchmarks.run_scifact --download --device cuda
+```
+
+The runner records nDCG@10, Recall@10, MRR@10, 1,000-resample bootstrap confidence intervals, paired tests against BM25, prepared-index p50/p95 latency, hardware, and dataset checksums in `docs/benchmarks/retrieval-ablation.json`. See the [benchmark guide](docs/benchmarks/README.md) for the prior measured BM25 baseline and the exact caveats.
+
+### Generated-output faithfulness screen
+
+On 21 October 2026, the local `mlx-community/gemma-2-2b-it-4bit` model completed 20 fixed-query summaries. The BGE sentence-support heuristic marked 63 of 63 generated sentences as similar enough to at least one sentence from the retrieved abstracts at a cosine threshold of 0.62. This is a screening result, not proof of factual correctness: similarity can miss paraphrases and can accept a related but contradicted claim. The [artifact](docs/benchmarks/faithfulness.json), [method](benchmarks/faithfulness.py), and [blind human-evaluation template](docs/benchmarks/human_eval_template.csv) retain the auditable inputs and limitations.
+
+### Real example
+
+The [RAG hallucination Research Plan](docs/examples/rag-hallucination-research-plan.md) was generated from a live search using three retrieved papers, local Gemma summaries, and the same Research Plan generator served by FastAPI. Recreate it with:
+
+```bash
+python -m benchmarks.generate_example --device mps
+```
 
 ## What you can do
 
@@ -141,24 +175,6 @@ Completed searches are cached in memory for five minutes by default, making repe
 | Optional cloud generation | Groq for Deep mode; Fireworks DeepSeek when enabled |
 
 See [the architecture guide](docs/architecture.md) for more detail.
-
-## Measured retrieval benchmark
-
-The BM25 lexical component was evaluated on the complete [BEIR SciFact](https://github.com/beir-cellar/beir#available-datasets) test split: **300 queries against 5,183 abstracts**.
-
-| Metric | Measured result |
-| :--- | ---: |
-| nDCG@10 | **0.6427** |
-| Recall@10 | **0.7645** |
-| MRR@10 | **0.6078** |
-
-These measure the **BM25 component**, not full-system accuracy, generated-text quality, or the complete hybrid pipeline. Metric calculations were independently checked against the TREC evaluator for every query.
-
-See [benchmark results and methodology](docs/benchmarks/README.md) for confidence intervals, per-query results, limitations, and reproduction commands:
-
-```bash
-python -m benchmarks.run_scifact --download
-```
 
 ## Search and generation modes
 
