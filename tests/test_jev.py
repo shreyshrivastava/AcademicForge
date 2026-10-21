@@ -1,3 +1,5 @@
+"""Synthetic API contract fixtures. These scores are not benchmark measurements."""
+
 import os
 import sys
 from pathlib import Path
@@ -46,7 +48,7 @@ def test_jev_response_is_normalized(monkeypatch):
                     "paper_relevance": {
                         "choice": "paper_0",
                         "confidence": 0.9,
-                        "probabilities": {"paper_0": 1.0},
+                        "probabilities": {"paper_0": 0.82},
                     },
                     "paper_0_type": {"choice": "method", "confidence": 0.8},
                     "paper_0_difficulty": {"choice": "medium", "confidence": 0.7},
@@ -59,7 +61,7 @@ def test_jev_response_is_normalized(monkeypatch):
         [{"paper_id": "p1", "title": "Paper", "abstract": "Text"}],
         _config(True),
     )
-    assert result[0]["metadata"]["jev"]["relevance_score"] == 1.0
+    assert result[0]["metadata"]["jev"]["relevance_score"] == 0.82
     assert result[0]["metadata"]["jev"]["paper_type"] == "method"
 
 
@@ -90,7 +92,7 @@ def test_jev_relevance_reorders_search_results(monkeypatch):
                 "answers": {
                     "paper_relevance": {
                         "choice": "paper_1",
-                        "probabilities": {"paper_0": 0.2, "paper_1": 0.9},
+                        "probabilities": {"paper_0": 0.2, "paper_1": 0.8},
                     }
                 }
             }
@@ -102,7 +104,7 @@ def test_jev_relevance_reorders_search_results(monkeypatch):
     ]
     result = rerank_papers_with_jev("query", papers, _config(True))
     assert [paper["paper_id"] for paper in result] == ["p2", "p1"]
-    assert result[0]["metadata"]["jev"]["relevance_score"] == 0.9
+    assert result[0]["metadata"]["jev"]["relevance_score"] == 0.8
 
 
 def test_jev_rerank_falls_back_to_existing_order(monkeypatch):

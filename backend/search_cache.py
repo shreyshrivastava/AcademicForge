@@ -3,6 +3,8 @@
 from collections import OrderedDict
 from copy import deepcopy
 from hashlib import sha256
+from threading import RLock
+
 import json
 import os
 import time
@@ -29,6 +31,20 @@ def cache_key(query: str, categories: list[str] | None, search_mode: str) -> str
     return sha256(encoded.encode("utf-8")).hexdigest()
 
 
+_cache_lock = RLock()
+
+
+def _synchronized(function):
+    from functools import wraps
+
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        with _cache_lock:
+            return function(*args, **kwargs)
+    return wrapped
+
+
+@_synchronized
 def get_cached(key: str) -> list[dict] | None:
     entry = _CACHE.get(key)
     if entry is None:
@@ -41,6 +57,7 @@ def get_cached(key: str) -> list[dict] | None:
     return deepcopy(papers)
 
 
+@_synchronized
 def store(key: str, papers: list[dict]) -> None:
     _CACHE[key] = (time.monotonic(), deepcopy(papers))
     _CACHE.move_to_end(key)
@@ -48,5 +65,6 @@ def store(key: str, papers: list[dict]) -> None:
         _CACHE.popitem(last=False)
 
 
+@_synchronized
 def clear() -> None:
     _CACHE.clear()

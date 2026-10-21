@@ -7,3 +7,6 @@ venv/
 .streamlit/
 .academicforge_cache/
 benchmark-results.*
+
+.pytest_cache/
+.ruff_cache/

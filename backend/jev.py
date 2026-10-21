@@ -4,6 +4,8 @@ Jev is used only for typed decisions. Text generation remains in the existing
 MLX/Transformers path, and search continues to work when Jev is disabled.
 """
 
+from threading import RLock
+
 import json
 import logging
 from collections import OrderedDict
@@ -11,6 +13,22 @@ from copy import deepcopy
 from hashlib import sha256
 
 import requests
+from pydantic import BaseModel, Field
+from typing import Annotated
+
+Probability = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
+
+
+class JevAnswer(BaseModel):
+    choice: str | None = None
+    confidence: Probability | None = None
+    probabilities: dict[str, Probability] = Field(default_factory=dict)
+    score: Annotated[float, Field(ge=0, le=4, allow_inf_nan=False)] | None = None
+
+
+class JevResponse(BaseModel):
+    answers: dict[str, JevAnswer]
+
 
 from backend.config import AppConfig, get_config
 
@@ -68,6 +86,20 @@ def _cache_key(query: str, papers: list[dict], config: AppConfig) -> str:
     return sha256(serialized.encode("utf-8")).hexdigest()
 
 
+_cache_lock = RLock()
+
+
+def _synchronized(function):
+    from functools import wraps
+
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        with _cache_lock:
+            return function(*args, **kwargs)
+    return wrapped
+
+
+@_synchronized
 def _cached_result(key: str) -> list[dict] | None:
     result = _JEV_CACHE.get(key)
     if result is None:
@@ -77,6 +109,7 @@ def _cached_result(key: str) -> list[dict] | None:
     return deepcopy(result)
 
 
+@_synchronized
 def _store_cached_result(key: str, result: list[dict]) -> None:
     _JEV_CACHE[key] = deepcopy(result)
     _JEV_CACHE.move_to_end(key)
@@ -180,13 +213,17 @@ def enrich_papers_with_jev(query: str, papers: list[dict], config: AppConfig | N
             timeout=config.jev_timeout_seconds,
         )
         response.raise_for_status()
-        answers = response.json().get("answers", {})
+        answers = JevResponse.model_validate(response.json()).model_dump(exclude_none=True)["answers"]
         enriched = _apply_answers(scored_papers, answers)
         _store_cached_result(cache_key, enriched)
         logger.info("Jev enriched paper_count=%d model=%s", len(scored_papers), config.jev_model)
         return enriched + papers[len(scored_papers):]
     except (requests.RequestException, ValueError, TypeError) as exc:
         logger.warning("Jev enrichment unavailable; keeping existing results: %s", exc)
+        from backend.sources import search_diagnostics, diagnostics
+        state = diagnostics()
+        state["warnings"].append("OpenJev is unavailable; the original ranking is being used.")
+        search_diagnostics.set(state)
         return papers
 
 

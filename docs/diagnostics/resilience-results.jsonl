@@ -1,0 +1,9 @@
+{"check": "Default startup preload entrypoint cannot import backend", "status": "CONFIRMED", "observed": {"exit_code": 1, "error": "ModuleNotFoundError: No module named 'backend'"}}
+{"check": "Fireworks opt-out overridden by startup model selection", "status": "CONFIRMED", "observed": {"model": "accounts/fireworks/models/deepseek-v4-pro", "result": "cloud was selected"}}
+{"check": "Server fallback mixes partial remote output with a new local answer", "status": "CONFIRMED", "observed": "REMOTE PARTIAL. LOCAL FULL PLAN."}
+{"check": "Frontend retries a stream after delivering partial text", "status": "CONFIRMED", "observed": {"requests": 2, "output": "PARTIAL. FULL PLAN."}}
+{"check": "Synchronous search blocks unrelated work on the event loop", "status": "CONFIRMED", "observed": {"10ms_timer_elapsed_ms": 203}}
+{"check": "Readiness hides failed retrieval warmup", "status": "CONFIRMED", "observed": {"models_ready": true, "status": "ok"}}
+{"check": "Invalid requests reach business logic", "status": "CONFIRMED", "observed": {"blank_query_status": 200, "empty_papers_invalid_mode_status": 200}}
+{"check": "Valid JSON with wrong shape bypasses OpenJev fallback", "status": "CONFIRMED", "observed": "AttributeError"}
+{"check": "Non-streaming remote-to-local fallback exists", "status": "WORKING", "observed": "local answer"}

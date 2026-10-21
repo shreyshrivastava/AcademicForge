@@ -19,7 +19,7 @@ Run it locally on Apple Silicon, NVIDIA CUDA, or AMD ROCm. Summaries, paper guid
 
 ## Getting started
 
-You need Python with `venv` support, Git, and an internet connection for paper searches and initial model downloads. Choose the dependency file for your hardware below. GPU setups also need a working CUDA or ROCm environment.
+You need Python 3.12–3.14 with `venv` support, Git, and an internet connection for paper searches and initial model downloads. Choose the dependency file for your hardware below. GPU setups also need a working CUDA or ROCm environment.
 
 ### 1. Download the project
 
@@ -42,13 +42,13 @@ python -m pip install --ignore-installed blinker -r requirements-local.txt
 ```
 
 ```bash
-# NVIDIA GPU with CUDA
-python -m pip install --ignore-installed blinker -r requirements-cuda.txt
+# NVIDIA VM with a verified CUDA PyTorch 2.12.x stack already installed
+python -m scripts.install_gpu cuda
 ```
 
 ```bash
-# AMD GPU with ROCm
-python -m pip install --ignore-installed blinker -r requirements-rocm.txt
+# AMD VM with a verified ROCm PyTorch 2.12.x stack already installed
+python -m scripts.install_gpu rocm
 ```
 
 ### 3. Configure your model
@@ -64,7 +64,7 @@ Edit `.env` and set the model for your machine:
 | Apple Silicon | `mlx` | `mlx-community/gemma-2-2b-it-4bit` |
 | NVIDIA CUDA or AMD ROCm | `transformers` | `google/gemma-2-2b-it` |
 
-The example file selects `google/gemma-2-2b-it`, so change it to the MLX model on Apple Silicon. You can also set the provider to `auto` to let the app choose the runtime; an explicit model setting still takes precedence.
+The example file uses `LOCAL_LLM_PROVIDER=auto` and leaves the model unset, so the app chooses the correct platform model. Use the table above if you want to set it explicitly. GPU installation preserves your VM's existing PyTorch stack and checks it before installing application packages. See [GPU setup](docs/setup.md#gpu-vms) for the supported profile and verification steps.
 
 For gated Hugging Face models such as Gemma, accept the model's access terms and add `HF_TOKEN` to `.env`. Cloud API keys are optional.
 
@@ -74,7 +74,7 @@ For gated Hugging Face models such as Gemma, accept the model's access terms and
 ./start.sh
 ```
 
-Open [AcademicForge at localhost:8501](http://127.0.0.1:8501). The script starts the backend and frontend together. The first start can take longer while model weights download and load.
+Open [AcademicForge at localhost:8501](http://127.0.0.1:8501). The script starts the backend and frontend together, waits up to ten minutes for readiness, and stops both processes if either exits. The first start can take longer while model weights download and load. Local access uses loopback by default; [VM access](docs/setup.md#network-access) requires explicit configuration.
 
 To check the backend runtime:
 
@@ -128,6 +128,24 @@ Completed searches are cached in memory for five minutes by default, making repe
 
 See [the architecture guide](docs/architecture.md) for more detail.
 
+## Measured retrieval benchmark
+
+The BM25 lexical component was evaluated on the complete [BEIR SciFact](https://github.com/beir-cellar/beir#available-datasets) test split: **300 queries against 5,183 abstracts**.
+
+| Metric | Measured result |
+| :--- | ---: |
+| nDCG@10 | **0.6427** |
+| Recall@10 | **0.7645** |
+| MRR@10 | **0.6078** |
+
+These measure the **BM25 component**, not full-system accuracy, generated-text quality, or the complete hybrid pipeline. Metric calculations were independently checked against the TREC evaluator for every query.
+
+See [benchmark results and methodology](docs/benchmarks/README.md) for confidence intervals, per-query results, limitations, and reproduction commands:
+
+```bash
+python -m benchmarks.run_scifact --download
+```
+
 ## Search and generation modes
 
 Search mode controls the order of papers. Analysis mode controls the model used to write summaries and guidance. Configure them separately.
@@ -144,7 +162,7 @@ Both search modes use the same generation settings. Changing search mode changes
 On Apple Silicon, start the MLX OpenJev server in a separate terminal with your virtual environment activated:
 
 ```bash
-python scripts/start_openjev_mlx.py
+python -m scripts.start_openjev_mlx
 ```
 
 Then set these values in `.env` and start or restart AcademicForge:
@@ -180,7 +198,7 @@ Copy [.env.example](.env.example) to `.env` and set only what you need. Restart 
 | :--- | :--- | :--- |
 | `HF_TOKEN` | Unset | Access gated Hugging Face model downloads. |
 | `LOCAL_LLM_PROVIDER` | `auto` | Choose MLX on Apple Silicon or Transformers elsewhere. |
-| `LOCAL_LLM_MODEL` | Depends on runtime; example file sets Gemma 2B | Choose the local generation model. |
+| `LOCAL_LLM_MODEL` | Depends on runtime | Choose the local generation model. |
 | `LOCAL_LLM_DEEP_MODEL` | Local model, or enabled cloud model | Choose the Deep generation model. |
 | `LOCAL_LLM_RESEARCH_PLAN_MODEL` | Deep model | Choose the research plan model. |
 | `LOCAL_LLM_MAX_TOKENS` | `2500` | Set the output token limit. |
@@ -188,28 +206,38 @@ Copy [.env.example](.env.example) to `.env` and set only what you need. Restart 
 | `ACADEMICFORGE_SEARCH_MODE` | `fast` | Choose `fast` or `quality` paper ranking. |
 | `ACADEMICFORGE_SEARCH_CACHE_TTL_SECONDS` | `300` | Set how long completed searches stay in memory. |
 | `ACADEMICFORGE_RETRIEVAL_DEVICE` | `auto` | Choose the ranking device; use `cpu` to reduce GPU memory use. |
-| `ACADEMICFORGE_PRELOAD_WEIGHTS` | `true` | Download and warm model weights at startup. |
 | `ACADEMICFORGE_BACKEND_URL` | `http://127.0.0.1:8000` | Set the backend address for Streamlit when started separately. |
 | `JEV_ENABLED` | `false` | Enable OpenJev in Quality search mode. |
 | `REMOTE_LLM_USE_FOR_DEEP` | `false` | Enable a configured cloud provider for Deep generation. |
 | `GROQ_API_KEY` | Unset | Authenticate with Groq for optional Deep generation. |
 | `FIREWORKS_API_KEY` | Unset | Authenticate with Fireworks. |
 | `LOCAL_LLM_USE_FIREWORKS` | `false` | Enable Fireworks generation explicitly. |
+| `ACADEMICFORGE_BIND_HOST` | `127.0.0.1` | Set the interface used by the launcher. |
+| `ACADEMICFORGE_API_KEY` | Unset | Protect the backend; required by the launcher for network exposure. |
+| `ACADEMICFORGE_STARTUP_TIMEOUT_SECONDS` | `600` | Limit startup waiting. |
+| `ACADEMICFORGE_GENERATION_CONCURRENCY` | `1` | Limit simultaneous generation; excess work gets HTTP 429. |
+| `ACADEMICFORGE_SEARCH_CONCURRENCY` | `2` | Limit simultaneous searches. |
+| `ACADEMICFORGE_CLOUD_TIMEOUT_SECONDS` | `45` | Set each cloud request's SDK timeout. |
+| `ACADEMICFORGE_MAX_REQUEST_BYTES` | `1048576` | Limit request bodies, including chunked bodies. |
+| `ACADEMICFORGE_REQUESTS_PER_MINUTE` | `60` | Limit requests per client IP per process. |
 
-The startup script uses backend port `8000` and frontend port `8501`. It sets `ACADEMICFORGE_BACKEND_URL` to the local backend address.
+The startup script uses backend port `8000` and frontend port `8501`. Both processes read `.env` as configuration. Dependencies are recorded in `pyproject.toml` and `uv.lock`; pip requirement files are generated from that lock.
 
 ## API
 
 | Endpoint | Purpose |
 | :--- | :--- |
-| `GET /health` | Check backend readiness and model loading. |
+| `GET /live` | Check that the API process responds. |
+| `GET /health` | Check per-component readiness; HTTP 503 until generation is ready. |
 | `GET /version` | View runtime, accelerator, model, and retrieval device details. |
 | `GET /config` | View public model and mode settings. |
 | `POST /search` | Find and rank papers. |
 | `POST /summarize` | Generate a paper summary. |
 | `POST /paper-guidance` | Generate practical guidance for a paper. |
 | `POST /research-plan` | Generate a complete research plan. |
-| `POST /research-plan/stream` | Stream a research plan as it is generated. |
+| `POST /research-plan/stream` | Stream NDJSON `start`, `delta`, `done`, or `error` events. |
+
+Search responses include source status and warnings when results are incomplete. Total source failure returns HTTP 503. Generation responses report the actual provider and any local fallback. Interrupted streams stop with an explicit error; they are never silently replayed after partial output.
 
 ## Troubleshooting
 
@@ -265,15 +293,14 @@ AcademicForge/
 After installing dependencies, run the checks:
 
 ```bash
-python -m py_compile backend/*.py backend/retrieval/*.py frontend/*.py scripts/*.py tests/*.py
-python tests/test_generation_pipeline.py
-python tests/test_llm_routing.py
-python tests/test_retrieval_device.py
-python tests/test_api_contract.py
-python tests/test_retrieval.py
-python tests/test_search_cache.py
-python tests/test_jev.py
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+python -m ruff check backend frontend scripts tests benchmarks
+python -m compileall -q backend frontend scripts tests benchmarks
+bash -n start.sh
 ```
+
+CI runs unit checks on Linux and macOS with Python 3.12 and 3.14. Unit tests use fake models and providers, so they do not download weights or call paid APIs. GPU inference needs separate hardware verification.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and [docs/setup.md](docs/setup.md) for additional setup notes.
 

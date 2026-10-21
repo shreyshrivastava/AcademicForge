@@ -1,121 +1,78 @@
 # Setup
 
-This is the current terminal-only setup path for AcademicForge.
+AcademicForge runs locally or on a GPU VM. Use Python 3.12–3.14. Deployment uses the same FastAPI and Streamlit processes on every platform.
 
-## Local Or VM Install
+## Local installation
 
 ```bash
 git clone https://github.com/shreyshrivastava/AcademicForge.git
 cd AcademicForge
-
 python3 -m venv venv
 source venv/bin/activate
-
-python -m pip install --upgrade pip setuptools wheel
-python -m pip install --ignore-installed blinker -r requirements-local.txt
-
+python -m pip install --upgrade pip
+python -m pip install -r requirements-local.txt
 cp .env.example .env
-```
-
-For a cloud machine without MLX, install the PyTorch backend for its GPU:
-
-```bash
-# NVIDIA CUDA
-python -m pip install --ignore-installed blinker -r requirements-cuda.txt
-
-# AMD ROCm
-python -m pip install --ignore-installed blinker -r requirements-rocm.txt
-```
-
-Both GPU paths use the same `transformers` backend. PyTorch selects CUDA or
-ROCm at runtime, so the application and API routes do not change between them.
-Set `LOCAL_LLM_PROVIDER=transformers` in `.env` when deploying to a cloud GPU.
-The default model is `google/gemma-2-2b-it`; set `LOCAL_LLM_MODEL` to another
-Transformers-compatible model if needed.
-
-Edit `.env` and add real tokens if needed.
-
-## Required Keys
-
-- `HF_TOKEN`: needed for gated Hugging Face models such as Gemma.
-- `FIREWORKS_API_KEY`: optional credential for remote generation. It is not used unless `LOCAL_LLM_USE_FIREWORKS=true`.
-
-## Run
-
-```bash
 ./start.sh
 ```
 
-Open:
+Alternatively, with uv installed, `uv sync --locked --extra local` creates the locked development environment. Activate `.venv/bin/activate` before launching.
 
-```text
-http://127.0.0.1:8501
-```
+The example configuration leaves the model unset. `auto` selects MLX with `mlx-community/gemma-2-2b-it-4bit` on Apple Silicon and Transformers with `google/gemma-2-2b-it` elsewhere. For gated models, accept access terms on Hugging Face and set `HF_TOKEN` in `.env`.
 
-Check diagnostics:
+The app opens at [localhost:8501](http://127.0.0.1:8501). First startup downloads weights. It has a configurable 600-second readiness deadline and cleans up its child processes if startup or either service fails. Increase the deadline for a slow initial download, or cache weights explicitly with `python -m scripts.download_weights`.
 
-```bash
-curl http://127.0.0.1:8000/version
-```
+## GPU VMs
 
-## AMD ROCm VM Notes
+Start with a VM image that already has a verified **PyTorch 2.12.x** build for its CUDA or ROCm runtime. Follow the [official PyTorch installation selector](https://pytorch.org/get-started/locally/) for compatible hardware, Python, drivers, and wheels. This repository does not choose a GPU wheel by adding an unrelated package index.
 
-Some notebook VMs have certificate issues with Git. Use:
+After activating an environment containing that stack:
 
 ```bash
-git -c http.sslVerify=false clone https://github.com/shreyshrivastava/AcademicForge.git
-git -c http.sslVerify=false pull origin main
+# Choose one:
+python -m scripts.install_gpu cuda
+python -m scripts.install_gpu rocm
 ```
 
-Open the Streamlit app through the VM proxy:
+The helper checks the requested accelerator, installs the locked application packages with `--no-deps`, runs dependency validation, and checks the GPU again. It does not replace PyTorch, CUDA/ROCm libraries, or Triton. An incompatible image fails with an actionable error before application installation. The retained compatibility files `requirements-cuda.txt` and `requirements-rocm.txt` point to the shared GPU application export; prefer the installer above.
 
-```text
-https://radeon-global.anruicloud.com/instances/<instance-id>/proxy/8501/
+Set `LOCAL_LLM_PROVIDER=transformers` in `.env`. GPU builds are deployment-specific: the unit suite is not a certification of any VM image. Record the exact image, driver, PyTorch wheel, model revision, `/version` response, and a successful search plus generation before deploying that image.
+
+## Network access
+
+The launcher binds both processes to loopback by default. For an authenticated backend exposed through a VM proxy, set these in `.env`:
+
+```dotenv
+ACADEMICFORGE_BIND_HOST=0.0.0.0
+ACADEMICFORGE_API_KEY=replace-with-a-long-random-key
 ```
 
-Open backend diagnostics through:
+The Streamlit client sends the API key in `X-API-Key`. Backend routes other than `/live` and `/health` require it when configured. For public/shared access, also put the **Streamlit interface** behind a login-protected HTTPS gateway: the backend key protects backend calls, not access to the UI itself. Restrict direct access to backend ports at the firewall.
 
-```text
-https://radeon-global.anruicloud.com/instances/<instance-id>/proxy/8000/version
-```
+On the Radeon notebook VM used for earlier demos, the app proxy path is `/instances/<instance-id>/proxy/8501/`; backend diagnostics are under `/instances/<instance-id>/proxy/8000/version`. Direct diagnostic calls need the API-key header. An SSH tunnel is another option for keeping services private.
 
-Do not use `VERCEL_API_URL` or `/spaces/...` URLs.
+## Readiness and failures
 
-## NVIDIA CUDA Notes
+- `/live` responds without model checks.
+- `/health` reports `generation`, `dense`, and `reranker` readiness. It returns HTTP 503 until generation is ready, or if generation cannot load.
+- If generation loads but optional ranking models fail, readiness is `degraded`; search can use lexical scoring and preserve the previous ranking.
+- Search reports per-source status and partial-result warnings. Both sources failing produces HTTP 503 rather than “no evidence.”
+- Generation is limited to one concurrent request by default; excess work gets HTTP 429. Cancelling a client does not free a slot until the underlying model operation stops.
+- Cloud generation has explicit opt-in and a bounded SDK timeout. A pre-output cloud failure can fall back locally. Failure after partial stream output ends the attempt instead of appending a different answer.
+- The frontend never automatically replays generation POSTs. Restart explicitly after an interrupted attempt.
+- Request bodies are limited to 1 MiB and 60 requests per minute per client IP per process by default. Multi-process deployments need shared gateway limits.
 
-Install the CUDA-specific requirements on a CUDA-enabled image, then verify the
-runtime before starting the app:
+FastAPI/Streamlit have no managed-host deployment path in this project. Use local startup or a supervised VM deployment.
+
+## Development and dependency updates
 
 ```bash
-python -m pip install --ignore-installed blinker -r requirements-cuda.txt
-LOCAL_LLM_PROVIDER=transformers curl http://127.0.0.1:8000/version
+uv sync --locked --extra local
+uv run --no-sync python -m pytest -q
+uv run --no-sync ruff check backend frontend scripts tests benchmarks
+uv run --no-sync python -m compileall -q backend frontend scripts tests benchmarks
+bash -n start.sh
 ```
 
-The response should report `"accelerator":"cuda"` when PyTorch can access the
-NVIDIA GPU.
+Update `pyproject.toml` intentionally, run `uv lock`, then regenerate pip exports with `python -m scripts.export_requirements`. Commit the lock and exports together. CI checks Linux/macOS and Python 3.12/3.14; unit tests use no developer `.env` or real generation providers.
 
-## Current Routing
-
-- Fast Mode summaries and guidance use local Gemma.
-- Research Plan uses local Gemma by default.
-- Set `LOCAL_LLM_USE_FIREWORKS=true` to explicitly route Research Plan generation to Fireworks.
-- Dense retrieval and reranking use GPU by default when PyTorch exposes one.
-- Set `ACADEMICFORGE_RETRIEVAL_DEVICE=cpu` to force retrieval to CPU.
-
-## Troubleshooting
-
-If ports are busy:
-
-```bash
-pkill -f streamlit || true
-pkill -f uvicorn || true
-./start.sh
-```
-
-If install fails on the VM with a `blinker` uninstall error, use the install command shown above:
-
-```bash
-python -m pip install --ignore-installed blinker -r requirements-local.txt
-```
-
-If startup is slow the first time, it is usually downloading or preloading model weights. Later starts should be faster because the Hugging Face cache is warm.
+A narrow MLX import guard skips only the legacy `NewlineTokenizer` registration in the pinned mlx-lm release, then restores `AutoTokenizer.register`. It does not modify Transformers private classes globally. Remove this compatibility module after validating an upstream mlx-lm release that fixes the registration.

@@ -70,3 +70,15 @@ The Streamlit UI provides:
 - Markdown export
 
 The UI talks to FastAPI through `ACADEMICFORGE_BACKEND_URL`.
+
+## Reliability boundaries
+
+- Request schemas bound inputs before model or source work.
+- Search and generation use separate admission limits and execute outside the event loop.
+- Model warmup runs through the application lifespan with explicit component readiness.
+- Sources preserve partial results and distinguish outages from no matches.
+- Streams use NDJSON events with explicit completion or error. Partial output is never followed by an automatic full-answer replay.
+- API responses identify cloud-to-local fallback. Public errors have stable codes and request IDs.
+- The interface keeps presentation components, CSS, workflow cache identities, and backend access in separate modules.
+
+See [reliability changes](reliability.md) for implementation status, verification, and deployment limits.

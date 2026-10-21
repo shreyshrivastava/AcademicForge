@@ -61,7 +61,7 @@ def generate_paper_guidance(paper, model=None, mode=None):
     """Generate practical guidance for understanding and applying one paper."""
     logger.info("Paper guidance generation started paper_id=%r", _paper_identity(paper))
     system_prompt, user_prompt = build_paper_guidance_prompt(paper)
-    research_plan = generate_text(system_prompt, user_prompt, token_budget=1100, task="research_plan", model=model)
+    research_plan = generate_text(system_prompt, user_prompt, token_budget=1100, task="guidance", model=model)
     logger.info("Paper guidance generation completed paper_id=%r", _paper_identity(paper))
     return research_plan
 

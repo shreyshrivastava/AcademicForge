@@ -1,0 +1,14 @@
+{
+  "reference_package": "pytrec-eval-terrier",
+  "version": "0.5.11",
+  "report_sha256": "30e0142c4a839c9e41b0dea60d03e0313dd578ce0226ece2fc770efa2187322e",
+  "dataset_sha256": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
+  "queries_checked": 300,
+  "maximum_per_query_absolute_error": {
+    "ndcg@10": 0.0,
+    "recall@10": 0.0,
+    "precision@10": 0.0,
+    "mrr@10": 0.0
+  },
+  "note": "recip_rank is evaluated on the top-10 run, matching MRR@10. Zero error means matching arithmetic, not perfect retrieval."
+}

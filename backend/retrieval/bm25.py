@@ -31,45 +31,50 @@ def paper_text(paper: dict) -> str:
     )
 
 
-def bm25_search(query: str, papers: list[dict], top_k: int = 50) -> list[RetrievalResult]:
-    query_tokens = tokenize(query)
-    if not query_tokens or not papers:
-        return []
+class BM25Index:
+    """Prepare term statistics once for repeated searches over a fixed corpus.
 
-    documents = [tokenize(paper_text(paper)) for paper in papers]
-    doc_freqs = Counter()
-    for tokens in documents:
-        doc_freqs.update(set(tokens))
+    Scoring and tie order match bm25_search; labels never enter this index.
+    """
 
-    doc_count = len(documents)
-    avg_doc_len = sum(len(tokens) for tokens in documents) / max(doc_count, 1)
-    k1 = 1.5
-    b = 0.75
+    def __init__(self, papers: list[dict]):
+        self.papers = papers
+        self.frequencies = [Counter(tokenize(paper_text(paper))) for paper in papers]
+        self.lengths = [sum(counts.values()) for counts in self.frequencies]
+        self.doc_freqs = Counter()
+        for counts in self.frequencies:
+            self.doc_freqs.update(counts.keys())
+        self.avg_doc_len = sum(self.lengths) / max(len(papers), 1)
 
-    scored = []
-    for paper, tokens in zip(papers, documents):
-        if not tokens:
-            continue
-
-        frequencies = Counter(tokens)
-        score = 0.0
-        doc_len = len(tokens)
-        for token in query_tokens:
-            if token not in frequencies:
+    def search(self, query: str, top_k: int = 50) -> list[RetrievalResult]:
+        query_tokens = tokenize(query)
+        if not query_tokens or not self.papers or top_k <= 0:
+            return []
+        k1, b = 1.5, 0.75
+        weights = [(token, math.log(1 + (len(self.papers) - self.doc_freqs[token] + 0.5)
+                                   / (self.doc_freqs[token] + 0.5))) for token in query_tokens]
+        scored = []
+        for paper, frequencies, doc_len in zip(self.papers, self.frequencies, self.lengths):
+            if not doc_len:
                 continue
-            idf = math.log(1 + (doc_count - doc_freqs[token] + 0.5) / (doc_freqs[token] + 0.5))
-            numerator = frequencies[token] * (k1 + 1)
-            denominator = frequencies[token] + k1 * (1 - b + b * doc_len / avg_doc_len)
-            score += idf * numerator / denominator
-
-        if score > 0:
+            score = 0.0
+            for token, idf in weights:
+                frequency = frequencies[token]
+                if frequency:
+                    numerator = frequency * (k1 + 1)
+                    denominator = frequency + k1 * (1 - b + b * doc_len / self.avg_doc_len)
+                    score += idf * numerator / denominator
+            if score > 0:
+                scored.append((score, paper))
+        ranked = sorted(scored, key=lambda item: item[0], reverse=True)[:top_k]
+        results = []
+        for rank, (score, paper) in enumerate(ranked, start=1):
             result = paper_to_result(paper)
             result.metadata["bm25_score"] = score
-            scored.append((score, result))
+            result.bm25_rank = rank
+            results.append(result)
+        return results
 
-    ranked = sorted(scored, key=lambda item: item[0], reverse=True)[:top_k]
-    results = []
-    for rank, (_, result) in enumerate(ranked, start=1):
-        result.bm25_rank = rank
-        results.append(result)
-    return results
+
+def bm25_search(query: str, papers: list[dict], top_k: int = 50) -> list[RetrievalResult]:
+    return BM25Index(papers).search(query, top_k)

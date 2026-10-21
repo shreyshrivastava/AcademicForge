@@ -3,43 +3,23 @@ import re
 import logging
 import time
 from functools import lru_cache
+from contextvars import ContextVar
 
-from backend.config import get_config
+from backend.config import get_config, env_number
+from backend.errors import GenerationUnavailable, StreamInterrupted
 
 logger = logging.getLogger(__name__)
+generation_trace = ContextVar("generation_trace", default=None)
 
 
-def _patch_transformers_auto_factory():
-    """Fix transformers 5.x + Python 3.14 incompatibility.
-
-    ``transformers.models.auto.auto_factory._LazyAutoMapping.register``
-    calls ``key.__module__`` assuming *key* is always a class, but
-    ``mlx_lm`` passes a plain string config name which causes
-    ``AttributeError: 'str' object has no attribute '__module__'``.
-    We wrap the method so it handles string keys gracefully.
-    """
-    try:
-        from transformers.models.auto import auto_factory
-
-        original_register = auto_factory._LazyAutoMapping.register
-
-        def _safe_register(self, key, value, *, exist_ok=False):
-            if isinstance(key, str):
-                # Skip the __module__ check that crashes on string keys
-                self._extra_content[key] = value
-                return
-            return original_register(self, key, value, exist_ok=exist_ok)
-
-        auto_factory._LazyAutoMapping.register = _safe_register
-        logger.info("Patched transformers auto_factory for Python 3.14 compat")
-    except Exception:
-        pass  # If transformers is not installed or API changed, skip silently
+def trace_generation(provider, model, fallback=False):
+    trace = generation_trace.get()
+    if trace is not None:
+        trace.update({"provider": provider, "model": model, "fallback": fallback})
 
 
-_patch_transformers_auto_factory()
 
-
-class LocalLLMError(RuntimeError):
+class LocalLLMError(GenerationUnavailable):
     pass
 
 
@@ -108,7 +88,8 @@ def _load_transformers_model(selected_model):
 @lru_cache(maxsize=2)
 def _load_mlx_model(selected_model):
     try:
-        from mlx_lm import load
+        from backend.mlx_compat import import_mlx_lm
+        load = import_mlx_lm().load
     except ImportError as exc:
         raise LocalLLMError(
             "MLX backend is not installed. Install mlx-lm before using this provider."
@@ -151,84 +132,93 @@ class LLMService:
     def __init__(self, provider=None):
         self.provider = provider or provider_name()
 
-    def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
-        selected_model = model or model_name(task)
-        config = get_config()
+    def _route(self, selected_model, config):
+        if selected_model.startswith("accounts/fireworks/") or self.provider == "fireworks":
+            enabled = os.getenv("LOCAL_LLM_USE_FIREWORKS", "false").lower() == "true" or self.provider == "fireworks"
+            if not enabled or not os.getenv("FIREWORKS_API_KEY"):
+                raise LocalLLMError("Fireworks requires explicit opt-in and a key")
+            return "fireworks"
         if config.remote_llm_enabled and selected_model == config.remote_llm_model:
-            effective_provider = "remote"
-        else:
-            effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
-        if effective_provider == "transformers":
-            return _clean_response(
-                _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
-            )
-        if effective_provider == "fireworks":
-            return _clean_response(
-                _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model)
-            )
-        if effective_provider == "remote":
+            return "remote"
+        return self.provider
+
+    def _local(self, config, system_prompt, user_prompt, token_budget):
+        # A cloud-only deployment has no authorized local model to recover to.
+        if config.llm_provider not in {"mlx", "transformers"}:
+            raise LocalLLMError("No local fallback configured")
+        trace_generation(config.llm_provider, config.llm_model, fallback=True)
+        function = _generate_mlx if config.llm_provider == "mlx" else _generate_transformers
+        return function(system_prompt, user_prompt, token_budget, config.llm_model)
+
+    def generate(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
+        config = get_config()
+        selected_model = model or model_name(task)
+        route = self._route(selected_model, config)
+        trace_generation(route, selected_model)
+        try:
+            if route == "remote":
+                text = _generate_remote(system_prompt, user_prompt, token_budget, selected_model,
+                                        config.remote_llm_base_url, config.remote_llm_api_key, config.remote_llm_provider)
+            elif route == "fireworks":
+                text = _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model)
+            elif route == "mlx":
+                text = _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
+            elif route == "transformers":
+                text = _generate_transformers(system_prompt, user_prompt, token_budget, selected_model)
+            else:
+                raise LocalLLMError("Unknown generation provider")
+            cleaned = _clean_response(text or "")
+            if not cleaned:
+                raise LocalLLMError("Provider returned an empty answer")
+            return cleaned
+        except Exception as exc:
+            if route not in {"remote", "fireworks"}:
+                raise LocalLLMError("Local generation failed") from exc
+            logger.warning("Generation fallback provider=%s fallback=%s reason=%s", route, config.llm_provider, type(exc).__name__)
             try:
-                return _clean_response(
-                    _generate_remote(
-                        system_prompt,
-                        user_prompt,
-                        token_budget,
-                        selected_model,
-                        config.remote_llm_base_url,
-                        config.remote_llm_api_key,
-                        config.remote_llm_provider,
-                    )
-                )
-            except Exception as exc:
-                logger.warning("Remote Deep Mode failed; falling back to local model: %s", exc)
-                fallback_model = config.llm_model
-                if config.llm_provider == "mlx":
-                    return _clean_response(_generate_mlx(system_prompt, user_prompt, token_budget, fallback_model))
-                return _clean_response(
-                    _generate_transformers(system_prompt, user_prompt, token_budget, fallback_model)
-                )
-        if effective_provider == "mlx":
-            return _clean_response(
-                _generate_mlx(system_prompt, user_prompt, token_budget, selected_model)
-            )
-        raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers', 'fireworks', or 'mlx'."
-        )
+                cleaned = _clean_response(self._local(config, system_prompt, user_prompt, token_budget))
+                if not cleaned:
+                    raise LocalLLMError("Local fallback returned an empty answer")
+                return cleaned
+            except Exception as fallback_exc:
+                raise LocalLLMError("Cloud generation and local recovery failed") from fallback_exc
 
     def stream(self, system_prompt, user_prompt, token_budget=None, task=None, model=None):
-        selected_model = model or model_name(task)
         config = get_config()
-        if config.remote_llm_enabled and selected_model == config.remote_llm_model:
-            effective_provider = "remote"
-        else:
-            effective_provider = "fireworks" if selected_model.startswith("accounts/fireworks/") else self.provider
-        if effective_provider == "transformers":
-            yield self.generate(system_prompt, user_prompt, token_budget, task, selected_model)
-            return
-        if effective_provider == "fireworks":
-            yield from _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model)
-            return
-        if effective_provider == "remote":
-            try:
-                yield from _generate_remote_stream(
-                    system_prompt,
-                    user_prompt,
-                    token_budget,
-                    selected_model,
-                    config.remote_llm_base_url,
-                    config.remote_llm_api_key,
-                    config.remote_llm_provider,
-                )
-            except Exception as exc:
-                logger.warning("Remote Deep Mode stream failed; falling back to local model: %s", exc)
-                yield self.generate(system_prompt, user_prompt, token_budget, task, config.llm_model)
-            return
-        if effective_provider == "mlx":
-            yield from _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
-            return
-        raise LocalLLMError(
-            f"Unknown LOCAL_LLM_PROVIDER={effective_provider!r}. Use 'transformers', 'fireworks', or 'mlx'."
-        )
+        selected_model = model or model_name(task)
+        route = self._route(selected_model, config)
+        trace_generation(route, selected_model)
+        emitted = False
+        try:
+            if route == "remote":
+                chunks = _generate_remote_stream(system_prompt, user_prompt, token_budget, selected_model,
+                                                config.remote_llm_base_url, config.remote_llm_api_key, config.remote_llm_provider)
+            elif route == "fireworks":
+                chunks = _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model)
+            elif route == "mlx":
+                chunks = _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model)
+            else:
+                chunks = iter([self.generate(system_prompt, user_prompt, token_budget, task, selected_model)])
+            for chunk in chunks:
+                if chunk:
+                    emitted = True
+                    yield chunk
+            if not emitted:
+                raise LocalLLMError("Provider returned an empty stream")
+        except Exception as exc:
+            if emitted:
+                raise StreamInterrupted() from exc
+            if route in {"remote", "fireworks"}:
+                logger.warning("Stream fallback provider=%s fallback=%s reason=%s", route, config.llm_provider, type(exc).__name__)
+                try:
+                    result = _clean_response(self._local(config, system_prompt, user_prompt, token_budget))
+                    if not result:
+                        raise LocalLLMError("Local fallback returned an empty answer")
+                    yield result
+                    return
+                except Exception as fallback_exc:
+                    raise LocalLLMError("Cloud generation and local recovery failed") from fallback_exc
+            raise LocalLLMError("Local stream failed") from exc
 
 
 def generate_text(system_prompt, user_prompt, token_budget=None, task=None, model=None):
@@ -323,7 +313,7 @@ def _generate_transformers(system_prompt, user_prompt, token_budget, selected_mo
 
     prompt = _chat_prompt(tokenizer, system_prompt, user_prompt)
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-    
+
     start_infer = time.perf_counter()
     with torch.no_grad():
         output_ids = model.generate(
@@ -334,9 +324,9 @@ def _generate_transformers(system_prompt, user_prompt, token_budget, selected_mo
             pad_token_id=tokenizer.eos_token_id,
         )
     infer_time = time.perf_counter() - start_infer
-    
+
     logger.info("Model %r loaded in %.2fs. Inference completed in %.2fs.", selected_model, load_time, infer_time)
-    
+
     new_tokens = output_ids[0][inputs["input_ids"].shape[-1]:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
@@ -352,7 +342,8 @@ def _mlx_sampler():
 
 def _generate_mlx(system_prompt, user_prompt, token_budget, selected_model):
     try:
-        from mlx_lm import generate
+        from backend.mlx_compat import import_mlx_lm
+        generate = import_mlx_lm().generate
     except ImportError as exc:
         raise LocalLLMError(
             "MLX backend is not installed. Install mlx-lm before using this provider."
@@ -381,7 +372,8 @@ def _generate_mlx(system_prompt, user_prompt, token_budget, selected_model):
 
 def _generate_mlx_stream(system_prompt, user_prompt, token_budget, selected_model):
     try:
-        from mlx_lm import stream_generate
+        from backend.mlx_compat import import_mlx_lm
+        stream_generate = import_mlx_lm().stream_generate
     except ImportError as exc:
         raise LocalLLMError(
             "MLX backend is not installed. Install mlx-lm before using this provider."
@@ -407,7 +399,9 @@ def _get_openai_client():
         from openai import OpenAI
         return OpenAI(
             base_url="https://api.fireworks.ai/inference/v1",
-            api_key=os.environ.get("FIREWORKS_API_KEY")
+            api_key=os.environ.get("FIREWORKS_API_KEY"),
+            timeout=env_number("ACADEMICFORGE_CLOUD_TIMEOUT_SECONDS", 45, float, 1, 120),
+            max_retries=0
         )
     except ImportError as exc:
         raise LocalLLMError(
@@ -418,7 +412,8 @@ def _get_openai_client():
 def _get_remote_client(base_url, api_key):
     try:
         from openai import OpenAI
-        return OpenAI(base_url=base_url, api_key=api_key)
+        return OpenAI(base_url=base_url, api_key=api_key,
+                      timeout=env_number("ACADEMICFORGE_CLOUD_TIMEOUT_SECONDS", 45, float, 1, 120), max_retries=0)
     except ImportError as exc:
         raise LocalLLMError(
             "OpenAI client not installed. Run `pip install openai`."
@@ -435,87 +430,99 @@ def _remote_request_options(token_budget):
 
 def _generate_remote(system_prompt, user_prompt, token_budget, selected_model, base_url, api_key, provider):
     client = _get_remote_client(base_url, api_key)
-    options = _remote_request_options(token_budget)
-    if provider == "groq":
-        options["reasoning_effort"] = os.getenv("REMOTE_LLM_REASONING_EFFORT", "medium")
-    response = client.chat.completions.create(
-        model=selected_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        **options,
-        stream=False,
-    )
-    return response.choices[0].message.content
+    try:
+        options = _remote_request_options(token_budget)
+        if provider == "groq":
+            options["reasoning_effort"] = os.getenv("REMOTE_LLM_REASONING_EFFORT", "medium")
+        response = client.chat.completions.create(
+            model=selected_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            **options,
+            stream=False,
+        )
+        return response.choices[0].message.content
+    finally:
+        client.close()
 
 
 def _generate_remote_stream(system_prompt, user_prompt, token_budget, selected_model, base_url, api_key, provider):
     client = _get_remote_client(base_url, api_key)
-    options = _remote_request_options(token_budget)
-    if provider == "groq":
-        options["reasoning_effort"] = os.getenv("REMOTE_LLM_REASONING_EFFORT", "medium")
-    response = client.chat.completions.create(
-        model=selected_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        **options,
-        stream=True,
-    )
-    for chunk in response:
-        if not getattr(chunk, "choices", None):
-            continue
-        delta = getattr(chunk.choices[0], "delta", None)
-        content = getattr(delta, "content", None)
-        if content is not None:
-            yield content
+    try:
+        options = _remote_request_options(token_budget)
+        if provider == "groq":
+            options["reasoning_effort"] = os.getenv("REMOTE_LLM_REASONING_EFFORT", "medium")
+        response = client.chat.completions.create(
+            model=selected_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            **options,
+            stream=True,
+        )
+        for chunk in response:
+            if not getattr(chunk, "choices", None):
+                continue
+            delta = getattr(chunk.choices[0], "delta", None)
+            content = getattr(delta, "content", None)
+            if content is not None:
+                yield content
+    finally:
+        client.close()
 
 
 def _generate_fireworks(system_prompt, user_prompt, token_budget, selected_model):
     client = _get_openai_client()
-    # Tune parameters specifically for DeepSeek via Fireworks
-    # We dynamically cap max_tokens to save credits while leaving enough room to think
-    base_budget = token_budget or max_tokens()
-    fw_max_tokens = min(base_budget * 2 + 500, 2048)
-    fw_temperature = 0.6
-    
-    response = client.chat.completions.create(
-        model=selected_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        max_tokens=fw_max_tokens,
-        temperature=fw_temperature,
-        stream=False,
-    )
-    return response.choices[0].message.content
+    try:
+        # Tune parameters specifically for DeepSeek via Fireworks
+        # We dynamically cap max_tokens to save credits while leaving enough room to think
+        base_budget = token_budget or max_tokens()
+        fw_max_tokens = min(base_budget * 2 + 500, 2048)
+        fw_temperature = 0.6
+
+        response = client.chat.completions.create(
+            model=selected_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=fw_max_tokens,
+            temperature=fw_temperature,
+            stream=False,
+        )
+        return response.choices[0].message.content
+    finally:
+        client.close()
 
 
 def _generate_fireworks_stream(system_prompt, user_prompt, token_budget, selected_model):
     client = _get_openai_client()
-    # Tune parameters specifically for DeepSeek via Fireworks
-    # We dynamically cap max_tokens to save credits while leaving enough room to think
-    base_budget = token_budget or max_tokens()
-    fw_max_tokens = min(base_budget * 2 + 500, 2048)
-    fw_temperature = 0.6
-    
-    response = client.chat.completions.create(
-        model=selected_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        max_tokens=fw_max_tokens,
-        temperature=fw_temperature,
-        stream=True,
-    )
-    for chunk in response:
-        if not getattr(chunk, "choices", None):
-            continue
-        delta = getattr(chunk.choices[0], "delta", None)
-        content = getattr(delta, "content", None)
-        if content is not None:
-            yield content
+    try:
+        # Tune parameters specifically for DeepSeek via Fireworks
+        # We dynamically cap max_tokens to save credits while leaving enough room to think
+        base_budget = token_budget or max_tokens()
+        fw_max_tokens = min(base_budget * 2 + 500, 2048)
+        fw_temperature = 0.6
+
+        response = client.chat.completions.create(
+            model=selected_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=fw_max_tokens,
+            temperature=fw_temperature,
+            stream=True,
+        )
+        for chunk in response:
+            if not getattr(chunk, "choices", None):
+                continue
+            delta = getattr(chunk.choices[0], "delta", None)
+            content = getattr(delta, "content", None)
+            if content is not None:
+                yield content
+    finally:
+        client.close()

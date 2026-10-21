@@ -1,7 +1,8 @@
 import math
 import logging
 from collections import Counter
-from functools import lru_cache
+from threading import Lock
+import time
 
 from backend.retrieval.bm25 import paper_text, tokenize
 from backend.retrieval.device import select_retrieval_device
@@ -12,8 +13,7 @@ MODEL_NAME = "BAAI/bge-small-en-v1.5"
 logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=1)
-def _load_sentence_transformer():
+def _create_sentence_transformer():
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError:
@@ -31,6 +31,24 @@ def _load_sentence_transformer():
             except Exception:
                 return None
         return None
+
+
+_MODEL = None
+_RETRY_AT = 0.0
+_MODEL_LOCK = Lock()
+
+
+def _load_sentence_transformer():
+    global _MODEL, _RETRY_AT
+    with _MODEL_LOCK:
+        if _MODEL is not None:
+            return _MODEL
+        if time.monotonic() < _RETRY_AT:
+            return None
+        _MODEL = _create_sentence_transformer()
+        if _MODEL is None:
+            _RETRY_AT = time.monotonic() + 60
+        return _MODEL
 
 
 def _dot(left, right) -> float:
@@ -69,7 +87,7 @@ def _lexical_dense_fallback(query: str, papers: list[dict], top_k: int) -> list[
             result.metadata["dense_backend"] = "lexical_fallback"
             result.metadata["dense_score"] = score
             result.metadata["dense_note"] = (
-                "Install sentence-transformers to use BAAI/bge-small-en-v1.5 dense retrieval."
+                "Semantic retrieval is unavailable; lexical scoring is being used."
             )
             scored.append((score, result))
 

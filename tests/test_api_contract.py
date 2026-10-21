@@ -1,4 +1,5 @@
 import sys
+import json
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -98,9 +99,8 @@ def test_paper_guidance_endpoint_returns_guidance():
             },
         )
         assert response.status_code == 200
-        assert response.json() == {
-            "guidance": "guidance for Paper",
-        }
+        assert response.json()["guidance"] == "guidance for Paper"
+        assert "generation" in response.json()
     finally:
         backend_app.generate_ai_paper_guidance = original_generate
 
@@ -136,7 +136,10 @@ def test_research_plan_stream_endpoint_streams_text():
             },
         ) as response:
             assert response.status_code == 200
-            assert response.read().decode("utf-8") == "hello research plan"
+            events = [json.loads(line) for line in response.read().decode("utf-8").splitlines()]
+            assert events[0]["type"] == "start"
+            assert events[-1]["type"] == "done"
+            assert "".join(event["text"] for event in events if event["type"] == "delta") == "hello research plan"
     finally:
         backend_app.stream_ai_research_plan = original_stream
 

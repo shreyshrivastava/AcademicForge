@@ -3,7 +3,7 @@ from datetime import date
 import logging
 import re
 
-import arxiv
+import xml.etree.ElementTree as ET
 import requests
 
 from backend.retrieval import hybrid_search, rerank_results
@@ -13,6 +13,8 @@ from backend.retrieval.models import result_to_paper
 from backend.jev import enrich_papers_with_jev, rerank_papers_with_jev
 from backend.config import get_config
 from backend.search_cache import cache_key, get_cached, store
+from backend.errors import SourceUnavailable
+from backend.sources import begin_search, diagnostics, get_source, source_status, search_diagnostics
 
 
 logger = logging.getLogger(__name__)
@@ -100,56 +102,43 @@ def extract_arxiv_id(query: str) -> str | None:
 def search_arxiv_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COUNT) -> tuple[list[dict], bool]:
     """Fetch arXiv candidates. Direct arXiv IDs bypass broad search."""
     arxiv_id = extract_arxiv_id(query)
-    if arxiv_id:
-        search = arxiv.Search(id_list=[arxiv_id], max_results=1)
-        logger.info("External search source=arxiv mode=id id=%s", arxiv_id)
-    else:
-        search = arxiv.Search(query=query, max_results=max_results)
-        logger.info(
-            "External search source=arxiv query=%r url=%s",
-            query,
-            "https://export.arxiv.org/api/query?search_query="
-            f"{quote_plus(query)}&sortBy=relevance&sortOrder=descending&start=0&max_results={max_results}",
-        )
-
-    papers = []
-    client = arxiv.Client()
+    params = {"start": 0, "max_results": min(max_results, 100), "sortBy": "relevance"}
+    params["id_list" if arxiv_id else "search_query"] = arxiv_id or query
     try:
-        results = list(client.results(search))
-    except Exception as exc:
-        logger.warning(
-            "arXiv search failed query=%r direct_id=%s error=%s",
-            query,
-            bool(arxiv_id),
-            exc,
-        )
-        return [], bool(arxiv_id)
-
-    for result in results:
+        response = get_source("https://export.arxiv.org/api/query", params=params)
         try:
-            paper_url = result.pdf_url or result.entry_id
-            papers.append(
-                {
-                    "paper_id": result.entry_id,
-                    "title": result.title,
-                    "authors": [author.name for author in result.authors],
-                    "abstract": result.summary,
-                    "source": "arxiv",
-                    "url": paper_url,
-                    "link": paper_url,
-                    "published": result.published.date().isoformat(),
-                    "date": result.published.date().isoformat(),
-                    "metadata": {
-                        "categories": list(result.categories or []),
-                        "primary_category": result.primary_category,
-                    },
-                }
-            )
-        except Exception as exc:
-            logger.warning("Skipping malformed arXiv result query=%r error=%s", query, exc)
-
-    logger.info("arXiv candidates fetched direct_id=%s count=%d", bool(arxiv_id), len(papers))
-    return papers, bool(arxiv_id)
+            root = ET.fromstring(response.content)
+            if root.tag != "{http://www.w3.org/2005/Atom}feed":
+                raise ValueError("Invalid arXiv feed")
+        finally:
+            response.close()
+        ns = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
+        papers = []
+        for entry in root.findall("atom:entry", ns):
+            entry_id = entry.findtext("atom:id", "", ns)
+            if "/api/errors" in entry_id:
+                raise ValueError("arXiv rejected the query")
+            title = " ".join(entry.findtext("atom:title", "", ns).split())
+            abstract = " ".join(entry.findtext("atom:summary", "", ns).split())
+            if not title or not abstract or not entry_id:
+                continue
+            url = next((link.attrib["href"] for link in entry.findall("atom:link", ns)
+                        if link.attrib.get("title") == "pdf" and link.attrib.get("href")), entry_id)
+            published = entry.findtext("atom:published", "", ns)[:10]
+            primary = entry.find("arxiv:primary_category", ns)
+            papers.append({
+                "paper_id": entry_id, "title": title, "abstract": abstract,
+                "authors": [author.findtext("atom:name", "", ns) for author in entry.findall("atom:author", ns)],
+                "source": "arxiv", "url": url, "link": url, "published": published, "date": published,
+                "metadata": {"categories": [c.attrib.get("term", "") for c in entry.findall("atom:category", ns)],
+                             "primary_category": primary.attrib.get("term", "") if primary is not None else ""},
+            })
+        source_status("arxiv", "ok")
+        return papers, bool(arxiv_id)
+    except (requests.RequestException, ET.ParseError, ValueError, SourceUnavailable):
+        logger.warning("arXiv source unavailable", exc_info=True)
+        source_status("arxiv", "unavailable")
+        return [], bool(arxiv_id)
 
 
 def search_semantic_scholar_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COUNT) -> list[dict]:
@@ -172,16 +161,18 @@ def search_semantic_scholar_candidates(query: str, max_results: int = INITIAL_CA
         params["fields"],
     )
     try:
-        response = requests.get(url, params=params, timeout=12)
-        response.raise_for_status()
-    except requests.RequestException as exc:
-        logger.warning("Semantic Scholar search failed query=%r error=%s", query, exc)
-        return []
-
-    try:
-        results = response.json().get("data", [])
-    except ValueError as exc:
-        logger.warning("Semantic Scholar returned invalid JSON query=%r error=%s", query, exc)
+        response = get_source(url, params=params)
+        try:
+            payload = response.json()
+        finally:
+            response.close()
+        if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
+            raise ValueError("Invalid Semantic Scholar response")
+        results = payload["data"]
+        source_status("semantic_scholar", "ok")
+    except (requests.RequestException, ValueError, SourceUnavailable):
+        logger.warning("Semantic Scholar source unavailable", exc_info=True)
+        source_status("semantic_scholar", "unavailable")
         return []
 
     papers = []
@@ -230,9 +221,13 @@ def search_live_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COUN
     """Fetch fresh candidates from external sources for every user query."""
     arxiv_papers, direct_id = search_arxiv_candidates(query, max_results=max_results)
     if direct_id:
+        if diagnostics()["sources"].get("arxiv") == "unavailable":
+            raise SourceUnavailable()
         return arxiv_papers, True
 
     semantic_papers = search_semantic_scholar_candidates(query, max_results=max_results)
+    if all(diagnostics()["sources"].get(name) == "unavailable" for name in ("arxiv", "semantic_scholar")):
+        raise SourceUnavailable()
     candidates = _dedupe_papers([*semantic_papers, *arxiv_papers])
     logger.info(
         "Live candidates merged original_query=%r total=%d semantic_scholar=%d arxiv=%d",
@@ -472,12 +467,14 @@ def select_evidence_set(
 
 def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None = None) -> list[dict]:
     """End-to-end retrieval pipeline used by the API."""
+    begin_search()
     original_query = query.strip()
     config = get_config()
     key = cache_key(original_query, preferred_categories, config.search_mode)
     cached = get_cached(key)
     if cached is not None:
-        logger.info("Search cache hit query=%r result_count=%d", original_query, len(cached))
+        logger.info("Search cache hit result_count=%d", len(cached))
+        search_diagnostics.set({"sources": {"cache": "fresh"}, "warnings": []})
         return cached
 
     search_query = rewrite_search_query(original_query)
@@ -491,10 +488,11 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
     if direct_id:
         selected = select_evidence_set(candidates, target=1)
         selected = enrich_papers_with_jev(original_query, selected)
-        store(key, selected)
+        if not diagnostics()["warnings"]:
+            store(key, selected)
         return selected
     papers = filter_relevant_papers(original_query, candidates)
-    if len(papers) < FINAL_EVIDENCE_TARGET:
+    if len(papers) < FINAL_EVIDENCE_TARGET and not diagnostics()["warnings"]:
         logger.info(
             "Expanding source search original_query=%r relevant_count=%d target=%d expanded_candidates=%d",
             original_query,
@@ -502,10 +500,12 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
             FINAL_EVIDENCE_TARGET,
             EXPANDED_CANDIDATE_COUNT,
         )
-        expanded_candidates, _ = search_live_candidates(
-            search_query,
-            max_results=EXPANDED_CANDIDATE_COUNT,
-        )
+        try:
+            expanded_candidates, _ = search_live_candidates(
+                search_query, max_results=EXPANDED_CANDIDATE_COUNT,
+            )
+        except SourceUnavailable:
+            expanded_candidates = []  # Keep evidence from the first successful fetch.
         candidates = _dedupe_papers([*candidates, *expanded_candidates])
         papers = filter_relevant_papers(original_query, candidates)
     if len(papers) < MIN_RELEVANT_PAPERS:
@@ -518,7 +518,8 @@ def retrieve_and_rank_papers(query: str, preferred_categories: list[str] | None 
     ranked = rank_papers(query, papers)
     selected = select_evidence_set(ranked, preferred_categories=preferred_categories)
     _log_final_selection(original_query, selected)
-    store(key, selected)
+    if not diagnostics()["warnings"]:
+        store(key, selected)
     return selected
 
 

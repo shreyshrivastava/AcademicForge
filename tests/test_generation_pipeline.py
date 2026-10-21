@@ -103,7 +103,7 @@ def test_generate_paper_guidance_uses_paper_specific_prompt():
 
     assert result == "paper guidance"
     assert captured["token_budget"] == 1100
-    assert captured["task"] == "research_plan"
+    assert captured["task"] == "guidance"
     assert "Paragraph 1: why this paper matters" in captured["user_prompt"]
     assert "Paragraph 2: how to use it in a project" in captured["user_prompt"]
     assert "Paragraph 3: what to watch out for or verify" in captured["user_prompt"]

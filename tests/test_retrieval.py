@@ -316,7 +316,7 @@ def test_retrieve_and_rank_papers_uses_live_relevant_candidates_across_domains()
         data_pipeline.search_live_candidates = original_search
 
 
-def test_rerank_results_cross_encoder():
+def test_rerank_results_cross_encoder(monkeypatch):
     from backend.retrieval.reranker import rerank_results
     from backend.retrieval.models import RetrievalResult
 
@@ -341,7 +341,13 @@ def test_rerank_results_cross_encoder():
         ),
     ]
 
-    # Rerank with query related to fact checking
+    class Reranker:
+        def predict(self, pairs):
+            return [0.1, 0.9]  # Deliberately reverse the original ordering.
+
+    monkeypatch.setattr("backend.retrieval.reranker.get_reranker_model", lambda: Reranker())
+    results.reverse()
+    # Verify a real reordering, rather than passing when fallback preserves input.
     reranked = rerank_results("fact checking claims verification", results, top_k=2)
     assert len(reranked) == 2
     assert reranked[0].paper_id == "1"
@@ -360,5 +366,4 @@ if __name__ == "__main__":
     test_select_evidence_set_prefers_requested_categories()
     test_filter_relevant_papers_removes_domain_mismatch_for_fat_loss()
     test_retrieve_and_rank_papers_uses_live_relevant_candidates_across_domains()
-    test_rerank_results_cross_encoder()
     print("retrieval tests passed")

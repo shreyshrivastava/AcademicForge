@@ -10,6 +10,17 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 from frontend.api_client import APIClient
+from frontend.workflow import paper_output_key
+from frontend.styles import apply_card_styles
+from frontend.components import (
+    paper_insight_loading_html,
+    paper_insight_panel_html,
+    pulse_loading_html,
+    render_research_plan_empty_state,
+    render_research_plan_loading_state,
+    render_research_plan_panel,
+    strip_evidence_citations,
+)
 
 api_client = APIClient()
 
@@ -78,255 +89,6 @@ CATEGORY_ACCENTS = {
 }
 
 
-RESEARCH_PLAN_SECTION_ORDER = [
-    "Research Focus",
-    "Key Findings",
-    "Research Gaps",
-    "Recommended Build",
-    "Builder Guidance",
-]
-
-RECOMMENDED_BUILD_FIELDS = [
-    "Recommended Architecture",
-    "Core Components",
-    "Deployment Considerations",
-    "Evaluation Strategy",
-]
-
-RECOMMENDED_BUILD_LABELS = {
-    "Recommended Architecture": "Architecture",
-    "Core Components": "Core components",
-    "Deployment Considerations": "Deployment considerations",
-    "Evaluation Strategy": "Evaluation strategy",
-}
-
-RESEARCH_PLAN_SECTION_LABELS = {
-    "Research Focus": "Research focus",
-    "Key Findings": "Key findings",
-    "Research Gaps": "Research gaps",
-    "Recommended Build": "Recommended build",
-    "Builder Guidance": "Builder guidance",
-}
-
-SECTION_ALIASES = {
-    "research insights": "Research Focus",
-    "consensus": "Key Findings",
-    "evidence used": None,
-    "supporting evidence": None,
-}
-
-
-def split_into_sections(text):
-    header_map = {header.lower(): header for header in RESEARCH_PLAN_SECTION_ORDER}
-    sections = {}
-    current, buffer = None, []
-    for line in text.splitlines():
-        key = line.strip().strip("*#").strip().rstrip(":").lower()
-        alias = SECTION_ALIASES.get(key, key)
-        if alias is None:
-            if current:
-                sections[current] = "\n".join(buffer).strip()
-            current, buffer = None, []
-        elif str(alias).lower() in header_map:
-            if current:
-                sections[current] = "\n".join(buffer).strip()
-            current, buffer = header_map[str(alias).lower()], []
-        else:
-            if current:
-                buffer.append(line)
-    if current:
-        sections[current] = "\n".join(buffer).strip()
-    return sections
-
-
-def split_recommended_build(body):
-    field_map = {field.lower(): field for field in RECOMMENDED_BUILD_FIELDS}
-    fields, current, buffer = {}, None, []
-    for line in body.splitlines():
-        match = re.match(r"^\s*([A-Za-z ]+):\s*(.*)$", line)
-        label = match.group(1).strip().lower() if match else ""
-        if label in field_map:
-            if current:
-                fields[current] = "\n".join(buffer).strip()
-            current = field_map[label]
-            buffer = [match.group(2)] if match.group(2) else []
-        elif current:
-            buffer.append(line)
-    if current:
-        fields[current] = "\n".join(buffer).strip()
-    return fields
-
-
-def extract_bullets(text):
-    items = []
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
-        bullet_match = re.match(r"^[*\-]\s*(.*)$", stripped)
-        numbered_match = re.match(r"^\d+\.\s*(.*)$", stripped)
-        if bullet_match:
-            items.append(bullet_match.group(1))
-        elif numbered_match:
-            items.append(numbered_match.group(1))
-    return items
-
-
-def extract_numbered(text):
-    items = []
-    for line in text.splitlines():
-        match = re.match(r"^\s*\d+\.\s*(.*)$", line.strip())
-        if match:
-            items.append(match.group(1))
-    return items
-
-
-def render_list_or_body(text, ordered=False):
-    items = extract_numbered(text) if ordered else extract_bullets(text)
-    if items:
-        tag = "ol" if ordered else "ul"
-        rendered_items = "".join(f"<li>{render_citation_spans(item)}</li>" for item in items)
-        st.markdown(f"<{tag} class='syn-list'>{rendered_items}</{tag}>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='syn-body'>{render_citation_spans(text)}</div>", unsafe_allow_html=True)
-
-
-def render_citation_spans(text):
-    return html.escape(strip_evidence_citations(text))
-
-
-def strip_evidence_citations(text):
-    return re.sub(r"\s*\[(?:Evidence\s*)?\d+\]", "", text or "", flags=re.IGNORECASE)
-
-
-def pulse_loading_html(label):
-    return f"""
-    <div class="af-pulse-wrap">
-        <div class="af-pulse-dots">
-            <div class="af-pulse-dot"></div>
-            <div class="af-pulse-dot"></div>
-            <div class="af-pulse-dot"></div>
-        </div>
-        <div class="af-pulse-label">{html.escape(label)}</div>
-    </div>
-    """
-
-
-def render_research_plan_heading(label, top=False):
-    if top:
-        st.markdown(
-            f"""
-            <div style="font-family: var(--af-font); font-size: 1.35rem; font-weight: 800; color: var(--af-text-hi); margin-bottom: 1.2rem; border-bottom: 2px solid var(--af-border); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
-                {html.escape(label)}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f"""
-            <div class="syn-heading" style="margin-top: 1.6rem;">
-                <span class="syn-marker"></span>
-                <span class="syn-heading-label">{html.escape(label)}</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-
-def render_research_plan(research_plan_text):
-    sections = split_into_sections(research_plan_text)
-    if not sections:
-        st.markdown(research_plan_text)
-        return
-
-    render_research_plan_heading("Research Plan", top=True)
-
-    for section in RESEARCH_PLAN_SECTION_ORDER:
-        body = sections.get(section)
-        if not body:
-            continue
-
-        render_research_plan_heading(RESEARCH_PLAN_SECTION_LABELS[section])
-
-        if section == "Recommended Build":
-            build_fields = split_recommended_build(body)
-            for field in RECOMMENDED_BUILD_FIELDS:
-                value = build_fields.get(field)
-                if not value or field in ("Implementation Difficulty", "Estimated Build Time"):
-                    continue
-                st.markdown(
-                    f'<div class="syn-field-label">{html.escape(RECOMMENDED_BUILD_LABELS[field])}</div>',
-                    unsafe_allow_html=True,
-                )
-                if field in ("Core Components", "Expected Benefits", "Expected Tradeoffs"):
-                    render_list_or_body(value)
-                else:
-                    st.markdown(
-                        f'<div class="syn-field-value">{render_citation_spans(value)}</div>',
-                        unsafe_allow_html=True,
-                    )
-            badges = [
-                build_fields[field]
-                for field in ("Implementation Difficulty", "Estimated Build Time")
-                if build_fields.get(field)
-            ]
-            if badges:
-                badge_html = "".join(f'<span class="syn-badge">{html.escape(b)}</span>' for b in badges)
-                st.markdown(badge_html, unsafe_allow_html=True)
-
-        elif section == "Builder Guidance":
-            render_list_or_body(body, ordered=True)
-
-        else:
-            st.markdown(f"<div class='syn-body'>{render_citation_spans(body)}</div>", unsafe_allow_html=True)
-
-
-def render_research_plan_panel(research_plan_text):
-    with st.container(border=True):
-        if isinstance(research_plan_text, str):
-            render_research_plan(research_plan_text)
-        else:
-            st.json(research_plan_text)
-
-
-def paper_insight_panel_html(label, text):
-    return f"""
-    <div class="af-insight-block">
-        <div class="af-insight-label">{html.escape(label)}</div>
-        <div class="af-insight-text">{html.escape(text)}</div>
-    </div>
-    """
-
-
-def paper_insight_loading_html(label, loading_text):
-    return f"""
-    <div class="af-insight-block">
-        <div class="af-insight-label">{html.escape(label)}</div>
-        {pulse_loading_html(loading_text)}
-    </div>
-    """
-
-
-def render_research_plan_empty_state():
-    st.markdown(
-        """
-        <div class="research-plan-stage-empty">
-            <div class="research-plan-stage-title">Research Plan will appear here</div>
-            <div class="research-plan-stage-copy">
-                Select 2-4 papers and generate one combined research-to-prototype plan.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_research_plan_loading_state(label="Generating Research Plan..."):
-    with st.container(border=True):
-        st.markdown(pulse_loading_html(label), unsafe_allow_html=True)
-
-
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
@@ -338,7 +100,10 @@ def accent_rgba(hex_color, alpha):
 
 
 def post_json(path, payload):
-    return api_client.post_json(path, payload)
+    response = api_client.post_json(path, payload)
+    if response.get("generation", {}).get("fallback"):
+        st.warning("The cloud model was unavailable. This answer uses the local model.")
+    return response
 
 
 def get_config():
@@ -352,7 +117,17 @@ def search_papers(query, categories=None):
 def summarize_paper(paper, generation_mode="fast"):
     payload = dict(paper)
     payload["generation_mode"] = generation_mode
-    return post_json("/summarize", payload).get("summary", "")
+    key = paper_display_id(paper, generation_mode)
+    outputs = st.session_state.paper_outputs.setdefault(key, {})
+    if outputs.get("summary"):
+        if outputs.get("summary_generation", {}).get("fallback"):
+            st.caption("This cached summary was generated by the local fallback model.")
+        return outputs["summary"]
+    response = post_json("/summarize", payload)
+    result = response.get("summary", "")
+    outputs["summary"] = result
+    outputs["summary_generation"] = response.get("generation", {})
+    return result
 
 
 def generate_paper_guidance(paper, generation_mode):
@@ -379,7 +154,7 @@ def paper_widget_id(paper):
 
 
 def paper_display_id(paper, generation_mode):
-    return f"{generation_mode}:{paper_widget_id(paper)}"
+    return paper_output_key(paper, generation_mode, (config or {}).get("llm_models", {}))
 
 
 def paper_label(index, paper):
@@ -442,435 +217,6 @@ def render_selection_guidance(selected_count, focus_count, generation_mode):
         )
     elif focus_count == 3:
         st.info("Three focus categories is broad. For focused retrieval, 1-2 categories is usually better.")
-
-
-def apply_card_styles():
-    st.markdown(
-        """
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap');
-
-        :root {
-            --af-ember: #ED1C24;
-            --af-ember-hover: #C4151B;
-            --af-ember-soft: rgba(237, 28, 36, 0.14);
-            --af-hairline: rgba(255, 255, 255, 0.10);
-            --af-hairline-strong: rgba(255, 255, 255, 0.20);
-            --af-surface: rgba(255, 255, 255, 0.035);
-            --af-surface-raised: rgba(255, 255, 255, 0.055);
-            --af-text-hi: rgba(240, 240, 238, 0.96);
-            --af-text-mid: rgba(240, 240, 238, 0.70);
-            --af-text-low: rgba(240, 240, 238, 0.48);
-            --af-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        .stApp {
-            font-family: var(--af-font);
-        }
-
-        .block-container {
-            max-width: 1600px;
-            padding-top: clamp(1.1rem, 2.4vw, 2.4rem);
-            padding-left: clamp(0.75rem, 2.4vw, 2.5rem);
-            padding-right: clamp(0.75rem, 2.4vw, 2.5rem);
-        }
-
-        .af-title {
-            text-align: center;
-            font-family: var(--af-font);
-            font-size: clamp(1.75rem, 4.2vw, 3rem);
-            font-weight: 700;
-            letter-spacing: 0;
-            color: var(--af-text-hi);
-            margin-bottom: 0.3rem;
-        }
-        .af-title::after {
-            content: '';
-            display: block;
-            width: 46px;
-            height: 3px;
-            margin: 0.55rem auto 0 auto;
-            background: var(--af-ember);
-            border-radius: 2px;
-        }
-        .af-subtitle {
-            text-align: center;
-            color: var(--af-text-mid);
-            font-size: clamp(0.82rem, 1.5vw, 1.05rem);
-            letter-spacing: 0;
-            margin-bottom: clamp(1rem, 2vw, 1.6rem);
-        }
-        .af-helper-card {
-            max-width: 1600px;
-            margin: 0 auto 1rem auto;
-            padding: 0.95rem 1.1rem;
-            border: 1px solid var(--af-hairline);
-            border-radius: 10px;
-            background: var(--af-surface);
-        }
-        .af-helper-title {
-            font-weight: 600;
-            color: var(--af-text-hi);
-            margin-bottom: 0.3rem;
-        }
-        .af-helper-text {
-            color: var(--af-text-mid);
-            font-size: 0.92rem;
-            line-height: 1.5;
-        }
-        .af-empty-state {
-            max-width: 1600px;
-            margin: 0.35rem auto 1rem auto;
-            padding: 0.9rem 1rem;
-            border-radius: 8px;
-            border: 1px solid var(--af-hairline);
-            background: var(--af-surface);
-            color: var(--af-text-mid);
-        }
-        .st-key-search_shell {
-            max-width: 1600px;
-            margin: 0 auto 1.2rem auto;
-        }
-        .st-key-search_shell [data-testid="stVerticalBlockBorderWrapper"],
-        .st-key-search_shell[data-testid="stVerticalBlockBorderWrapper"] {
-            padding: clamp(0.95rem, 1.8vw, 1.45rem);
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.045);
-        }
-        .af-control-caption {
-            color: var(--af-text-mid);
-            font-size: 0.82rem;
-            margin: 0.15rem 0 0.55rem 0;
-        }
-        div[data-testid="stTextInput"] input {
-            min-height: 46px;
-            border-radius: 8px;
-            border: 1px solid var(--af-hairline-strong);
-            background: rgba(255,255,255,0.06);
-            color: var(--af-text-hi);
-            font-size: 0.92rem;
-            font-weight: 500;
-        }
-        div[data-testid="stTextInput"] label,
-        div[data-testid="stPills"] label {
-            color: var(--af-text-mid);
-            font-size: 0.96rem;
-            font-weight: 700;
-        }
-        div[data-testid="stPills"] {
-            margin-top: 0.75rem;
-        }
-        div[data-testid="stPills"] button {
-            min-height: 36px;
-            border-radius: 9px;
-            border: 1px solid var(--af-hairline-strong);
-            background: rgba(255,255,255,0.035);
-            color: var(--af-text-mid);
-            font-size: 0.84rem;
-            font-weight: 700;
-            padding-left: 0.8rem;
-            padding-right: 0.8rem;
-        }
-        div[data-testid="stPills"] button[aria-pressed="true"] {
-            border-color: rgba(237, 28, 36, 0.65);
-            background: rgba(237, 28, 36, 0.16);
-            color: #ff5a60;
-        }
-        div[data-testid="stPills"] button:hover {
-            border-color: rgba(237, 28, 36, 0.50);
-            color: var(--af-text-hi);
-        }
-        .af-lens-heading {
-            color: var(--af-text-hi);
-            font-size: 0.96rem;
-            font-weight: 700;
-            margin-top: 0.9rem;
-            margin-bottom: 0.15rem;
-        }
-        .af-lens-subtitle {
-            color: var(--af-text-mid);
-            font-size: 0.84rem;
-            line-height: 1.4;
-            margin-bottom: 0.55rem;
-        }
-        .af-lens-description {
-            color: var(--af-text-mid);
-            font-size: 0.84rem;
-            line-height: 1.45;
-            margin-top: 0.45rem;
-        }
-        div[data-testid="stRadio"] > div[role="radiogroup"] {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        div[data-testid="stRadio"] label {
-            min-height: 36px;
-            border: 1px solid var(--af-hairline-strong);
-            border-radius: 9px;
-            padding: 7px 14px;
-            background: rgba(255,255,255,0.035);
-            cursor: pointer;
-        }
-        div[data-testid="stRadio"] label > div:first-child {
-            display: none;
-        }
-        div[data-testid="stRadio"] label p {
-            color: var(--af-text-mid);
-            font-size: 0.84rem;
-            font-weight: 700;
-        }
-        div[data-testid="stRadio"] label:has(input:checked) {
-            background: rgba(237, 28, 36, 0.22);
-            border-color: var(--af-ember);
-        }
-        div[data-testid="stRadio"] label:has(input:checked) p {
-            color: #ff6a70;
-            font-weight: 700;
-        }
-        @media (max-width: 640px) {
-            div[data-testid="stRadio"] label {
-                padding: 6px 11px;
-            }
-            div[data-testid="stRadio"] label p {
-                font-size: 0.78rem;
-            }
-        }
-        div.stButton > button[kind="primary"] {
-            min-height: 46px;
-            border-radius: 8px;
-            background: var(--af-ember);
-            border-color: var(--af-ember);
-            color: #FFFFFF;
-            font-weight: 700;
-            font-size: 0.92rem;
-        }
-        div.stButton > button[kind="primary"]:hover {
-            background: var(--af-ember-hover);
-            border-color: var(--af-ember-hover);
-            color: #FFFFFF;
-        }
-        .af-section-heading {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            margin-top: 1.7rem;
-            margin-bottom: 0.7rem;
-            font-family: var(--af-font);
-            font-size: 1.08rem;
-            font-weight: 700;
-            color: var(--af-text-hi);
-        }
-        .af-section-marker {
-            width: 10px;
-            height: 10px;
-            border-radius: 3px;
-            background: var(--accent-color);
-            flex-shrink: 0;
-        }
-        .af-section-count {
-            font-weight: 400;
-            color: var(--af-text-low);
-            font-size: 0.95rem;
-        }
-        .paper-card-title {
-            color: var(--af-text-hi);
-            font-family: var(--af-font);
-            font-size: 1.12rem;
-            font-weight: 700;
-            line-height: 1.35;
-            margin-bottom: 0.15rem;
-        }
-        .paper-card-meta {
-            color: var(--af-text-low);
-            font-family: var(--af-font);
-            font-size: 0.78rem;
-            letter-spacing: 0;
-            margin-bottom: 0.55rem;
-        }
-        .paper-card-abstract {
-            color: var(--af-text-mid);
-            font-size: 0.93rem;
-            line-height: 1.5;
-            margin-bottom: 0.6rem;
-            text-align: justify;
-        }
-        .paper-chip {
-            display: inline-block;
-            border: 1px solid var(--af-hairline-strong);
-            border-radius: 999px;
-            padding: 0.14rem 0.55rem;
-            margin-right: 0.3rem;
-            margin-bottom: 0.3rem;
-            color: var(--af-text-mid);
-            background: var(--af-surface);
-            font-size: 0.76rem;
-            white-space: nowrap;
-        }
-        .paper-chip-category {
-            font-weight: 600;
-        }
-        .af-pulse-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            padding: 1.4rem 0;
-        }
-        .af-pulse-dots {
-            display: flex;
-            gap: 8px;
-        }
-        .af-pulse-dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: var(--af-ember);
-            animation: af-dot-breathe 1.2s ease-in-out infinite;
-        }
-        .af-pulse-dot:nth-child(2) { animation-delay: 0.15s; }
-        .af-pulse-dot:nth-child(3) { animation-delay: 0.3s; }
-        @keyframes af-dot-breathe {
-            0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
-            40% { transform: scale(1); opacity: 1; }
-        }
-        .af-pulse-label {
-            font-size: 0.8rem;
-            color: var(--af-text-mid);
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .af-pulse-dot { animation: none; opacity: 0.8; }
-        }
-        .af-insight-block {
-            border-left: 2px solid var(--af-ember);
-            border-radius: 0 8px 8px 0;
-            background: rgba(255,255,255,0.025);
-            border-top: 1px solid var(--af-hairline);
-            border-right: 1px solid var(--af-hairline);
-            border-bottom: 1px solid var(--af-hairline);
-            padding-left: 0.7rem;
-            padding-top: 0.65rem;
-            padding-right: 0.8rem;
-            padding-bottom: 0.7rem;
-            margin-top: 0.75rem;
-            margin-bottom: 0.2rem;
-        }
-        .af-insight-label {
-            font-family: var(--af-font);
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0;
-            color: var(--af-ember);
-            margin-bottom: 3px;
-            font-weight: 700;
-        }
-        .af-insight-text {
-            font-size: 0.87rem;
-            color: var(--af-text-mid);
-            line-height: 1.55;
-            white-space: pre-line;
-        }
-        .selected-paper-row {
-            border-left: 2px solid var(--af-ember);
-            padding-left: 0.65rem;
-            margin-bottom: 0.5rem;
-            color: var(--af-text-hi);
-            font-size: 0.9rem;
-        }
-        .research-plan-control-title {
-            color: var(--af-text-hi);
-            font-weight: 600;
-            margin-bottom: 0.15rem;
-        }
-        .research-plan-control-meta {
-            color: var(--af-text-mid);
-            font-size: 0.86rem;
-            line-height: 1.45;
-        }
-        .research-plan-stage-empty {
-            border: 1px solid var(--af-hairline);
-            border-radius: 10px;
-            background: rgba(255,255,255,0.025);
-            padding: 1.45rem;
-            text-align: center;
-            margin-top: 0.8rem;
-        }
-        .research-plan-stage-title {
-            color: var(--af-text-hi);
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-        .research-plan-stage-copy {
-            color: var(--af-text-low);
-            font-size: 0.86rem;
-        }
-        .syn-heading {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 0.8rem;
-            font-family: var(--af-font);
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--af-text-hi);
-        }
-        .syn-marker {
-            width: 6px;
-            height: 6px;
-            border-radius: 2px;
-            background: var(--af-ember);
-            flex-shrink: 0;
-        }
-        .syn-heading-label {
-            text-transform: capitalize;
-        }
-        .syn-field-label {
-            font-family: var(--af-font);
-            font-weight: 700;
-            color: var(--af-text-hi);
-            font-size: 0.92rem;
-            margin-top: 0.6rem;
-            margin-bottom: 0.35rem;
-        }
-        .syn-field-value {
-            color: var(--af-text-mid);
-            font-size: 0.90rem;
-            line-height: 1.55;
-            margin-bottom: 0.5rem;
-        }
-        .syn-list {
-            margin-left: 1.2rem;
-            color: var(--af-text-mid);
-            font-size: 0.90rem;
-            line-height: 1.6;
-        }
-        .syn-list li {
-            margin-bottom: 0.3rem;
-        }
-        .syn-badge {
-            display: inline-block;
-            background: var(--af-surface-raised);
-            border: 1px solid var(--af-hairline);
-            border-radius: 4px;
-            padding: 0.25rem 0.6rem;
-            margin-right: 0.5rem;
-            margin-top: 0.5rem;
-            font-size: 0.80rem;
-            color: var(--af-text-mid);
-        }
-        .syn-body {
-            color: var(--af-text-mid);
-            font-size: 0.90rem;
-            line-height: 1.6;
-        }
-        .cite {
-            color: var(--af-ember);
-            font-weight: 500;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def render_status_banner(config, generation_mode):
@@ -1016,7 +362,7 @@ def render_paper_cards(
             )
             # Render abstract natively as markdown so LaTeX math equations are processed
             # The newlines ensure Streamlit parses the markdown inside the HTML block
-            st.markdown(f"<div class='paper-card-abstract'>\n\n{paper.get('abstract', '')}\n\n</div>", unsafe_allow_html=True)
+            st.markdown(paper.get("abstract", ""))
             if selectable:
                 action_cols = st.columns([1.1, 1.05, 1.05, 3.8])
                 select_col, summary_col, guidance_col = (
@@ -1210,6 +556,8 @@ if should_search:
                 unsafe_allow_html=True,
             )
             search_payload = search_papers(research_question.strip(), focus_categories)
+            for warning in search_payload.get("warnings", []):
+                st.warning(warning)
             st.session_state.papers = search_payload.get("papers", [])
             st.session_state.search_message = search_payload.get("message", "")
             search_placeholder.empty()
@@ -1312,6 +660,8 @@ if papers:
     if should_generate:
         plan_placeholder = st.empty()
         try:
+            st.session_state.research_plan = ""
+            st.session_state.generated_labels = []
             selected_summaries = []
             for paper in selected_papers:
                 with plan_placeholder.container():
@@ -1331,6 +681,9 @@ if papers:
                 st.session_state.generation_mode,
             ):
                 research_plan_chunks.append(chunk)
+                plan_placeholder.markdown("".join(research_plan_chunks))
+            if api_client.last_generation.get("fallback"):
+                st.warning("The cloud model was unavailable. This plan uses the local model.")
             st.session_state.research_plan = strip_evidence_citations("".join(research_plan_chunks)).strip()
             st.session_state.research_plan_elapsed = time.perf_counter() - research_plan_started
             plan_placeholder.empty()

@@ -1,51 +1,28 @@
-import os
+"""Optional explicit weight download helper: python -m scripts.download_weights."""
+
 import argparse
-from huggingface_hub import snapshot_download
-from transformers import AutoTokenizer
-from sentence_transformers import SentenceTransformer, CrossEncoder
-from backend.retrieval.device import select_retrieval_device
+import os
 
-def download_llm(model_name: str, token: str = None):
-    print(f"Downloading LLM model: {model_name}...")
-    AutoTokenizer.from_pretrained(model_name, token=token)
-    snapshot_download(
-        repo_id=model_name,
-        token=token,
-        allow_patterns=[
-            "*.json",
-            "*.model",
-            "*.safetensors",
-            "*.txt",
-            "tokenizer*",
-            "generation_config.json",
-        ],
-    )
-    print("LLM model downloaded successfully.")
+from dotenv import load_dotenv
 
-def download_embedding(model_name: str):
-    device = select_retrieval_device()
-    print(f"Downloading Embedding model: {model_name} on {device}...")
-    SentenceTransformer(model_name, device=device)
-    print("Embedding model downloaded successfully.")
 
-def download_cross_encoder(model_name: str):
-    device = select_retrieval_device()
-    print(f"Downloading Cross-Encoder model: {model_name} on {device}...")
-    CrossEncoder(model_name, device=device)
-    print("Cross-Encoder downloaded successfully.")
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--llm", default=None)
+    args = parser.parse_args()
+    load_dotenv('.env')
+    from backend.config import get_config
+    from huggingface_hub import snapshot_download
+
+    config = get_config()
+    models = ["BAAI/bge-small-en-v1.5", "BAAI/bge-reranker-base"]
+    if config.llm_provider != "fireworks":
+        models.append(args.llm or config.llm_model)
+    for model in models:
+        print(f"Downloading {model}...", flush=True)
+        snapshot_download(model, token=os.getenv("HF_TOKEN"))
+    print("Weights cached. The backend loads models during startup.")
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--llm", type=str, default="google/gemma-2-2b-it", help="LLM model name on HuggingFace")
-    parser.add_argument("--embed", type=str, default="BAAI/bge-small-en-v1.5", help="Embedding model name on HuggingFace")
-    parser.add_argument("--reranker", type=str, default="BAAI/bge-reranker-base", help="Cross-Encoder model name")
-    args = parser.parse_args()
-
-    hf_token = os.environ.get("HF_TOKEN")
-    if not hf_token:
-        print("WARNING: HF_TOKEN environment variable is not set. Gated models like Gemma will fail to download!")
-
-    download_llm(args.llm, token=hf_token)
-    download_embedding(args.embed)
-    download_cross_encoder(args.reranker)
-    print("All weights downloaded and cached successfully!")
+    main()

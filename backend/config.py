@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
-from pathlib import Path
 import logging
+import math
 
 from backend.runtime import auto_provider
 
@@ -38,15 +38,16 @@ PROVIDER_ALIASES = {
     "transformer": "transformers",
     "transformers": "transformers",
 }
-try:
-    LLM_MAX_TOKENS = int(os.getenv("LOCAL_LLM_MAX_TOKENS", str(DEFAULT_MAX_TOKENS)))
-except ValueError:
-    LLM_MAX_TOKENS = DEFAULT_MAX_TOKENS
 
-try:
-    LLM_TEMPERATURE = float(os.getenv("LOCAL_LLM_TEMPERATURE", str(DEFAULT_TEMPERATURE)))
-except ValueError:
-    LLM_TEMPERATURE = DEFAULT_TEMPERATURE
+def env_number(name, default, cast, minimum, maximum):
+    try:
+        value = cast(os.getenv(name, str(default)))
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number") from exc
+    if not math.isfinite(value) or not minimum <= value <= maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
+    return value
+
 
 @dataclass(frozen=True)
 class AppConfig:
@@ -83,8 +84,7 @@ class AppConfig:
             provider = DEFAULT_PROVIDER
 
         if provider not in ("transformers", "fireworks", "mlx"):
-            logger.warning("Unsupported local LLM provider %r. Defaulting to 'transformers'.", provider)
-            provider = "transformers"
+            raise ValueError(f"Unsupported LOCAL_LLM_PROVIDER: {provider}")
 
         if provider == "fireworks":
             default_model = os.getenv("FIREWORKS_MODEL", DEFAULT_FIREWORKS_MODEL)
@@ -117,6 +117,18 @@ class AppConfig:
             
         deep_model = os.getenv("LOCAL_LLM_DEEP_MODEL", default_deep)
 
+        if provider == "fireworks" and not os.getenv("FIREWORKS_API_KEY"):
+            raise ValueError("FIREWORKS_API_KEY is required for the fireworks provider")
+        effective_models = [fast_model, deep_model] + [os.getenv(name, "") for name in (
+            "LOCAL_LLM_SUMMARY_MODEL", "LOCAL_LLM_SUMMARY_DEEP_MODEL", "LOCAL_LLM_GUIDANCE_MODEL",
+            "LOCAL_LLM_GUIDANCE_DEEP_MODEL", "LOCAL_LLM_RESEARCH_PLAN_MODEL",
+        )]
+        if any(model.startswith("accounts/fireworks/") for model in effective_models):
+            if not (use_fireworks or provider == "fireworks") or not os.getenv("FIREWORKS_API_KEY"):
+                raise ValueError("Fireworks models require explicit opt-in and FIREWORKS_API_KEY")
+        if provider == "mlx" and not fast_model.startswith("mlx-community/"):
+            logger.warning("Check that LOCAL_LLM_MODEL is an MLX-compatible checkpoint")
+
         load_in_4bit = os.getenv("LOCAL_LLM_LOAD_IN_4BIT", "false").lower() == "true"
         search_mode = os.getenv("ACADEMICFORGE_SEARCH_MODE", DEFAULT_SEARCH_MODE).strip().lower()
         if search_mode not in {"fast", "quality"}:
@@ -131,10 +143,6 @@ class AppConfig:
             jev_max_papers = max(1, int(os.getenv("JEV_MAX_PAPERS", "3")))
         except ValueError:
             jev_max_papers = 3
-        try:
-            jev_timeout_seconds = float(os.getenv("JEV_TIMEOUT_SECONDS", "60"))
-        except ValueError:
-            jev_timeout_seconds = 60.0
 
         return cls(
             llm_provider=provider,
@@ -144,8 +152,8 @@ class AppConfig:
             llm_guidance_model=os.getenv("LOCAL_LLM_GUIDANCE_MODEL", fast_model),
             llm_guidance_deep_model=os.getenv("LOCAL_LLM_GUIDANCE_DEEP_MODEL", deep_model),
             llm_research_plan_model=os.getenv("LOCAL_LLM_RESEARCH_PLAN_MODEL", deep_model),
-            llm_max_tokens=LLM_MAX_TOKENS,
-            llm_temperature=LLM_TEMPERATURE,
+            llm_max_tokens=env_number("LOCAL_LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS, int, 1, 8192),
+            llm_temperature=env_number("LOCAL_LLM_TEMPERATURE", DEFAULT_TEMPERATURE, float, 0, 2),
             llm_load_in_4bit=load_in_4bit,
             remote_llm_enabled=remote_enabled,
             remote_llm_provider=remote_provider,
@@ -157,7 +165,7 @@ class AppConfig:
             jev_api_key=os.getenv("TYPESAFE_API_KEY", ""),
             jev_endpoint=os.getenv("JEV_ENDPOINT", DEFAULT_JEV_ENDPOINT),
             jev_model=os.getenv("JEV_MODEL", DEFAULT_JEV_MODEL),
-            jev_timeout_seconds=jev_timeout_seconds,
+            jev_timeout_seconds=env_number("JEV_TIMEOUT_SECONDS", 20, float, 0.1, 60),
             jev_include_details=jev_include_details,
             jev_max_papers=jev_max_papers,
         )

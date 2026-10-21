@@ -1,38 +1,28 @@
 # Contributing
 
-Keep changes small, testable, and aligned with the current FastAPI + Streamlit architecture.
+Keep changes focused and preserve the FastAPI/Streamlit boundaries. Use Python 3.12–3.14.
 
-## Local Setup
+## Setup
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
-python -m pip install --ignore-installed blinker -r requirements-local.txt
+uv sync --locked --extra local
 cp .env.example .env
-```
-
-## Run
-
-```bash
+source .venv/bin/activate
 ./start.sh
 ```
 
-## Test Before Submitting
+Use a Hugging Face token only if your model needs gated access. Cloud generation requires explicit opt-in. GPU VMs use [the dedicated setup path](docs/setup.md#gpu-vms).
+
+## Checks
 
 ```bash
-python -m py_compile backend/*.py backend/retrieval/*.py frontend/*.py scripts/*.py tests/*.py
-python tests/test_generation_pipeline.py
-python tests/test_llm_routing.py
-python tests/test_retrieval_device.py
-python tests/test_api_contract.py
-python tests/test_retrieval.py
+uv run --no-sync python -m pytest -q
+uv run --no-sync ruff check backend frontend scripts tests benchmarks
+uv run --no-sync python -m compileall -q backend frontend scripts tests benchmarks
+bash -n start.sh
+uv pip check
 ```
 
-## Checklist
+Unit tests isolate configuration and use fake models/providers. Add failure tests when changing source retrieval, retries, model routing, startup, admission control, or streams. Keep hardware/network checks separate from unit tests. Never call paid providers or load large models implicitly in a unit test.
 
-- Explain the problem and the change.
-- Keep unrelated refactors out.
-- Update docs when behavior changes.
-- Include screenshots or demo notes for UI changes.
-- Include the test output you actually ran.
+Update dependencies in `pyproject.toml`, run `uv lock`, and regenerate exports with `python -m scripts.export_requirements`. Do not hand-edit generated package pins. Include the exact validation performed and screenshots for UI changes in a pull request.

@@ -1,86 +1,102 @@
+"""Backend client: bounded GET retries, single-attempt generation, typed streams."""
+
+import json
 import os
-import requests
+import random
 import time
-import logging
-from typing import Dict, Any, Generator
 
-logger = logging.getLogger(__name__)
+from dotenv import load_dotenv
+import requests
 
-import streamlit as st
+
+class StreamError(requests.RequestException):
+    """A stream ended without a complete, usable answer."""
+
 
 class APIClient:
-    """
-    Centralized API client for Streamlit frontend.
-    Handles local backend routing and implements basic retry loops.
-    """
     def __init__(self):
-        # 1. Try OS environment variables
-        url = os.getenv("ACADEMICFORGE_BACKEND_URL")
-        
-        # 2. Try Streamlit Secrets (Community Cloud)
-        if not url:
-            try:
-                url = st.secrets.get("ACADEMICFORGE_BACKEND_URL")
-            except Exception:
-                pass
-                
-        # 3. Fallback to the local FastAPI backend.
-        self.base_url = (url or "http://127.0.0.1:8000").rstrip("/")
-        
-        self.timeout_health = 5
-        self.timeout_generation = 240
+        load_dotenv(os.getenv("ACADEMICFORGE_ENV_FILE", ".env"))
+        self.base_url = os.getenv("ACADEMICFORGE_BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+        self.api_key = os.getenv("ACADEMICFORGE_API_KEY", "")
+        self.timeout_health = (3, 5)
+        self.timeout_generation = (5, 180)
         self.max_retries = 3
+        self.last_generation = {}
+        self.session = requests.Session()
+        if self.api_key:
+            self.session.headers["X-API-Key"] = self.api_key
 
-    def get_active_backend(self) -> str:
-        return "remote" if "localhost" not in self.base_url and "127.0.0.1" not in self.base_url else "local"
+    def get_active_backend(self):
+        return "local" if self.base_url.startswith(("http://localhost:", "http://127.0.0.1:")) else "remote"
 
-    def health_check(self) -> Dict[str, Any]:
-        """Check if backend is healthy and return provider/model info."""
+    def health_check(self):
         try:
-            response = requests.get(f"{self.base_url}/health", timeout=self.timeout_health)
-            response.raise_for_status()
+            with self.session.get(f"{self.base_url}/health", timeout=self.timeout_health) as response:
+                return response.json()
+        except requests.RequestException:
+            return {"status": "error", "backend": self.get_active_backend(), "message": "Backend unavailable."}
+
+    def get_config(self):
+        with self._request_with_retry("GET", "/config", timeout=self.timeout_health) as response:
             return response.json()
-        except Exception as e:
-            logger.warning(f"Health check failed for {self.base_url}: {e}")
-            return {"status": "error", "backend": self.get_active_backend(), "message": str(e)}
 
-    def get_config(self) -> Dict[str, Any]:
-        response = self._request_with_retry("GET", "/config", timeout=self.timeout_health)
-        return response.json()
+    def get_version(self):
+        with self._request_with_retry("GET", "/version", timeout=self.timeout_health) as response:
+            return response.json()
 
-    def get_version(self) -> Dict[str, Any]:
-        response = self._request_with_retry("GET", "/version", timeout=self.timeout_health)
-        return response.json()
+    def post_json(self, path, payload):
+        # A lost response does not mean generation stopped. Never replay an expensive POST.
+        with self._request_with_retry("POST", path, json=payload, timeout=self.timeout_generation) as response:
+            return response.json()
 
-    def post_json(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        response = self._request_with_retry("POST", path, json=payload, timeout=self.timeout_generation)
-        return response.json()
+    def stream_post(self, path, payload):
+        completed = False
+        self.last_generation = {}
+        with self.session.post(f"{self.base_url}{path}", json=payload, stream=True,
+                               timeout=self.timeout_generation,
+                               headers={"Accept": "application/x-ndjson"}) as response:
+            response.raise_for_status()
+            for line in response.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                    kind = event["type"]
+                    if kind == "error":
+                        raise StreamError(event.get("message", "Generation was interrupted."))
+                    if kind == "delta":
+                        if not isinstance(event.get("text"), str):
+                            raise ValueError("Invalid delta")
+                        yield event["text"]
+                    elif kind == "done":
+                        self.last_generation = event.get("generation", {})
+                        completed = True
+                        break
+                    elif kind != "start":
+                        raise ValueError("Unknown stream event")
+                except (ValueError, KeyError, TypeError) as exc:
+                    raise StreamError("Invalid stream response. Start a new attempt.") from exc
+        if not completed:
+            raise StreamError("Generation was interrupted. Start a new attempt to replace partial output.")
 
-    def stream_post(self, path: str, payload: Dict[str, Any]) -> Generator[str, None, None]:
-        url = f"{self.base_url}{path}"
-        for attempt in range(self.max_retries):
+    def _request_with_retry(self, method, path, **kwargs):
+        attempts = self.max_retries if method == "GET" else 1
+        for attempt in range(attempts):
             try:
-                response = requests.post(url, json=payload, stream=True, timeout=self.timeout_generation)
-                response.raise_for_status()
-                for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
-                    if chunk:
-                        yield chunk
-                return
-            except (requests.ConnectionError, requests.Timeout) as e:
-                if attempt == self.max_retries - 1:
-                    raise e
-                logger.warning(f"Stream request failed ({e}). Retrying {attempt + 1}/{self.max_retries}...")
-                time.sleep(2 ** attempt)
-
-    def _request_with_retry(self, method: str, path: str, **kwargs):
-        url = f"{self.base_url}{path}"
-        for attempt in range(self.max_retries):
-            try:
-                response = requests.request(method, url, **kwargs)
-                response.raise_for_status()
-                return response
-            except (requests.ConnectionError, requests.Timeout) as e:
-                if attempt == self.max_retries - 1:
-                    raise e
-                logger.warning(f"Request failed ({e}). Retrying {attempt + 1}/{self.max_retries}...")
-                time.sleep(2 ** attempt)
+                response = self.session.request(method, f"{self.base_url}{path}", **kwargs)
+            except (requests.ConnectionError, requests.Timeout):
+                if attempt == attempts - 1:
+                    raise
+                time.sleep(min(2, 0.25 * 2 ** attempt + random.uniform(0, 0.1)))
+                continue
+            if response.status_code in {429, 502, 503, 504} and attempt < attempts - 1:
+                try:
+                    delay = max(0, float(response.headers.get("Retry-After", "0.5")))
+                except ValueError:
+                    delay = 0.5
+                if delay <= 2:
+                    response.close()
+                    time.sleep(delay)
+                    continue
+            response.raise_for_status()
+            return response

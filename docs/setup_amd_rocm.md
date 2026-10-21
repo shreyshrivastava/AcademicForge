@@ -1,58 +1,12 @@
-# AMD ROCm Setup
+# AMD ROCm setup
 
-Use the terminal path. The old setup notebook path is no longer the recommended flow.
+Use the [GPU VM setup guide](setup.md#gpu-vms) with a verified ROCm PyTorch 2.12.x image. After activating its Python environment, run:
 
 ```bash
-cd /workspace
-git -c http.sslVerify=false clone https://github.com/shreyshrivastava/AcademicForge.git
-cd AcademicForge
-
-python3 -m venv venv
-source venv/bin/activate
-
-python -m pip install --upgrade pip setuptools wheel
-python -m pip install --ignore-installed blinker -r requirements-local.txt
-
+python -m scripts.install_gpu rocm
 cp .env.example .env
 ```
 
-Edit `.env` and set:
+Set `LOCAL_LLM_PROVIDER=transformers`. Add `HF_TOKEN` if using gated Gemma weights. For a notebook proxy, follow the [network access instructions](setup.md#network-access), then run `./start.sh`.
 
-```bash
-HF_TOKEN=your_real_hugging_face_token
-FIREWORKS_API_KEY=your_real_fireworks_key
-```
-
-Then run:
-
-```bash
-pkill -f streamlit || true
-pkill -f uvicorn || true
-./start.sh
-```
-
-Open:
-
-```text
-https://radeon-global.anruicloud.com/instances/<instance-id>/proxy/8501/
-```
-
-Verify backend and GPU routing:
-
-```text
-https://radeon-global.anruicloud.com/instances/<instance-id>/proxy/8000/version
-```
-
-Expected AMD diagnostics include:
-
-```json
-{
-  "provider": "transformers",
-  "accelerator": "rocm",
-  "llm_model": "google/gemma-2-2b-it",
-  "research_plan_model": "accounts/fireworks/models/deepseek-v4-pro",
-  "retrieval_device": "cuda"
-}
-```
-
-PyTorch reports ROCm GPUs through the `cuda` device API, so `retrieval_device: cuda` is expected on AMD ROCm.
+The `/version` endpoint should report `accelerator: rocm`. `retrieval_device: cuda` is expected: PyTorch exposes AMD GPUs through its CUDA-compatible device API. Record this response and perform a real search and generation on the deployment image; unit tests do not verify GPU compatibility.
