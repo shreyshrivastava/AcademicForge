@@ -242,7 +242,10 @@ def paper_record(paper: dict) -> dict:
 def evaluate(queries: list[dict], checker: AbstractSupportChecker, paper_limit: int) -> dict:
     results = []
     models = requested_models()
-    for item in queries:
+    total = len(queries)
+    for index, item in enumerate(queries, 1):
+        if index % 5 == 0 or index == 1 or index == total:
+            print(f"[faithfulness] Query {index}/{total}: {item['id']} ({item['query'][:40]}...)", flush=True)
         papers = retrieve_and_rank_papers(item["query"])
         papers = papers[:paper_limit]
         if not papers:

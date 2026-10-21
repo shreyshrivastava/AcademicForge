@@ -12,3 +12,7 @@ docs/benchmarks/human_eval_key.csv
 
 .pytest_cache/
 .ruff_cache/
+
+# Bundle and artifact archives
+*.tar.gz
+*.zip

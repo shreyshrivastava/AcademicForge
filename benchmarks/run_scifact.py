@@ -355,7 +355,14 @@ def main():
             )
         )
 
-    version = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    try:
+        git_head_file = ROOT / ".git_head"
+        if git_head_file.exists():
+            version = git_head_file.read_text(encoding="utf-8").strip()
+        else:
+            version = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception:
+        version = os.environ.get("GIT_HEAD", "unknown")
     labels = []
     if args.max_queries is not None:
         labels.append("subsample")
