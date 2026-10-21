@@ -8,6 +8,7 @@ venv/
 .streamlit/
 .academicforge_cache/
 benchmark-results.*
+docs/benchmarks/human_eval_key.csv
 
 .pytest_cache/
 .ruff_cache/
