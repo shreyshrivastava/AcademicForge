@@ -14,6 +14,18 @@ the corresponding component remains opt-in. SciFact has no development qrels,
 so the official train qrels choose the configuration and the test qrels are used
 once for this decision.
 
+### Amendment — 23 October 2026
+
+The original rule was **not met**: on SciFact, frozen score fusion was +0.0106
+nDCG@10 versus dense-only, with a paired 95% CI of −0.0037 to 0.0268. The
+frozen NFCorpus replication nevertheless moved in the same direction and was
+significant: +0.0177, 95% CI 0.0108 to 0.0253. Given the same-direction result
+on both datasets and the negligible cached score-fusion operation cost on MPS,
+the project relaxes the rule to make frozen score fusion (stemmed BM25 + BGE,
+dense alpha 0.9) the default. This is an explicit amendment, not evidence that
+the original two-dataset significance rule was satisfied. Cross-encoder
+reranking remains opt-in because it was not significant on SciFact.
+
 AcademicForge has a reproducible ablation runner for the production retrieval classes: `BM25Index`, `DenseIndex`, reciprocal rank fusion, and the BGE cross-encoder reranker. It evaluates BEIR SciFact and NFCorpus, including the BM25 stemming-plus-stopword-removal variant.
 
 The cache-first SciFact evaluation completed locally on Apple Silicon MPS. Its
@@ -22,10 +34,10 @@ no development qrels; the official test qrels were evaluated once after that
 choice was frozen. NFCorpus has not been run.
 
 <!-- BEGIN GENERATED ABLATION TABLE -->
-| Dataset | Dense default | Best score fusion | Fusion + reranker@20 |
+| Dataset | Dense-only | Score fusion | Fusion + reranker@20 |
 | :--- | :--- | :--- |
-| BEIR SciFact | 0.7200 | 0.7306 (not significant) | 0.7278 (not significant) |
-| BEIR NFCorpus | 0.3374 | 0.3551 (significant) | Not run by design |
+| BEIR SciFact | 0.7200 (0.6776–0.7635) | 0.7306 (0.6877–0.7728); difference +0.0106 (−0.0037–0.0268), not significant | 0.7278 (0.6836–0.7697), not significant |
+| BEIR NFCorpus | 0.3374 (0.3014–0.3752) | 0.3551 (0.3192–0.3930); difference +0.0177 (0.0108–0.0253), significant | Not run by design |
 <!-- END GENERATED ABLATION TABLE -->
 
 ### Frozen NFCorpus replication
@@ -62,10 +74,11 @@ device metadata, cache provenance, checksums, and source fingerprints.
 
 ## What this shows
 
-Dense-only is the default because the score-fusion improvement over dense-only
-has a paired nDCG@10 interval of −0.0037 to 0.0268, which includes zero. The
-reranker also did not improve its selected fusion (−0.0273 to 0.0211). Hybrid
-and reranking modes remain opt-in through `ACADEMICFORGE_RETRIEVAL_MODE`.
+The amended decision makes score fusion the default. Its SciFact interval
+includes zero, while its frozen NFCorpus interval is positive; see the dated
+amendment above. The reranker did not improve its selected SciFact fusion
+(−0.0273 to 0.0211), so reranking remains opt-in through
+`ACADEMICFORGE_RETRIEVAL_MODE`.
 
 The evaluation artifact also records p50/p95 latency for each cached score-array
 operation on MPS: dense 0.00050/0.00079 ms, stemmed BM25

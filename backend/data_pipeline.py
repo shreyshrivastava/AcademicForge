@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import xml.etree.ElementTree as ET
 import requests
 
-from backend.retrieval import hybrid_search, rerank_results
+from backend.retrieval import hybrid_search, rerank_results, score_fusion_search
 from backend.retrieval.bm25 import bm25_search
 from backend.retrieval.dense import dense_search
 from backend.retrieval.models import result_to_paper
@@ -257,6 +257,8 @@ def rank_papers(query: str, papers: list[dict], top_k: int = RERANK_POOL_SIZE) -
     mode = get_config().retrieval_mode
     if mode == "dense":
         ranked = [result_to_paper(result) for result in dense_search(query, papers, top_k=top_k)]
+    elif mode == "score_fusion":
+        ranked = [result_to_paper(result) for result in score_fusion_search(query, papers, top_k=top_k, dense_alpha=.9)]
     else:
         retrieved = hybrid_search(query, papers, top_k=RERANK_POOL_SIZE)
         if mode == "hybrid_rerank":

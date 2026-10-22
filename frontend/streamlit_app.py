@@ -263,9 +263,9 @@ def render_status_banner(config, generation_mode):
             st.caption("The small model is disabled; extractive evidence analysis is active.")
         st.caption("Dense retrieval and neural reranking are disabled in this lightweight profile.")
     else:
-        mode = config.get("retrieval_mode", "dense")
-        if mode == "dense":
-            st.caption("Ranking uses BGE dense retrieval by default. Hybrid fusion and neural reranking are opt-in modes.")
+        mode = config.get("retrieval_mode", "score_fusion")
+        if mode == "score_fusion":
+            st.caption("Ranking uses score fusion by default: BGE dense retrieval plus stemmed BM25 at a 0.9 dense weight. Neural reranking is opt-in.")
         else:
             st.caption(f"Ranking mode: {mode}. This is an explicit retrieval-mode setting.")
     return

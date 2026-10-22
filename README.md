@@ -14,16 +14,16 @@ Run it locally on Apple Silicon, NVIDIA CUDA, or AMD ROCm. Summaries, paper guid
 
 | SciFact test system | nDCG@10 | 95% query-bootstrap CI | Difference vs dense-only (95% CI) |
 | :--- | ---: | :--- | :--- |
-| BGE dense-only **(default)** | **0.7200** | 0.6776–0.7635 | — |
+| BGE dense-only | 0.7200 | 0.6776–0.7635 | — |
 | Stemmed BM25 | 0.6514 | 0.6058–0.6951 | −0.0686 (−0.1063–−0.0309) |
 | Equal-weight RRF | 0.7076 | 0.6656–0.7513 | −0.0124 (−0.0392–0.0169) |
 | Best weighted RRF | 0.7233 | 0.6800–0.7628 | +0.0033 (−0.0109–0.0189) |
-| Best score fusion | 0.7306 | 0.6877–0.7728 | +0.0106 (−0.0037–0.0268) |
+| Best score fusion **(default)** | **0.7306** | 0.6877–0.7728 | +0.0106 (−0.0037–0.0268) |
 | Best score fusion + reranker@20 | 0.7278 | 0.6836–0.7697 | +0.0078 (−0.0198–0.0351) |
 
-This is one full, frozen BEIR SciFact abstract-retrieval test on MPS, with 1,000 paired bootstrap resamples (seed 42). Score fusion was selected using the official SciFact training judgments (there is no SciFact development split), but it did not significantly beat dense-only on test; reranking did not significantly improve its selected fusion either. AcademicForge therefore defaults to dense retrieval. The result does not establish performance on other datasets, full text, live search, generated answers, or human usefulness. MPS latency is not comparable to CUDA or ROCm, and no human evaluation has been run.
+This is one full, frozen BEIR SciFact abstract-retrieval test on MPS, with 1,000 paired bootstrap resamples (seed 42). Score fusion was selected using the official SciFact training judgments (there is no SciFact development split), but it did not significantly beat dense-only on that test; reranking did not significantly improve its selected fusion either. The later frozen NFCorpus replication was significant in the same direction, so the amended decision rule selects score fusion as the default. The result does not establish performance on other datasets, full text, live search, generated answers, or human usefulness. MPS latency is not comparable to CUDA or ROCm, and no human evaluation has been run.
 
-Set `ACADEMICFORGE_RETRIEVAL_MODE=dense|hybrid|hybrid_rerank` to select a mode; hybrid and cross-encoder reranking are opt-in. The complete sweep and frozen evaluation are [auditable JSON artifacts](docs/benchmarks/retrieval-fusion-evaluation.json); see the [benchmark guide](docs/benchmarks/README.md) for method and limits.
+Set `ACADEMICFORGE_RETRIEVAL_MODE=score_fusion|dense|hybrid|hybrid_rerank` to select a mode. The default score fusion uses stemmed BM25 and BGE dense scores with dense alpha 0.9; cross-encoder reranking is opt-in. The complete sweep and frozen evaluation are [auditable JSON artifacts](docs/benchmarks/retrieval-fusion-evaluation.json); see the [benchmark guide](docs/benchmarks/README.md) for method and limits.
 
 ### Frozen NFCorpus replication
 
@@ -83,6 +83,11 @@ Run the command for your machine:
 # Apple Silicon or a standard Python setup
 python -m pip install --ignore-installed blinker -r requirements-local.txt
 ```
+
+The explicit Blinker reinstall remains for compatibility with preinstalled
+macOS Python environments. A fresh offline verification could not test that
+case because its package cache lacked `accelerate==1.15.0` before installation
+reached Blinker.
 
 ```bash
 # NVIDIA VM with a verified CUDA PyTorch 2.12.x stack already installed
@@ -176,8 +181,9 @@ Completed searches are cached in memory for five minutes by default, making repe
 | Interface | Streamlit |
 | Backend | FastAPI and Uvicorn |
 | Paper sources | arXiv and Semantic Scholar |
-| Search and ranking | BGE dense retrieval by default; opt-in BM25/RRF fusion and `BAAI/bge-reranker-base` |
+| Search and ranking | Score fusion by default: stemmed BM25 + BGE dense, alpha 0.9; opt-in RRF and `BAAI/bge-reranker-base` |
 | Optional final ranking | OpenJev |
+| OpenJev | Optional HTTP ranking service that scores a small top-paper set and preserves the existing order on failure. |
 | Local generation | Gemma through MLX or Transformers/PyTorch |
 | Optional cloud generation | Groq for Deep mode; Fireworks DeepSeek when enabled |
 
@@ -189,7 +195,7 @@ Search mode controls the order of papers. Analysis mode controls the model used 
 
 | Search mode | What it does | When to use it |
 | :--- | :--- | :--- |
-| **Fast** (default) | Uses BGE dense retrieval. Hybrid fusion and BGE reranking require `ACADEMICFORGE_RETRIEVAL_MODE`. | Everyday searches with lower latency. |
+| **Fast** (default) | Uses score fusion: stemmed BM25 plus BGE dense at alpha 0.9. BGE reranking requires `ACADEMICFORGE_RETRIEVAL_MODE=hybrid_rerank`. | Everyday searches with lower latency. |
 | **Quality** | Adds an OpenJev ranking pass when OpenJev is enabled and available. | Searches where you want an extra relevance check on the top papers. |
 
 Both search modes use the same generation settings. Changing search mode changes paper ordering; it does not change the writing model or prompts.

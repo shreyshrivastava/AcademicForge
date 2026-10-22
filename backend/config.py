@@ -135,10 +135,10 @@ class AppConfig:
         if search_mode not in {"fast", "quality"}:
             logger.warning("Unsupported search mode %r. Defaulting to 'fast'.", search_mode)
             search_mode = DEFAULT_SEARCH_MODE
-        retrieval_mode = os.getenv("ACADEMICFORGE_RETRIEVAL_MODE", "dense").strip().lower()
-        if retrieval_mode not in {"dense", "hybrid", "hybrid_rerank"}:
-            logger.warning("Unsupported retrieval mode %r. Defaulting to 'dense'.", retrieval_mode)
-            retrieval_mode = "dense"
+        retrieval_mode = os.getenv("ACADEMICFORGE_RETRIEVAL_MODE", "score_fusion").strip().lower()
+        if retrieval_mode not in {"dense", "hybrid", "score_fusion", "hybrid_rerank"}:
+            logger.warning("Unsupported retrieval mode %r. Defaulting to 'score_fusion'.", retrieval_mode)
+            retrieval_mode = "score_fusion"
         jev_enabled = (
             search_mode == "quality"
             and os.getenv("JEV_ENABLED", "false").lower() == "true"
