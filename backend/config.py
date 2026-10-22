@@ -67,6 +67,7 @@ class AppConfig:
     remote_llm_model: str
     remote_llm_api_key: str
     search_mode: str
+    retrieval_mode: str
     jev_enabled: bool
     jev_api_key: str
     jev_endpoint: str
@@ -134,6 +135,10 @@ class AppConfig:
         if search_mode not in {"fast", "quality"}:
             logger.warning("Unsupported search mode %r. Defaulting to 'fast'.", search_mode)
             search_mode = DEFAULT_SEARCH_MODE
+        retrieval_mode = os.getenv("ACADEMICFORGE_RETRIEVAL_MODE", "dense").strip().lower()
+        if retrieval_mode not in {"dense", "hybrid", "hybrid_rerank"}:
+            logger.warning("Unsupported retrieval mode %r. Defaulting to 'dense'.", retrieval_mode)
+            retrieval_mode = "dense"
         jev_enabled = (
             search_mode == "quality"
             and os.getenv("JEV_ENABLED", "false").lower() == "true"
@@ -161,6 +166,7 @@ class AppConfig:
             remote_llm_model=remote_model,
             remote_llm_api_key=remote_api_key,
             search_mode=search_mode,
+            retrieval_mode=retrieval_mode,
             jev_enabled=jev_enabled,
             jev_api_key=os.getenv("TYPESAFE_API_KEY", ""),
             jev_endpoint=os.getenv("JEV_ENDPOINT", DEFAULT_JEV_ENDPOINT),
@@ -201,6 +207,7 @@ class AppConfig:
             "remote_llm_provider": self.remote_llm_provider,
             "remote_llm_model": self.remote_llm_model,
             "search_mode": self.search_mode,
+            "retrieval_mode": self.retrieval_mode,
             "jev_enabled": self.jev_enabled and bool(
                 self.jev_api_key or self.jev_endpoint.startswith(("http://127.0.0.1", "http://localhost"))
             ),

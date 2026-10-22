@@ -12,10 +12,9 @@ Streamlit UI
   -> FastAPI backend
   -> arXiv + Semantic Scholar live search
   -> relevance filtering
-  -> BM25 lexical retrieval
-  -> BGE dense retrieval
-  -> Reciprocal Rank Fusion
-  -> BGE cross-encoder reranking
+  -> BGE dense retrieval (default)
+  -> optional BM25/BGE fusion
+  -> optional BGE cross-encoder reranking
   -> selected evidence papers
   -> local Gemma summaries and guidance
   -> compact Research Plan context
@@ -27,6 +26,12 @@ Streamlit UI
 - `GET /health`
 - `GET /version`
 - `GET /config`
+
+Retrieval defaults to BGE dense retrieval. `ACADEMICFORGE_RETRIEVAL_MODE=hybrid`
+enables BM25/BGE fusion and `hybrid_rerank` additionally enables the BGE
+cross-encoder. The default follows the checksum-verified SciFact evaluation in
+`docs/benchmarks/retrieval-fusion-evaluation.json`: neither opt-in mode had a
+paired 95% nDCG@10 interval above dense-only on the frozen test split.
 - `POST /search`
 - `POST /summarize`
 - `POST /paper-guidance`

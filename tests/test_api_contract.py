@@ -21,6 +21,20 @@ def test_config_endpoint_returns_model_info():
     assert payload["llm_models"]["research_plan"]
     assert payload["generation_modes"]["fast"]["model"]
     assert payload["generation_modes"]["deep"]["model"]
+    assert payload["retrieval_mode"] == "dense"
+
+
+def test_version_endpoint_reports_active_retrieval_mode():
+    client = TestClient(app)
+    response = client.get("/version")
+    assert response.status_code == 200
+    assert response.json()["retrieval_mode"] == "dense"
+
+
+def test_documented_retrieval_default_matches_config_endpoint():
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+    assert "BGE dense-only **(default)**" in readme
+    assert TestClient(app).get("/config").json()["retrieval_mode"] == "dense"
 
 
 def test_search_endpoint_passes_research_focus():

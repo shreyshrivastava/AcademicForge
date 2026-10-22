@@ -10,24 +10,20 @@ Run it locally on Apple Silicon, NVIDIA CUDA, or AMD ROCm. Summaries, paper guid
 
 ## Evidence
 
-### Retrieval ablation status
+### Retrieval evidence
 
-The reproducible ablation runner evaluates the production retrieval components on BEIR SciFact and NFCorpus. It is deliberately guarded: it refuses to write a result artifact when BGE dense retrieval or the BGE cross-encoder is unavailable. A full supported-device run has not completed in this checkout, so no hybrid or reranker metrics are claimed yet.
+| SciFact test system | nDCG@10 | 95% query-bootstrap CI | Difference vs dense-only (95% CI) |
+| :--- | ---: | :--- | :--- |
+| BGE dense-only **(default)** | **0.7200** | 0.6776–0.7635 | — |
+| Stemmed BM25 | 0.6514 | 0.6058–0.6951 | −0.0686 (−0.1063–−0.0309) |
+| Equal-weight RRF | 0.7076 | 0.6656–0.7513 | −0.0124 (−0.0392–0.0169) |
+| Best weighted RRF | 0.7233 | 0.6800–0.7628 | +0.0033 (−0.0109–0.0189) |
+| Best score fusion | 0.7306 | 0.6877–0.7728 | +0.0106 (−0.0037–0.0268) |
+| Best score fusion + reranker@20 | 0.7278 | 0.6836–0.7697 | +0.0078 (−0.0198–0.0351) |
 
-<!-- BEGIN GENERATED ABLATION TABLE -->
-| Dataset | BM25 | Stemmed BM25 | BGE dense | RRF | RRF + cross-encoder |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| BEIR SciFact | Prior baseline below | Not yet measured | Not yet measured | Not yet measured | Not yet measured |
-| BEIR NFCorpus | Not yet measured | Not yet measured | Not yet measured | Not yet measured | Not yet measured |
-<!-- END GENERATED ABLATION TABLE -->
+This is one full, frozen BEIR SciFact abstract-retrieval test on MPS, with 1,000 paired bootstrap resamples (seed 42). Score fusion was selected using the official SciFact training judgments (there is no SciFact development split), but it did not significantly beat dense-only on test; reranking did not significantly improve its selected fusion either. AcademicForge therefore defaults to dense retrieval. The result does not establish performance on other datasets, full text, live search, generated answers, or human usefulness. MPS latency is not comparable to CUDA or ROCm, and no human evaluation has been run.
 
-Run the complete ablation on a device where BGE embedding and reranking can finish:
-
-```bash
-python -m benchmarks.run_scifact --download --device cuda
-```
-
-The runner records nDCG@10, Recall@10, MRR@10, 1,000-resample bootstrap confidence intervals, paired tests against BM25, prepared-index p50/p95 latency, hardware, and dataset checksums in `docs/benchmarks/retrieval-ablation.json`. See the [benchmark guide](docs/benchmarks/README.md) for the prior measured BM25 baseline and the exact caveats.
+Set `ACADEMICFORGE_RETRIEVAL_MODE=dense|hybrid|hybrid_rerank` to select a mode; hybrid and cross-encoder reranking are opt-in. The complete sweep and frozen evaluation are [auditable JSON artifacts](docs/benchmarks/retrieval-fusion-evaluation.json); see the [benchmark guide](docs/benchmarks/README.md) for method and limits.
 
 ### Generated-output faithfulness screen
 
@@ -150,9 +146,9 @@ AcademicForge uses Streamlit for the interface and FastAPI for the backend. Sear
 ```text
 Your research question
   -> Search arXiv and Semantic Scholar
-  -> Rank papers by keywords (BM25) and meaning (BGE embeddings)
-  -> Combine rankings with Reciprocal Rank Fusion (RRF)
-  -> Refine the order with a BGE cross-encoder
+  -> Rank papers by meaning (BGE dense retrieval, default)
+  -> Optionally combine BM25 and BGE with RRF or score fusion
+  -> Optionally refine a hybrid order with a BGE cross-encoder
   -> Optionally rerank top papers with OpenJev in Quality search mode
   -> Choose the papers to use as evidence
   -> Generate summaries and paper guidance
@@ -168,7 +164,7 @@ Completed searches are cached in memory for five minutes by default, making repe
 | Interface | Streamlit |
 | Backend | FastAPI and Uvicorn |
 | Paper sources | arXiv and Semantic Scholar |
-| Search and ranking | BM25, BGE embeddings, RRF, and `BAAI/bge-reranker-base` |
+| Search and ranking | BGE dense retrieval by default; opt-in BM25/RRF fusion and `BAAI/bge-reranker-base` |
 | Optional final ranking | OpenJev |
 | Local generation | Gemma through MLX or Transformers/PyTorch |
 | Optional cloud generation | Groq for Deep mode; Fireworks DeepSeek when enabled |

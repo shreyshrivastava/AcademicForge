@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -195,6 +196,21 @@ def test_hybrid_includes_rrf_score():
     results = hybrid_search("multilingual fact checking retrieval", PAPERS, top_k=2)
     assert results
     assert all(result.rrf_score > 0 for result in results)
+
+
+def test_rank_papers_honors_each_retrieval_mode(monkeypatch):
+    calls = []
+    dense = bm25_search("multilingual retrieval", PAPERS, top_k=3)
+    hybrid = bm25_search("multilingual retrieval", PAPERS, top_k=3)
+    monkeypatch.setattr(data_pipeline, "dense_search", lambda *args, **kwargs: calls.append("dense") or dense)
+    monkeypatch.setattr(data_pipeline, "hybrid_search", lambda *args, **kwargs: calls.append("hybrid") or hybrid)
+    monkeypatch.setattr(data_pipeline, "rerank_results", lambda *args, **kwargs: calls.append("rerank") or hybrid)
+    monkeypatch.setattr(data_pipeline, "rerank_papers_with_jev", lambda _q, papers: papers)
+    for mode, expected in (("dense", ["dense"]), ("hybrid", ["hybrid"]), ("hybrid_rerank", ["hybrid", "rerank"])):
+        calls.clear()
+        monkeypatch.setattr(data_pipeline, "get_config", lambda mode=mode: SimpleNamespace(retrieval_mode=mode))
+        assert data_pipeline.rank_papers("multilingual retrieval", PAPERS, top_k=2)
+        assert calls == expected
 
 
 def test_categorize_paper_uses_builder_facing_labels():

@@ -253,14 +253,19 @@ def rewrite_search_query(query: str) -> str:
 
 
 def rank_papers(query: str, papers: list[dict], top_k: int = RERANK_POOL_SIZE) -> list[dict]:
-    """Rank candidate papers with hybrid retrieval and reranking."""
-    retrieved = hybrid_search(query, papers, top_k=RERANK_POOL_SIZE)
-    ranked = [
-        result_to_paper(result)
-        for result in rerank_results(query, retrieved, top_k=top_k)
-    ]
+    """Rank papers using the evidence-backed default or an explicit opt-in mode."""
+    mode = get_config().retrieval_mode
+    if mode == "dense":
+        ranked = [result_to_paper(result) for result in dense_search(query, papers, top_k=top_k)]
+    else:
+        retrieved = hybrid_search(query, papers, top_k=RERANK_POOL_SIZE)
+        if mode == "hybrid_rerank":
+            retrieved = rerank_results(query, retrieved, top_k=top_k)
+        else:
+            retrieved = retrieved[:top_k]
+        ranked = [result_to_paper(result) for result in retrieved]
     ranked = rerank_papers_with_jev(query, ranked)
-    logger.info("Papers ranked pool_size=%d", len(ranked))
+    logger.info("Papers ranked mode=%s pool_size=%d", mode, len(ranked))
     return ranked
 
 

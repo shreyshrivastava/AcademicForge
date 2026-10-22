@@ -85,6 +85,7 @@ def runtime_version_payload(config=None) -> dict:
                 "summary_model": config.llm_summary_model,
                 "guidance_model": config.llm_guidance_model,
                 "research_plan_model": config.llm_research_plan_model,
+                "retrieval_mode": config.retrieval_mode,
             }
         )
     return payload
