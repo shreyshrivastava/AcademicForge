@@ -2,28 +2,57 @@
 
 ## Ablation status
 
+### Pre-registered retrieval decision rule
+
+Before inspecting the frozen SciFact test result, AcademicForge will make fusion
+the default only when its paired 1,000-resample query-bootstrap 95% interval for
+the nDCG@10 difference versus BGE dense-only excludes zero in the positive
+direction. It will make cross-encoder reranking the default only when its
+increment over the selected fusion also meets that criterion and the measured
+prepared-index latency is justified for the interactive application. Otherwise
+the corresponding component remains opt-in. SciFact has no development qrels,
+so the official train qrels choose the configuration and the test qrels are used
+once for this decision.
+
 AcademicForge has a reproducible ablation runner for the production retrieval classes: `BM25Index`, `DenseIndex`, reciprocal rank fusion, and the BGE cross-encoder reranker. It evaluates BEIR SciFact and NFCorpus, including the BM25 stemming-plus-stopword-removal variant.
 
-No full ablation artifact is published yet. The runner was started on this Apple Silicon machine, but BGE dense retrieval and cross-encoder reranking did not complete within the practical evaluation window. The runner therefore wrote no partial or estimated results. It fails rather than silently treating its lexical dense fallback as a BGE result.
+The cache-first SciFact evaluation completed locally on Apple Silicon MPS. Its
+configuration sweep used the official SciFact train qrels because SciFact ships
+no development qrels; the official test qrels were evaluated once after that
+choice was frozen. NFCorpus has not been run.
 
 <!-- BEGIN GENERATED ABLATION TABLE -->
-| Dataset | BM25 | Stemmed BM25 | BGE dense | RRF | RRF + cross-encoder |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| BEIR SciFact | Prior baseline below | Not yet measured | Not yet measured | Not yet measured | Not yet measured |
-| BEIR NFCorpus | Not yet measured | Not yet measured | Not yet measured | Not yet measured | Not yet measured |
+| Dataset | Dense default | Best score fusion | Fusion + reranker@20 |
+| :--- | :--- | :--- |
+| BEIR SciFact | 0.7200 | 0.7306 (not significant) | 0.7278 (not significant) |
+| BEIR NFCorpus | Not run | Not run | Not run |
 <!-- END GENERATED ABLATION TABLE -->
 
-Run the complete ablation on an available CUDA, ROCm, MPS, or CPU device:
+Reproduce the cache-first SciFact sweep and frozen test evaluation on MPS:
 
 ```bash
-python -m benchmarks.run_scifact --download --device cuda
+python -m benchmarks.fusion_experiments --phase all --progress
 ```
 
-The command writes `retrieval-ablation.json` only after every requested system completes. Each dataset result contains nDCG@10, Recall@10, MRR@10, 95% query-bootstrap intervals from 1,000 resamples with seed 42, paired bootstrap comparisons with the no-stemming BM25 baseline, prepared-index p50/p95 latency, environment data, and checksum-verified dataset metadata.
+The command writes [fusion-sweep.json](fusion-sweep.json) and
+[retrieval-fusion-evaluation.json](retrieval-fusion-evaluation.json). The latter
+contains every query-level metric, 1,000-resample paired bootstrap comparisons,
+device metadata, cache provenance, checksums, and source fingerprints.
 
 ## What this shows
 
-The currently published result validates only the lexical BM25 component. It does not support claims that dense retrieval, RRF, or the cross-encoder improves relevance for this application. The new runner is designed to answer that question without changing application retrieval behavior; publish its table only after a complete result artifact exists.
+Dense-only is the default because the score-fusion improvement over dense-only
+has a paired nDCG@10 interval of −0.0037 to 0.0268, which includes zero. The
+reranker also did not improve its selected fusion (−0.0273 to 0.0211). Hybrid
+and reranking modes remain opt-in through `ACADEMICFORGE_RETRIEVAL_MODE`.
+
+The evaluation artifact also records p50/p95 latency for each cached score-array
+operation on MPS: dense 0.00050/0.00079 ms, stemmed BM25
+0.00046/0.00063 ms, equal RRF 0.00008/0.00017 ms, weighted RRF
+0.00008/0.00013 ms, score fusion 0.00008/0.00017 ms, and cached rerank ordering
+0.00008/0.00013 ms. These are real cache-replay timings from the script, not
+end-to-end model inference or application response latency; they are included
+only to compare NumPy fusion operations and cannot be compared with CUDA or ROCm.
 
 ## Published BM25 baseline
 

@@ -1,0 +1,190 @@
+{
+  "benchmark": "AcademicForge cache-first fusion sweep",
+  "dataset": "BEIR SciFact",
+  "dataset_sha256": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
+  "tuning_split": "official SciFact train qrels (SciFact supplies no dev split)",
+  "queries": 809,
+  "sweep": [
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 1,
+      "bm25_weight": 1,
+      "rrf_k": 10,
+      "ndcg@10": 0.7449968849978764
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 1,
+      "bm25_weight": 1,
+      "rrf_k": 30,
+      "ndcg@10": 0.7332169718219272
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 1,
+      "bm25_weight": 1,
+      "rrf_k": 60,
+      "ndcg@10": 0.728172848588221
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 2,
+      "bm25_weight": 1,
+      "rrf_k": 10,
+      "ndcg@10": 0.7613217452150306
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 2,
+      "bm25_weight": 1,
+      "rrf_k": 30,
+      "ndcg@10": 0.7550322555482252
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 2,
+      "bm25_weight": 1,
+      "rrf_k": 60,
+      "ndcg@10": 0.7479640955025575
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 3,
+      "bm25_weight": 1,
+      "rrf_k": 10,
+      "ndcg@10": 0.7574896500235084
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 3,
+      "bm25_weight": 1,
+      "rrf_k": 30,
+      "ndcg@10": 0.7600206213559347
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 3,
+      "bm25_weight": 1,
+      "rrf_k": 60,
+      "ndcg@10": 0.757516282290535
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 5,
+      "bm25_weight": 1,
+      "rrf_k": 10,
+      "ndcg@10": 0.7561019424868581
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 5,
+      "bm25_weight": 1,
+      "rrf_k": 30,
+      "ndcg@10": 0.7554254426978863
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 5,
+      "bm25_weight": 1,
+      "rrf_k": 60,
+      "ndcg@10": 0.7567511009676189
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.0,
+      "ndcg@10": 0.6485055212011088
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.1,
+      "ndcg@10": 0.6613644913046625
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.2,
+      "ndcg@10": 0.6731062716791749
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.3,
+      "ndcg@10": 0.6820947795816927
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.4,
+      "ndcg@10": 0.700028033592195
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.5,
+      "ndcg@10": 0.7154317915800019
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.6,
+      "ndcg@10": 0.7304219343815888
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.7,
+      "ndcg@10": 0.747836135371138
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.8,
+      "ndcg@10": 0.7609094457485723
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.9,
+      "ndcg@10": 0.7657294796310511
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 1.0,
+      "ndcg@10": 0.7523845766091426
+    }
+  ],
+  "best_overall": {
+    "kind": "score_fusion",
+    "dense_alpha": 0.9,
+    "ndcg@10": 0.7657294796310511
+  },
+  "best_weighted_rrf": {
+    "kind": "weighted_rrf",
+    "dense_weight": 2,
+    "bm25_weight": 1,
+    "rrf_k": 10,
+    "ndcg@10": 0.7613217452150306
+  },
+  "best_score_fusion": {
+    "kind": "score_fusion",
+    "dense_alpha": 0.9,
+    "ndcg@10": 0.7657294796310511
+  },
+  "frozen_test_configuration": {
+    "winner": "score_fusion",
+    "dense_weight": 2,
+    "rrf_k": 10,
+    "dense_alpha": 0.9,
+    "selection_metric": "nDCG@10",
+    "selection_split": "official SciFact train qrels (SciFact supplies no dev split)"
+  },
+  "cache_files": [
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_corpus_bge.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_queries.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_dense_scores.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_bm25_scores.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_stem_bm25_scores.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_query_ids.json"
+  ],
+  "source_sha256": {
+    "backend/retrieval/bm25.py": "0972967b71360e40719f89de5ef9d06858af9cfd10df9934c2f43717ec2674af",
+    "backend/retrieval/dense.py": "ea8edb6391e8a1431540af5d010cfe9d0e2c4b78af6ff206bb3fdcdb622ae768",
+    "backend/retrieval/rrf.py": "1f9675916a3d7fa5edfe7b71721767a42ed9030e4c192b1aad76f4e4a9fcd339",
+    "backend/retrieval/reranker.py": "9df133c55514f3afcce52de593128fb0c97a0b958cab2593eb00c1b4dba92448",
+    "benchmarks/run_scifact.py": "c76b76f43f1ec3843e01d9706210f20ee7fcb127e5b3d162f2b00ce513d76169",
+    "benchmarks/metrics.py": "5eaf4c4d16de0920f0647748ce14df38269faa277b886fa8be87857cfe6fb796",
+    "benchmarks/fusion_experiments.py": "48e9ce083a34bb8e39494bae6722f2fc32c1141497c53f09ce444059ae89986f"
+  }
+}

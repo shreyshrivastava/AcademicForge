@@ -1,0 +1,169 @@
+{
+  "classification": "smoke test, subsample; not a benchmark result",
+  "split": "train",
+  "queries": 20,
+  "best": {
+    "kind": "weighted_rrf",
+    "dense_weight": 5,
+    "bm25_weight": 1,
+    "rrf_k": 60,
+    "ndcg@10": 0.6095932440743215
+  },
+  "sweep": [
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 1,
+      "bm25_weight": 1,
+      "rrf_k": 10,
+      "ndcg@10": 0.5117061768024872
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 1,
+      "bm25_weight": 1,
+      "rrf_k": 30,
+      "ndcg@10": 0.5104084120879249
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 1,
+      "bm25_weight": 1,
+      "rrf_k": 60,
+      "ndcg@10": 0.5104084120879249
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 2,
+      "bm25_weight": 1,
+      "rrf_k": 10,
+      "ndcg@10": 0.5905942975314645
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 2,
+      "bm25_weight": 1,
+      "rrf_k": 30,
+      "ndcg@10": 0.5795165361578882
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 2,
+      "bm25_weight": 1,
+      "rrf_k": 60,
+      "ndcg@10": 0.5637432923186018
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 3,
+      "bm25_weight": 1,
+      "rrf_k": 10,
+      "ndcg@10": 0.5836998212469412
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 3,
+      "bm25_weight": 1,
+      "rrf_k": 30,
+      "ndcg@10": 0.5911397317528944
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 3,
+      "bm25_weight": 1,
+      "rrf_k": 60,
+      "ndcg@10": 0.5803270731081269
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 5,
+      "bm25_weight": 1,
+      "rrf_k": 10,
+      "ndcg@10": 0.5770285259419541
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 5,
+      "bm25_weight": 1,
+      "rrf_k": 30,
+      "ndcg@10": 0.5879573887044122
+    },
+    {
+      "kind": "weighted_rrf",
+      "dense_weight": 5,
+      "bm25_weight": 1,
+      "rrf_k": 60,
+      "ndcg@10": 0.6095932440743215
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.0,
+      "ndcg@10": 0.41866439336557404
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.1,
+      "ndcg@10": 0.4498601185601861
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.2,
+      "ndcg@10": 0.4698459118879392
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.3,
+      "ndcg@10": 0.49561387248037947
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.4,
+      "ndcg@10": 0.5021603601589523
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.5,
+      "ndcg@10": 0.5477197786179612
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.6,
+      "ndcg@10": 0.5486132014453414
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.7,
+      "ndcg@10": 0.5642101354499702
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.8,
+      "ndcg@10": 0.5806602288466227
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 0.9,
+      "ndcg@10": 0.5698854381099926
+    },
+    {
+      "kind": "score_fusion",
+      "dense_alpha": 1.0,
+      "ndcg@10": 0.5567095768757052
+    }
+  ],
+  "cache_files": [
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_corpus_bge.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_queries_20.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_dense_scores_20.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_bm25_scores_20.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_stem_bm25_scores_20.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_query_ids_20.json"
+  ],
+  "source_sha256": {
+    "backend/retrieval/bm25.py": "0972967b71360e40719f89de5ef9d06858af9cfd10df9934c2f43717ec2674af",
+    "backend/retrieval/dense.py": "ea8edb6391e8a1431540af5d010cfe9d0e2c4b78af6ff206bb3fdcdb622ae768",
+    "backend/retrieval/rrf.py": "1f9675916a3d7fa5edfe7b71721767a42ed9030e4c192b1aad76f4e4a9fcd339",
+    "backend/retrieval/reranker.py": "9df133c55514f3afcce52de593128fb0c97a0b958cab2593eb00c1b4dba92448",
+    "benchmarks/run_scifact.py": "c76b76f43f1ec3843e01d9706210f20ee7fcb127e5b3d162f2b00ce513d76169",
+    "benchmarks/metrics.py": "5eaf4c4d16de0920f0647748ce14df38269faa277b886fa8be87857cfe6fb796"
+  }
+}

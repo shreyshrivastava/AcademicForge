@@ -1,0 +1,377 @@
+{
+  "benchmark": "AcademicForge SciFact frozen fusion evaluation",
+  "classification": "benchmark result",
+  "dataset": "BEIR SciFact",
+  "split": "official test",
+  "dataset_sha256": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
+  "documents": 5183,
+  "queries": 300,
+  "selection": {
+    "winner": "score_fusion",
+    "dense_weight": 2,
+    "rrf_k": 10,
+    "dense_alpha": 0.9,
+    "selection_metric": "nDCG@10",
+    "selection_split": "official SciFact train qrels (SciFact supplies no dev split)"
+  },
+  "systems": {
+    "dense_only": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.7200042547439368,
+          "bootstrap_95_percent_interval": [
+            0.6775515094109897,
+            0.7635393386494742
+          ]
+        },
+        "recall@10": {
+          "mean": 0.8452222222222222,
+          "bootstrap_95_percent_interval": [
+            0.8072222222222222,
+            0.8813333333333333
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.6844708994708995,
+          "bootstrap_95_percent_interval": [
+            0.6382962962962963,
+            0.7312539682539683
+          ]
+        },
+        "precision@10": {
+          "mean": 0.09533333333333334,
+          "bootstrap_95_percent_interval": [
+            0.08933333333333333,
+            0.10200000000000001
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.8566666666666667,
+          "bootstrap_95_percent_interval": [
+            0.82,
+            0.8933333333333333
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 0.000459025613963604,
+        "p95": 0.0007500057108700275
+      }
+    },
+    "stemmed_bm25": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.6514039977273715,
+          "bootstrap_95_percent_interval": [
+            0.6057683384765752,
+            0.695120024417745
+          ]
+        },
+        "recall@10": {
+          "mean": 0.777,
+          "bootstrap_95_percent_interval": [
+            0.7346666666666667,
+            0.8226111111111111
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.6161865079365079,
+          "bootstrap_95_percent_interval": [
+            0.5661243386243386,
+            0.6642579365079365
+          ]
+        },
+        "precision@10": {
+          "mean": 0.08600000000000001,
+          "bootstrap_95_percent_interval": [
+            0.08,
+            0.09166666666666666
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.7966666666666666,
+          "bootstrap_95_percent_interval": [
+            0.7533333333333333,
+            0.84
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 0.00045797787606716156,
+        "p95": 0.0005420297384262085
+      },
+      "paired_bootstrap_vs_dense_only_ndcg@10": {
+        "mean_difference": -0.06860025701656541,
+        "bootstrap_95_percent_interval": [
+          -0.10634003084920929,
+          -0.0308610151819267
+        ],
+        "two_sided_p_value": 0.942,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": true
+      }
+    },
+    "equal_weight_rrf": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.7076126947766114,
+          "bootstrap_95_percent_interval": [
+            0.6656218077635869,
+            0.7513474924349818
+          ]
+        },
+        "recall@10": {
+          "mean": 0.8392777777777778,
+          "bootstrap_95_percent_interval": [
+            0.798,
+            0.8804444444444445
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.6735701058201058,
+          "bootstrap_95_percent_interval": [
+            0.6260066137566138,
+            0.7196005291005292
+          ]
+        },
+        "precision@10": {
+          "mean": 0.09366666666666668,
+          "bootstrap_95_percent_interval": [
+            0.08766666666666667,
+            0.09966666666666667
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.8566666666666667,
+          "bootstrap_95_percent_interval": [
+            0.8166666666666667,
+            0.8966666666666666
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 8.399365469813347e-05,
+        "p95": 0.00016600824892520905
+      },
+      "paired_bootstrap_vs_dense_only_ndcg@10": {
+        "mean_difference": -0.012391559967325416,
+        "bootstrap_95_percent_interval": [
+          -0.03916204614420559,
+          0.016855521651677734
+        ],
+        "two_sided_p_value": 0.968,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": false
+      }
+    },
+    "best_weighted_rrf": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.7233326450666631,
+          "bootstrap_95_percent_interval": [
+            0.6799602874368733,
+            0.762811530902698
+          ]
+        },
+        "recall@10": {
+          "mean": 0.8528888888888889,
+          "bootstrap_95_percent_interval": [
+            0.8130000000000001,
+            0.8898888888888888
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.688415343915344,
+          "bootstrap_95_percent_interval": [
+            0.6423055555555556,
+            0.7302539682539683
+          ]
+        },
+        "precision@10": {
+          "mean": 0.09566666666666668,
+          "bootstrap_95_percent_interval": [
+            0.09,
+            0.10233333333333335
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.8633333333333333,
+          "bootstrap_95_percent_interval": [
+            0.8266666666666667,
+            0.9
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 8.399365469813347e-05,
+        "p95": 0.000125030055642128
+      },
+      "paired_bootstrap_vs_dense_only_ndcg@10": {
+        "mean_difference": 0.00332839032272621,
+        "bootstrap_95_percent_interval": [
+          -0.010851134079804864,
+          0.01891826988481975
+        ],
+        "two_sided_p_value": 0.98,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": false
+      }
+    },
+    "best_score_fusion": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.7306103020827706,
+          "bootstrap_95_percent_interval": [
+            0.6876954353918869,
+            0.7727567627102307
+          ]
+        },
+        "recall@10": {
+          "mean": 0.8402222222222222,
+          "bootstrap_95_percent_interval": [
+            0.7972222222222222,
+            0.88
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.7016031746031746,
+          "bootstrap_95_percent_interval": [
+            0.6523690476190477,
+            0.7468492063492064
+          ]
+        },
+        "precision@10": {
+          "mean": 0.09466666666666668,
+          "bootstrap_95_percent_interval": [
+            0.08866666666666667,
+            0.10166666666666667
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.85,
+          "bootstrap_95_percent_interval": [
+            0.8066666666666666,
+            0.89
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 8.399365469813347e-05,
+        "p95": 0.000166997779160738
+      },
+      "paired_bootstrap_vs_dense_only_ndcg@10": {
+        "mean_difference": 0.010606047338833633,
+        "bootstrap_95_percent_interval": [
+          -0.0037330659155548024,
+          0.02681161815113036
+        ],
+        "two_sided_p_value": 0.986,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": false
+      }
+    },
+    "best_fusion_rerank20": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.7277623329675715,
+          "bootstrap_95_percent_interval": [
+            0.683632444526064,
+            0.7696580015345993
+          ]
+        },
+        "recall@10": {
+          "mean": 0.8512222222222222,
+          "bootstrap_95_percent_interval": [
+            0.8087777777777777,
+            0.8937777777777778
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.6954828042328042,
+          "bootstrap_95_percent_interval": [
+            0.6485674603174604,
+            0.7398055555555555
+          ]
+        },
+        "precision@10": {
+          "mean": 0.09566666666666668,
+          "bootstrap_95_percent_interval": [
+            0.08966666666666667,
+            0.10266666666666667
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.8633333333333333,
+          "bootstrap_95_percent_interval": [
+            0.8233333333333334,
+            0.9033333333333333
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 8.399365469813347e-05,
+        "p95": 0.000125030055642128
+      },
+      "reranker_cache": "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_test_rerank_b85af677ad42.npz",
+      "paired_bootstrap_vs_dense_only_ndcg@10": {
+        "mean_difference": 0.007758078223634698,
+        "bootstrap_95_percent_interval": [
+          -0.019791544757937773,
+          0.03508310542260588
+        ],
+        "two_sided_p_value": 0.998,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": false
+      },
+      "paired_bootstrap_vs_selected_fusion_ndcg@10": {
+        "mean_difference": -0.0028479691151989356,
+        "bootstrap_95_percent_interval": [
+          -0.027313236148895647,
+          0.021127767290622327
+        ],
+        "two_sided_p_value": 0.998,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": false
+      }
+    }
+  },
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "retrieval_device": "mps",
+    "dense_model": "BAAI/bge-small-en-v1.5",
+    "reranker_model": "BAAI/bge-reranker-base",
+    "latency_scope": "prepared-index per-query retrieval on MPS; not comparable to CUDA or ROCm"
+  },
+  "bootstrap": {
+    "resamples": 1000,
+    "seed": 42
+  },
+  "cache_files": [
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_corpus_bge.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_test_queries.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_test_dense_scores.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_test_bm25_scores.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_test_stem_bm25_scores.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_test_query_ids.json"
+  ],
+  "source_sha256": {
+    "backend/retrieval/bm25.py": "0972967b71360e40719f89de5ef9d06858af9cfd10df9934c2f43717ec2674af",
+    "backend/retrieval/dense.py": "ea8edb6391e8a1431540af5d010cfe9d0e2c4b78af6ff206bb3fdcdb622ae768",
+    "backend/retrieval/rrf.py": "1f9675916a3d7fa5edfe7b71721767a42ed9030e4c192b1aad76f4e4a9fcd339",
+    "backend/retrieval/reranker.py": "9df133c55514f3afcce52de593128fb0c97a0b958cab2593eb00c1b4dba92448",
+    "benchmarks/run_scifact.py": "c76b76f43f1ec3843e01d9706210f20ee7fcb127e5b3d162f2b00ce513d76169",
+    "benchmarks/metrics.py": "5eaf4c4d16de0920f0647748ce14df38269faa277b886fa8be87857cfe6fb796",
+    "benchmarks/fusion_experiments.py": "48e9ce083a34bb8e39494bae6722f2fc32c1141497c53f09ce444059ae89986f"
+  },
+  "limitations": [
+    "SciFact abstracts only.",
+    "No human evaluation.",
+    "SciFact has no dev split; train qrels selected the configuration."
+  ]
+}
