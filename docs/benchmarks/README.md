@@ -25,8 +25,29 @@ choice was frozen. NFCorpus has not been run.
 | Dataset | Dense default | Best score fusion | Fusion + reranker@20 |
 | :--- | :--- | :--- |
 | BEIR SciFact | 0.7200 | 0.7306 (not significant) | 0.7278 (not significant) |
-| BEIR NFCorpus | Not run | Not run | Not run |
+| BEIR NFCorpus | 0.3374 | 0.3551 (significant) | Not run by design |
 <!-- END GENERATED ABLATION TABLE -->
+
+### Frozen NFCorpus replication
+
+NFCorpus was evaluated once on its official test split with the configuration
+frozen on SciFact: weighted RRF uses dense weight 2 and `k=10`; score fusion
+uses dense alpha 0.9. There was no NFCorpus tuning and no cross-encoder run.
+
+| System | nDCG@10 (95% CI) | Difference vs dense-only (95% CI) |
+| :--- | :--- | :--- |
+| Dense-only | 0.3374 (0.3014–0.3752) | — |
+| Stemmed BM25 | 0.3053 (0.2737–0.3390) | −0.0322 (−0.0530–−0.0100), significant worse |
+| Equal RRF | 0.3422 (0.3082–0.3790) | +0.0048 (−0.0100–0.0212), not significant |
+| Frozen weighted RRF | 0.3505 (0.3152–0.3866) | +0.0130 (0.0047–0.0205), significant |
+| Frozen score fusion | 0.3551 (0.3192–0.3930) | +0.0177 (0.0108–0.0253), significant |
+
+The metrics convert NFCorpus’s graded qrels to binary relevance: each judgment
+above zero is relevant and grade magnitude is not used. This supports frozen
+fusion on NFCorpus but does not override the decision rule: SciFact fusion did
+not significantly beat dense-only, so dense remains the default. Together these
+two tests cover abstracts only, MPS cache-replay latency, and no human evaluation.
+See [the full NFCorpus artifact](nfcorpus-frozen-evaluation.json).
 
 Reproduce the cache-first SciFact sweep and frozen test evaluation on MPS:
 

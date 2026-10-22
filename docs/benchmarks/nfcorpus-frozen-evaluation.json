@@ -1,0 +1,320 @@
+{
+  "benchmark": "AcademicForge NFCorpus frozen SciFact-configuration evaluation",
+  "classification": "benchmark result",
+  "dataset": "BEIR NFCorpus",
+  "split": "official test",
+  "dataset_sha256": "efe5be03f8c5b86a5870102d0599d227c8c6e2484328e68c6522560385671b0b",
+  "documents": 3633,
+  "queries": 323,
+  "frozen_configuration": {
+    "source": "BEIR SciFact train sweep",
+    "weighted_rrf": {
+      "dense_weight": 2,
+      "bm25_weight": 1,
+      "rrf_k": 10
+    },
+    "score_fusion": {
+      "dense_alpha": 0.9
+    }
+  },
+  "relevance": "NFCorpus graded qrels are converted by the existing metric harness to binary relevance: every score greater than zero is relevant; grade magnitude is not used.",
+  "systems": {
+    "dense_only": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.337439679559034,
+          "bootstrap_95_percent_interval": [
+            0.30143907281207427,
+            0.3751633027002735
+          ]
+        },
+        "recall@10": {
+          "mean": 0.1580460340490118,
+          "bootstrap_95_percent_interval": [
+            0.13420680635741278,
+            0.18493344938099454
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.5299044179075139,
+          "bootstrap_95_percent_interval": [
+            0.47890682588825007,
+            0.5785591429554278
+          ]
+        },
+        "precision@10": {
+          "mean": 0.25046439628482975,
+          "bootstrap_95_percent_interval": [
+            0.22229102167182663,
+            0.2789473684210526
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.6996904024767802,
+          "bootstrap_95_percent_interval": [
+            0.6501547987616099,
+            0.7492260061919505
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 0.00045797787606716156,
+        "p95": 0.000625033862888813
+      }
+    },
+    "stemmed_bm25": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.30528160812014565,
+          "bootstrap_95_percent_interval": [
+            0.2736943213651904,
+            0.33895047761767055
+          ]
+        },
+        "recall@10": {
+          "mean": 0.14220022774406424,
+          "bootstrap_95_percent_interval": [
+            0.11963820275964128,
+            0.16772458251245606
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.5104956017494717,
+          "bootstrap_95_percent_interval": [
+            0.4637107474568775,
+            0.5584451324389405
+          ]
+        },
+        "precision@10": {
+          "mean": 0.22291021671826625,
+          "bootstrap_95_percent_interval": [
+            0.19690402476780186,
+            0.25232198142414863
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.6811145510835913,
+          "bootstrap_95_percent_interval": [
+            0.628482972136223,
+            0.7337461300309598
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 0.0004169996827840805,
+        "p95": 0.000500003807246685
+      },
+      "paired_bootstrap_vs_dense_only_ndcg@10": {
+        "mean_difference": -0.03215807143888835,
+        "bootstrap_95_percent_interval": [
+          -0.05304565632103408,
+          -0.010021454825058812
+        ],
+        "two_sided_p_value": 0.96,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": true
+      }
+    },
+    "equal_weight_rrf": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.34224432462039683,
+          "bootstrap_95_percent_interval": [
+            0.3082082383347227,
+            0.3789738651482657
+          ]
+        },
+        "recall@10": {
+          "mean": 0.16295993813656723,
+          "bootstrap_95_percent_interval": [
+            0.13862890331406383,
+            0.18979980647417588
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.554608334561895,
+          "bootstrap_95_percent_interval": [
+            0.5046599341490983,
+            0.6030873753009975
+          ]
+        },
+        "precision@10": {
+          "mean": 0.25108359133126934,
+          "bootstrap_95_percent_interval": [
+            0.22260061919504645,
+            0.28080495356037155
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.7275541795665634,
+          "bootstrap_95_percent_interval": [
+            0.6780185758513931,
+            0.7770897832817337
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 8.399365469813347e-05,
+        "p95": 0.000166997779160738
+      },
+      "paired_bootstrap_vs_dense_only_ndcg@10": {
+        "mean_difference": 0.004804645061362828,
+        "bootstrap_95_percent_interval": [
+          -0.00998859663625866,
+          0.021189865260811035
+        ],
+        "two_sided_p_value": 0.97,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": false
+      }
+    },
+    "frozen_weighted_rrf": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.3504564320842557,
+          "bootstrap_95_percent_interval": [
+            0.3152485089239436,
+            0.38661939201220424
+          ]
+        },
+        "recall@10": {
+          "mean": 0.16946005382153737,
+          "bootstrap_95_percent_interval": [
+            0.1457635243022837,
+            0.19692013411229928
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.553765541304241,
+          "bootstrap_95_percent_interval": [
+            0.5074020836404737,
+            0.6028244631185808
+          ]
+        },
+        "precision@10": {
+          "mean": 0.2594427244582043,
+          "bootstrap_95_percent_interval": [
+            0.2309597523219814,
+            0.2888544891640867
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.7306501547987616,
+          "bootstrap_95_percent_interval": [
+            0.6842105263157895,
+            0.7770897832817337
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 8.399365469813347e-05,
+        "p95": 0.000125030055642128
+      },
+      "paired_bootstrap_vs_dense_only_ndcg@10": {
+        "mean_difference": 0.013016752525221673,
+        "bootstrap_95_percent_interval": [
+          0.004679315866468086,
+          0.0204983405848504
+        ],
+        "two_sided_p_value": 0.952,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": true
+      }
+    },
+    "frozen_score_fusion": {
+      "metrics": {
+        "ndcg@10": {
+          "mean": 0.3550904206425766,
+          "bootstrap_95_percent_interval": [
+            0.31917257793252696,
+            0.39298231071665835
+          ]
+        },
+        "recall@10": {
+          "mean": 0.16747540885133902,
+          "bootstrap_95_percent_interval": [
+            0.14387853987375743,
+            0.1951649276512439
+          ]
+        },
+        "mrr@10": {
+          "mean": 0.556376234704408,
+          "bootstrap_95_percent_interval": [
+            0.5083161334709322,
+            0.6076613101380903
+          ]
+        },
+        "precision@10": {
+          "mean": 0.2606811145510836,
+          "bootstrap_95_percent_interval": [
+            0.23157894736842105,
+            0.29071207430340557
+          ]
+        },
+        "hit_rate@10": {
+          "mean": 0.7275541795665634,
+          "bootstrap_95_percent_interval": [
+            0.6811145510835913,
+            0.7770897832817337
+          ]
+        }
+      },
+      "latency_ms": {
+        "p50": 8.399365469813347e-05,
+        "p95": 0.000125030055642128
+      },
+      "paired_bootstrap_vs_dense_only_ndcg@10": {
+        "mean_difference": 0.017650741083542587,
+        "bootstrap_95_percent_interval": [
+          0.010798545034812129,
+          0.025286307507405542
+        ],
+        "two_sided_p_value": 0.968,
+        "resamples": 1000,
+        "seed": 42,
+        "significant": true
+      }
+    }
+  },
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "retrieval_device": "mps",
+    "dense_model": "BAAI/bge-small-en-v1.5",
+    "latency_scope": "cached score-array operations on MPS; excludes model inference and is not comparable to CUDA or ROCm"
+  },
+  "bootstrap": {
+    "resamples": 1000,
+    "seed": 42
+  },
+  "cache_files": [
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_corpus_bge.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_queries.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_dense_scores.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_bm25_scores.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_stem_bm25_scores.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_query_ids.json"
+  ],
+  "stage_seconds": {
+    "cache": 9.833168959012255,
+    "evaluation": 0.6478909159777686,
+    "total": 10.50650575000327
+  },
+  "source_sha256": {
+    "backend/retrieval/bm25.py": "0972967b71360e40719f89de5ef9d06858af9cfd10df9934c2f43717ec2674af",
+    "backend/retrieval/dense.py": "ea8edb6391e8a1431540af5d010cfe9d0e2c4b78af6ff206bb3fdcdb622ae768",
+    "backend/retrieval/rrf.py": "1f9675916a3d7fa5edfe7b71721767a42ed9030e4c192b1aad76f4e4a9fcd339",
+    "backend/retrieval/reranker.py": "9df133c55514f3afcce52de593128fb0c97a0b958cab2593eb00c1b4dba92448",
+    "benchmarks/run_scifact.py": "c76b76f43f1ec3843e01d9706210f20ee7fcb127e5b3d162f2b00ce513d76169",
+    "benchmarks/metrics.py": "5eaf4c4d16de0920f0647748ce14df38269faa277b886fa8be87857cfe6fb796",
+    "benchmarks/fusion_experiments.py": "c23faf1cb7dd0fcc3fbd5a78e5cce8600e9ae2f2b6b01111252324de119d9e0d"
+  },
+  "limitations": [
+    "Frozen SciFact configuration; no NFCorpus tuning.",
+    "Abstract retrieval only.",
+    "No cross-encoder reranking.",
+    "No human evaluation."
+  ]
+}

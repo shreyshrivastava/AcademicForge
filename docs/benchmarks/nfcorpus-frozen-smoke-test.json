@@ -1,0 +1,28 @@
+{
+  "classification": "smoke test, subsample; not a benchmark result",
+  "dataset": "BEIR NFCorpus",
+  "split": "official test",
+  "queries": 20,
+  "dataset_sha256": "efe5be03f8c5b86a5870102d0599d227c8c6e2484328e68c6522560385671b0b",
+  "cache_files": [
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_corpus_bge.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_queries_20.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_dense_scores_20.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_bm25_scores_20.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_stem_bm25_scores_20.npy",
+    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_query_ids_20.json"
+  ],
+  "stage_seconds": {
+    "cache": 78.63156745798187,
+    "total": 78.63157137495
+  },
+  "source_sha256": {
+    "backend/retrieval/bm25.py": "0972967b71360e40719f89de5ef9d06858af9cfd10df9934c2f43717ec2674af",
+    "backend/retrieval/dense.py": "ea8edb6391e8a1431540af5d010cfe9d0e2c4b78af6ff206bb3fdcdb622ae768",
+    "backend/retrieval/rrf.py": "1f9675916a3d7fa5edfe7b71721767a42ed9030e4c192b1aad76f4e4a9fcd339",
+    "backend/retrieval/reranker.py": "9df133c55514f3afcce52de593128fb0c97a0b958cab2593eb00c1b4dba92448",
+    "benchmarks/run_scifact.py": "c76b76f43f1ec3843e01d9706210f20ee7fcb127e5b3d162f2b00ce513d76169",
+    "benchmarks/metrics.py": "5eaf4c4d16de0920f0647748ce14df38269faa277b886fa8be87857cfe6fb796",
+    "benchmarks/fusion_experiments.py": "c23faf1cb7dd0fcc3fbd5a78e5cce8600e9ae2f2b6b01111252324de119d9e0d"
+  }
+}

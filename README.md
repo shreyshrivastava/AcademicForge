@@ -25,6 +25,18 @@ This is one full, frozen BEIR SciFact abstract-retrieval test on MPS, with 1,000
 
 Set `ACADEMICFORGE_RETRIEVAL_MODE=dense|hybrid|hybrid_rerank` to select a mode; hybrid and cross-encoder reranking are opt-in. The complete sweep and frozen evaluation are [auditable JSON artifacts](docs/benchmarks/retrieval-fusion-evaluation.json); see the [benchmark guide](docs/benchmarks/README.md) for method and limits.
 
+### Frozen NFCorpus replication
+
+| NFCorpus test system | nDCG@10 (95% CI) | Recall@10 (95% CI) | MRR@10 (95% CI) | Difference vs dense-only (95% CI) |
+| :--- | :--- | :--- | :--- | :--- |
+| Dense-only | 0.3374 (0.3014–0.3752) | 0.1580 (0.1342–0.1849) | 0.5299 (0.4789–0.5786) | — |
+| Stemmed BM25 | 0.3053 (0.2737–0.3390) | 0.1422 (0.1196–0.1677) | 0.5105 (0.4637–0.5584) | −0.0322 (−0.0530–−0.0100), worse |
+| Equal RRF | 0.3422 (0.3082–0.3790) | 0.1630 (0.1386–0.1898) | 0.5546 (0.5047–0.6031) | +0.0048 (−0.0100–0.0212), not significant |
+| Frozen weighted RRF | 0.3505 (0.3152–0.3866) | 0.1695 (0.1458–0.1969) | 0.5538 (0.5074–0.6028) | +0.0130 (0.0047–0.0205), significant |
+| Frozen score fusion | 0.3551 (0.3192–0.3930) | 0.1675 (0.1439–0.1952) | 0.5564 (0.5083–0.6077) | +0.0177 (0.0108–0.0253), significant |
+
+This frozen replication uses the SciFact-selected settings, not NFCorpus tuning, and applies the existing binary metric harness to NFCorpus’s graded judgments: every positive grade is relevant, while grade magnitude is not used. It shows that fusion helps on this second abstract-only dataset, but the SciFact result remains inconclusive; the default therefore stays dense-only. These MPS cache-replay timings are not CUDA/ROCm latency, and no human evaluation has been run. The complete artifact is [nfcorpus-frozen-evaluation.json](docs/benchmarks/nfcorpus-frozen-evaluation.json).
+
 ### Generated-output faithfulness screen
 
 The local `mlx-community/gemma-2-2b-it-4bit` model completed 20 fixed-query summaries. Its 63 sentence-level BGE similarity decisions are a screening heuristic, not proof of factual correctness. The local control run selected a 0.80 similarity threshold: it marked 65.1% of real sentences supported, 0% of mismatched sentences supported, 100% of injected unsupported claims flagged, and 85% of reversed conclusions flagged. The unflagged reversals mean similarity alone cannot establish factuality. The [artifact](docs/benchmarks/faithfulness.json), [control results](docs/benchmarks/faithfulness_controls.json), [control method](benchmarks/faithfulness.py), and [blind human-evaluation builder](scripts/build_human_eval.py) retain auditable inputs and limitations.
@@ -177,7 +189,7 @@ Search mode controls the order of papers. Analysis mode controls the model used 
 
 | Search mode | What it does | When to use it |
 | :--- | :--- | :--- |
-| **Fast** (default) | Combines keyword and meaning-based ranking with the BGE reranker. | Everyday searches with lower latency. |
+| **Fast** (default) | Uses BGE dense retrieval. Hybrid fusion and BGE reranking require `ACADEMICFORGE_RETRIEVAL_MODE`. | Everyday searches with lower latency. |
 | **Quality** | Adds an OpenJev ranking pass when OpenJev is enabled and available. | Searches where you want an extra relevance check on the top papers. |
 
 Both search modes use the same generation settings. Changing search mode changes paper ordering; it does not change the writing model or prompts.

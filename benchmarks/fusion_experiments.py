@@ -39,28 +39,29 @@ def _fingerprint():
     return values
 
 
-def _load(split):
-    """Read checksum-verified SciFact and the requested official qrels split."""
-    archive = ROOT / ".academicforge_cache" / "benchmarks" / "scifact.zip"
+def _load(split, dataset_id="scifact"):
+    """Read a checksum-verified official BEIR split without retaining abstracts."""
+    dataset = DATASETS[dataset_id]
+    archive = ROOT / ".academicforge_cache" / "benchmarks" / f"{dataset_id}.zip"
     if not archive.exists():
-        download(archive, DATASETS["scifact"])
+        download(archive, dataset)
     raw = archive.read_bytes()
-    if hashlib.sha256(raw).hexdigest() != DATASETS["scifact"]["sha256"]:
-        raise ValueError("SciFact archive checksum does not match the recorded version")
+    if hashlib.sha256(raw).hexdigest() != dataset["sha256"]:
+        raise ValueError(f"{dataset['label']} archive checksum does not match the recorded version")
     with zipfile.ZipFile(io.BytesIO(raw)) as z:
-        corpus = [json.loads(line) for line in z.read("scifact/corpus.jsonl").splitlines()]
+        corpus = [json.loads(line) for line in z.read(f"{dataset_id}/corpus.jsonl").splitlines()]
         all_queries = {str(row["_id"]): row["text"] for row in
-                       (json.loads(line) for line in z.read("scifact/queries.jsonl").splitlines())}
-        rows = csv.DictReader(io.StringIO(z.read(f"scifact/qrels/{split}.tsv").decode()), delimiter="\t")
+                       (json.loads(line) for line in z.read(f"{dataset_id}/queries.jsonl").splitlines())}
+        rows = csv.DictReader(io.StringIO(z.read(f"{dataset_id}/qrels/{split}.tsv").decode()), delimiter="\t")
         qrels = {}
         for row in rows:
             if int(row["score"]) > 0:
                 qrels.setdefault(str(row["query-id"]), set()).add(str(row["corpus-id"]))
-    if len(corpus) != DATASETS["scifact"]["documents"] or not qrels:
-        raise ValueError("Unexpected SciFact corpus or empty qrels")
+    if len(corpus) != dataset["documents"] or not qrels:
+        raise ValueError(f"Unexpected {dataset['label']} corpus or empty qrels")
     ids = [str(row["_id"]) for row in corpus]
     if len(ids) != len(set(ids)) or not set(qrels).issubset(all_queries):
-        raise ValueError("SciFact identifiers failed validation")
+        raise ValueError(f"{dataset['label']} identifiers failed validation")
     return corpus, all_queries, qrels
 
 
@@ -89,14 +90,14 @@ def _bm25_scores(index, query, n):
     return scores
 
 
-def _cache_split(split, max_queries=None, progress=False):
+def _cache_split(split, max_queries=None, progress=False, dataset_id="scifact"):
     """Create independently resumable corpus/query/score cache files."""
     CACHE.mkdir(parents=True, exist_ok=True)
-    corpus, queries, qrels = _load(split)
+    corpus, queries, qrels = _load(split, dataset_id)
     doc_ids = [str(row["_id"]) for row in corpus]
     query_ids = _ids(qrels, max_queries)
-    prefix = CACHE / f"scifact_{split}"
-    corpus_path = CACHE / "scifact_corpus_bge.npy"
+    prefix = CACHE / f"{dataset_id}_{split}"
+    corpus_path = CACHE / f"{dataset_id}_corpus_bge.npy"
     if not corpus_path.exists():
         from sentence_transformers import SentenceTransformer
         model = SentenceTransformer(MODEL_NAME, device=select_retrieval_device())
@@ -119,7 +120,7 @@ def _cache_split(split, max_queries=None, progress=False):
         for start in range(0, len(query_ids), 10):
             chunks.append(model.encode([queries[q] for q in query_ids[start:start + 10]], normalize_embeddings=True).astype(np.float32))
             if progress:
-                print(f"[{split}] encoded {min(start + 10, len(query_ids))}/{len(query_ids)} queries", flush=True)
+                print(f"[{dataset_id} {split}] encoded {min(start + 10, len(query_ids))}/{len(query_ids)} queries", flush=True)
         np.save(query_path, np.concatenate(chunks))
     corpus_embeddings = np.load(corpus_path, mmap_mode="r")
     query_embeddings = np.load(query_path, mmap_mode="r")
@@ -133,7 +134,7 @@ def _cache_split(split, max_queries=None, progress=False):
             plain_rows.append(_bm25_scores(plain, queries[qid], len(papers)))
             stem_rows.append(_bm25_scores(stemmed, queries[qid], len(papers)))
             if progress and (number % 10 == 0 or number == len(query_ids)):
-                print(f"[{split}] lexical scores {number}/{len(query_ids)}", flush=True)
+                print(f"[{dataset_id} {split}] lexical scores {number}/{len(query_ids)}", flush=True)
         np.save(bm25_path, np.asarray(plain_rows, dtype=np.float32))
         np.save(stem_path, np.asarray(stem_rows, dtype=np.float32))
     return {"corpus": corpus, "queries": queries, "qrels": qrels, "doc_ids": doc_ids, "query_ids": query_ids,
@@ -241,14 +242,83 @@ def _report_systems(test, selected, progress):
     return payload
 
 
+def _report_frozen_nfcorpus(test):
+    """Evaluate only the configuration frozen on SciFact; no NFCorpus tuning."""
+    rrf_equal = _rrf(test["dense"], test["stem"], 1, 60)
+    rrf_frozen = _rrf(test["dense"], test["stem"], 2, 10)
+    score_frozen = _minmax(test["dense"]) * .9 + _minmax(test["stem"]) * .1
+    factories = {
+        "dense_only": lambda index: test["dense"][index],
+        "stemmed_bm25": lambda index: test["stem"][index],
+        "equal_weight_rrf": lambda index: rrf_equal[index],
+        "frozen_weighted_rrf": lambda index: rrf_frozen[index],
+        "frozen_score_fusion": lambda index: score_frozen[index],
+    }
+    rows, systems = {}, {}
+    for name, factory in factories.items():
+        rows[name], latency = _measure(factory, test)
+        systems[name] = {"metrics": aggregate(rows[name]), "latency_ms": latency}
+    for name, values in rows.items():
+        if name == "dense_only":
+            continue
+        comparison = paired_bootstrap_difference(values, rows["dense_only"], "ndcg@10")
+        comparison["significant"] = not (comparison["bootstrap_95_percent_interval"][0] <= 0 <= comparison["bootstrap_95_percent_interval"][1])
+        systems[name]["paired_bootstrap_vs_dense_only_ndcg@10"] = comparison
+    return systems
+
+
+def _run_nfcorpus(phase, max_queries, progress):
+    """NFCorpus replication using frozen SciFact settings and binary judged relevance."""
+    started = time.perf_counter()
+    test = _cache_split("test", max_queries=max_queries, progress=progress, dataset_id="nfcorpus")
+    cache_seconds = time.perf_counter() - started
+    if phase == "nfcorpus-smoke":
+        artifact = {
+            "classification": "smoke test, subsample; not a benchmark result",
+            "dataset": "BEIR NFCorpus", "split": "official test", "queries": len(test["query_ids"]),
+            "dataset_sha256": DATASETS["nfcorpus"]["sha256"], "cache_files": test["cache_files"],
+            "stage_seconds": {"cache": cache_seconds, "total": time.perf_counter() - started},
+            "source_sha256": _fingerprint(),
+        }
+        target = OUT / "nfcorpus-frozen-smoke-test.json"
+        target.write_text(json.dumps(artifact, indent=2) + "\n")
+        print(json.dumps({"output": str(target), "stage_seconds": artifact["stage_seconds"]}))
+        return
+    if max_queries is not None:
+        raise ValueError("A frozen NFCorpus benchmark must use the full test split")
+    evaluation_started = time.perf_counter()
+    systems = _report_frozen_nfcorpus(test)
+    evaluation_seconds = time.perf_counter() - evaluation_started
+    report = {
+        "benchmark": "AcademicForge NFCorpus frozen SciFact-configuration evaluation",
+        "classification": "benchmark result", "dataset": "BEIR NFCorpus", "split": "official test",
+        "dataset_sha256": DATASETS["nfcorpus"]["sha256"], "documents": len(test["doc_ids"]),
+        "queries": len(test["query_ids"]),
+        "frozen_configuration": {"source": "BEIR SciFact train sweep", "weighted_rrf": {"dense_weight": 2, "bm25_weight": 1, "rrf_k": 10}, "score_fusion": {"dense_alpha": .9}},
+        "relevance": "NFCorpus graded qrels are converted by the existing metric harness to binary relevance: every score greater than zero is relevant; grade magnitude is not used.",
+        "systems": systems,
+        "environment": {"platform": platform.platform(), "retrieval_device": select_retrieval_device(), "dense_model": MODEL_NAME, "latency_scope": "cached score-array operations on MPS; excludes model inference and is not comparable to CUDA or ROCm"},
+        "bootstrap": {"resamples": 1000, "seed": 42}, "cache_files": test["cache_files"],
+        "stage_seconds": {"cache": cache_seconds, "evaluation": evaluation_seconds, "total": time.perf_counter() - started},
+        "source_sha256": _fingerprint(),
+        "limitations": ["Frozen SciFact configuration; no NFCorpus tuning.", "Abstract retrieval only.", "No cross-encoder reranking.", "No human evaluation."],
+    }
+    target = OUT / "nfcorpus-frozen-evaluation.json"
+    target.write_text(json.dumps(report, indent=2) + "\n")
+    print(json.dumps({"output": str(target), "stage_seconds": report["stage_seconds"]}, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("smoke", "tune", "evaluate", "all"), default="all")
+    parser.add_argument("--phase", choices=("smoke", "tune", "evaluate", "all", "nfcorpus-smoke", "nfcorpus-evaluate"), default="all")
     parser.add_argument("--max-queries", type=int, help="Smoke-only deterministic prefix; labels output subsample")
     parser.add_argument("--progress", action="store_true")
     args = parser.parse_args()
     os.environ.setdefault("ACADEMICFORGE_RETRIEVAL_DEVICE", "mps")
     OUT.mkdir(parents=True, exist_ok=True)
+    if args.phase.startswith("nfcorpus-"):
+        _run_nfcorpus(args.phase, args.max_queries, args.progress)
+        return
     if args.phase == "smoke":
         smoke = _cache_split("train", args.max_queries or 20, args.progress)
         sweep, best = _sweep(smoke)
