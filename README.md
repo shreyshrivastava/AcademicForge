@@ -35,7 +35,7 @@ Set `ACADEMICFORGE_RETRIEVAL_MODE=score_fusion|dense|hybrid|hybrid_rerank` to se
 | Frozen weighted RRF | 0.3505 (0.3152–0.3866) | 0.1695 (0.1458–0.1969) | 0.5538 (0.5074–0.6028) | +0.0130 (0.0047–0.0205), significant |
 | Frozen score fusion | 0.3551 (0.3192–0.3930) | 0.1675 (0.1439–0.1952) | 0.5564 (0.5083–0.6077) | +0.0177 (0.0108–0.0253), significant |
 
-This frozen replication uses the SciFact-selected settings, not NFCorpus tuning, and applies the existing binary metric harness to NFCorpus’s graded judgments: every positive grade is relevant, while grade magnitude is not used. It shows that fusion helps on this second abstract-only dataset, but the SciFact result remains inconclusive; the default therefore stays dense-only. These MPS cache-replay timings are not CUDA/ROCm latency, and no human evaluation has been run. The complete artifact is [nfcorpus-frozen-evaluation.json](docs/benchmarks/nfcorpus-frozen-evaluation.json).
+This frozen replication uses the SciFact-selected settings, not NFCorpus tuning, and applies the existing binary metric harness to NFCorpus’s graded judgments: every positive grade is relevant, while grade magnitude is not used. It supports the dated amendment that makes score fusion the default: SciFact was inconclusive, while NFCorpus was significant in the same direction. These MPS cache-replay timings are not CUDA/ROCm latency, and no human evaluation has been run. The complete artifact is [nfcorpus-frozen-evaluation.json](docs/benchmarks/nfcorpus-frozen-evaluation.json).
 
 ### Generated-output faithfulness screen
 
@@ -163,9 +163,9 @@ AcademicForge uses Streamlit for the interface and FastAPI for the backend. Sear
 ```text
 Your research question
   -> Search arXiv and Semantic Scholar
-  -> Rank papers by meaning (BGE dense retrieval, default)
-  -> Optionally combine BM25 and BGE with RRF or score fusion
-  -> Optionally refine a hybrid order with a BGE cross-encoder
+  -> Score fusion: stemmed BM25 + BGE dense (default, alpha 0.9)
+  -> Optionally use dense-only or RRF hybrid retrieval
+  -> Optionally refine an RRF hybrid order with a BGE cross-encoder
   -> Optionally rerank top papers with OpenJev in Quality search mode
   -> Choose the papers to use as evidence
   -> Generate summaries and paper guidance
