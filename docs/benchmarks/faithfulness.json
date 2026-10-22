@@ -38,22 +38,19 @@
             "paper_id": "http://arxiv.org/abs/2605.05244v1",
             "title": "Towards Dependable Retrieval-Augmented Generation Using Factual Confidence Prediction",
             "url": "https://arxiv.org/pdf/2605.05244v1",
-            "source": "arxiv",
-            "abstract": "Incorporating specific knowledge into large language models via retrieval-augmented generation (RAG) is a widespread technique that fuels many of today's industry AI applications. A fundamental problem is to assess if the context retrieved by some similarity search provides indeed supporting facts, or instead misguides the generator with irrelevant information. It is critical to associate meaningful confidence measures about the factuality of the retrieval process with the generated answers. We present a new, two-staged approach to predict fact faithfulness of the output of retrieval-augmented generations. First, we employ conformal prediction to select only those retrieved chunks who have a high chance to come from the correct source. This approach in itself can improve answer quality by up to 6% in some of the studied datasets, however, the associated statistical guarantees do not hold generally, since the assumption of sample exchangeability depends on the retriever setup. We present diagnostic metrics to assess whether a setup is suitable. Second, we quantify confidence in the consistency of a generated final answer with a given retrieved context, using an attention-based factuality classifier. This approach can detect inconsistent answers with a chance of up to 77%. Our work helps to establish a novel type of certified RAG systems for a broad range of natural language industry applications."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2410.15667v1",
             "title": "RAC: Efficient LLM Factuality Correction with Retrieval Augmentation",
             "url": "https://arxiv.org/pdf/2410.15667v1",
-            "source": "arxiv",
-            "abstract": "Large Language Models (LLMs) exhibit impressive results across a wide range of natural language processing (NLP) tasks, yet they can often produce factually incorrect outputs. This paper introduces a simple but effective low-latency post-correction method, \\textbf{Retrieval Augmented Correction (RAC)}, aimed at enhancing the factual performance of LLMs without requiring additional fine-tuning. Our method is general and can be used with any instruction-tuned LLM, and has greatly reduced latency compared to prior approaches. RAC decomposes the LLM's output into atomic facts and applies a fine-grained verification and correction process with retrieved content to verify and correct the LLM-generated output. Our extensive experiments show that RAC yields up to 30\\% improvements over state-of-the-art baselines across two popular factuality evaluation datasets, validating its efficacy and robustness in both with and without the integration of Retrieval-Augmented Generation (RAG) across different LLMs.\\footnote{Our code is at \\url{https://github.com/jlab-nlp/Retrieval-Augmented-Correction}}"
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2604.22843v1",
             "title": "Structure Guided Retrieval-Augmented Generation for Factual Queries",
             "url": "https://arxiv.org/pdf/2604.22843v1",
-            "source": "arxiv",
-            "abstract": "Retrieval-Augmented Generation (RAG) has been proposed to mitigate hallucinations in large language models (LLMs), where generated outputs may be factually incorrect. However, existing RAG approaches predominantly rely on vector similarity for retrieval, which is prone to semantic noise and fails to ensure that generated responses fully satisfy the complex conditions specified by factual queries, often leading to incorrect answers. To address this challenge, we introduce a novel research problem, named Exact Retrieval Problem (ERP). To the best of our knowledge, this is the first problem formulation that explicitly incorporates structural information into RAG for factual questions to satisfy all query conditions. For this novel problem, we propose Structure Guided Retrieval-Augmented Generation (SG-RAG), which models the retrieval process as an embedding-based subgraph matching task, and uses the retrieved topological structures to guide the LLM to generate answers that meet all specified query conditions. To facilitate evaluation of ERP, we construct and publicly release Exact Retrieval Question Answering (ERQA), a large-scale dataset comprising 120000 fact-oriented QA pairs, each involving complex conditions, spanning 20 diverse domains. The experimental results demonstrate that SG-RAG significantly outperforms strong baselines on ERQA, delivering absolute improvements from 20.68 to 50.88 points across all evaluation metrics, while maintaining reasonable computational overhead."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -100,22 +97,19 @@
             "paper_id": "http://arxiv.org/abs/2402.14545v2",
             "title": "Less is More: Mitigating Multimodal Hallucination from an EOS Decision Perspective",
             "url": "https://arxiv.org/pdf/2402.14545v2",
-            "source": "arxiv",
-            "abstract": "Large Multimodal Models (LMMs) often suffer from multimodal hallucinations, wherein they may create content that is not present in the visual inputs. In this paper, we explore a new angle of this issue: overly detailed training data hinders the model's ability to timely terminate generation, leading to continued outputs beyond visual perception limits. By investigating how the model decides to terminate generation with EOS, the special end-of-sentence token, we find that the model assesses the completeness of the entire sequence by comparing the generated text with the image. This observation suggests that the model possesses an inherent potential of making proper EOS decisions based on its visual perception to avoid overly lengthy outputs. To take advantage of such potential, we explore two methods to mitigate multimodal hallucinations: a training objective that enables the model to reduce hallucinations by learning from regular instruction data, and a data filtering strategy to prevent harmful training data from exacerbating model hallucinations. Both methods significantly improve the hallucination performance of LMMs, without requiring any additional data or knowledge."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2506.11712v3",
             "title": "Mitigating Hallucination Through Theory-Consistent Symmetric Multimodal Preference Optimization",
             "url": "https://arxiv.org/pdf/2506.11712v3",
-            "source": "arxiv",
-            "abstract": "Direct Preference Optimization (DPO) has emerged as an effective approach for mitigating hallucination in Multimodal Large Language Models (MLLMs). Although existing methods have achieved significant progress by utilizing vision-oriented contrastive objectives for enhancing MLLMs' attention to visual inputs and hence reducing hallucination, they suffer from non-rigorous optimization objective function and indirect preference supervision. To address these limitations, we propose a Symmetric Multimodal Preference Optimization (SymMPO), which conducts symmetric preference learning with direct preference supervision (i.e., response pairs) for visual understanding enhancement, while maintaining rigorous theoretical alignment with standard DPO. In addition to conventional ordinal preference learning, SymMPO introduces a preference margin consistency loss to quantitatively regulate the preference gap between symmetric preference pairs. Comprehensive evaluation across five benchmarks demonstrate SymMPO's superior performance, validating its effectiveness in hallucination mitigation of MLLMs."
+            "source": "arxiv"
           },
           {
             "paper_id": "4f83d9c391d782d358c2bf0d7ffc6150924dae01",
             "title": "Reefknot: A Comprehensive Benchmark for Relation Hallucination Evaluation, Analysis and Mitigation in Multimodal Large Language Models",
             "url": "https://www.semanticscholar.org/paper/4f83d9c391d782d358c2bf0d7ffc6150924dae01",
-            "source": "semantic_scholar",
-            "abstract": "Hallucination issues continue to affect multimodal large language models (MLLMs), with existing research mainly addressing object-level or attribute-level hallucinations, neglecting the more complex relation hallucinations that require advanced reasoning. Current benchmarks for relation hallucinations lack detailed evaluation and effective mitigation, and their datasets often suffer from biases due to systematic annotation processes. To address these challenges, we introduce Reefknot, a comprehensive benchmark targeting relation hallucinations, comprising over 20,000 real-world samples. We provide a systematic definition of relation hallucinations, integrating perceptive and cognitive perspectives, and construct a relation-based corpus using the Visual Genome scene graph dataset. Our comparative evaluation reveals significant limitations in current MLLMs' ability to handle relation hallucinations. Additionally, we propose a novel confidence-based mitigation strategy, which reduces the hallucination rate by an average of 9.75% across three datasets, including Reefknot. Our work offers valuable insights for achieving trustworthy multimodal intelligence."
+            "source": "semantic_scholar"
           }
         ],
         "outputs": [
@@ -162,22 +156,19 @@
             "paper_id": "http://arxiv.org/abs/2305.06212v3",
             "title": "Privacy-Preserving Parameter-Efficient Fine-Tuning for Large Language Model Services",
             "url": "https://arxiv.org/pdf/2305.06212v3",
-            "source": "arxiv",
-            "abstract": "Parameter-Efficient Fine-Tuning (PEFT) provides a practical way for users to customize Large Language Models (LLMs) with their private data in LLM service scenarios. However, the inherently sensitive nature of private data demands robust privacy preservation measures during the customization of LLM services to ensure data security, maintain user trust, and comply with stringent regulatory standards. Based on PEFT, we propose Privacy-Preserving Parameter-Efficient Fine-Tuning (RAPT), a framework that offers privacy protection for LLM services. RAPT adopts a local privacy approach, enabling users to privatize their data locally using a text-to-text local differential privacy mechanism. Since PEFT performs poorly when directly trained on privatized data, we introduce a novel privatized token reconstruction task that is trained jointly with the downstream task, allowing LLMs to learn better task-dependent representations. Despite the simplicity of our framework, experiments show that RAPT achieves competitive performance across tasks while providing privacy guarantees against adversaries."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2410.10075v3",
             "title": "RoCoFT: Efficient Finetuning of Large Language Models with Row-Column Updates",
             "url": "https://arxiv.org/pdf/2410.10075v3",
-            "source": "arxiv",
-            "abstract": "We propose RoCoFT, a parameter-efficient fine-tuning method for large-scale language models (LMs) based on updating only a few rows and columns of the weight matrices in transformers. Through extensive experiments with medium-size LMs like BERT and RoBERTa, and larger LMs like Bloom-7B, Llama2-7B, and Llama2-13B, we show that our method gives comparable or better accuracies than state-of-art PEFT methods while also being more memory and computation-efficient. We also study the reason behind the effectiveness of our method with tools from neural tangent kernel theory. We empirically demonstrate that our kernel, constructed using a restricted set of row and column parameters, are numerically close to the full-parameter kernel and gives comparable classification performance. Ablation studies are conducted to investigate the impact of different algorithmic choices, including the selection strategy for rows and columns as well as the optimal rank for effective implementation of our method."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2312.12148v1",
             "title": "Parameter-Efficient Fine-Tuning Methods for Pretrained Language Models: A Critical Review and Assessment",
             "url": "https://arxiv.org/pdf/2312.12148v1",
-            "source": "arxiv",
-            "abstract": "With the continuous growth in the number of parameters of transformer-based pretrained language models (PLMs), particularly the emergence of large language models (LLMs) with billions of parameters, many natural language processing (NLP) tasks have demonstrated remarkable success. However, the enormous size and computational demands of these models pose significant challenges for adapting them to specific downstream tasks, especially in environments with limited computational resources. Parameter Efficient Fine-Tuning (PEFT) offers an effective solution by reducing the number of fine-tuning parameters and memory usage while achieving comparable performance to full fine-tuning. The demands for fine-tuning PLMs, especially LLMs, have led to a surge in the development of PEFT methods, as depicted in Fig. 1. In this paper, we present a comprehensive and systematic review of PEFT methods for PLMs. We summarize these PEFT methods, discuss their applications, and outline future directions. Furthermore, we conduct experiments using several representative PEFT methods to better understand their effectiveness in parameter efficiency and memory efficiency. By offering insights into the latest advancements and practical applications, this survey serves as an invaluable resource for researchers and practitioners seeking to navigate the challenges and opportunities presented by PEFT in the context of PLMs."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -224,22 +215,19 @@
             "paper_id": "http://arxiv.org/abs/1801.05744v1",
             "title": "Forecasting Solar Flares Using Magnetogram-based Predictors and Machine Learning",
             "url": "https://arxiv.org/pdf/1801.05744v1",
-            "source": "arxiv",
-            "abstract": "We propose a forecasting approach for solar flares based on data from Solar Cycle 24, taken by the Helioseismic and Magnetic Imager (HMI) on board the Solar Dynamics Observatory (SDO) mission. In particular, we use the Space-weather HMI Active Region Patches (SHARP) product that facilitates cut-out magnetograms of solar active regions (AR) in the Sun in near-real-time (NRT), taken over a five-year interval (2012 - 2016). Our approach utilizes a set of thirteen predictors, which are not included in the SHARP metadata, extracted from line-of-sight and vector photospheric magnetograms. We exploit several Machine Learning (ML) and Conventional Statistics techniques to predict flares of peak magnitude >M1 and >C1, within a 24 h forecast window. The ML methods used are multi-layer perceptrons (MLP), support vector machines (SVM) and random forests (RF). We conclude that random forests could be the prediction technique of choice for our sample, with the second best method being multi-layer perceptrons, subject to an entropy objective function. A Monte Carlo simulation showed that the best performing method gives accuracy ACC=0.93(0.00), true skill statistic TSS=0.74(0.02) and Heidke skill score HSS=0.49(0.01) for >M1 flare prediction with probability threshold 15% and ACC=0.84(0.00), TSS=0.60(0.01) and HSS=0.59(0.01) for >C1 flare prediction with probability threshold 35%."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2604.21982v1",
             "title": "Forecasting Solar Energy Using a Single Image",
             "url": "https://arxiv.org/pdf/2604.21982v1",
-            "source": "arxiv",
-            "abstract": "Solar panels are increasingly deployed in cities on rooftops, walls, and urban infrastructure. Although the panel costs have fallen in recent years, the soft costs of installing them have not. These soft costs include assessing the illumination (irradiance) of a panel, which is typically performed using a 3D model that fails to capture small nearby structures that impact the irradiance. Our approach uses a single image taken at the panel's location to forecast its irradiance at any time in the future. We use visual cues in the image to find the camera's orientation and the portion of the sky visible to the panel in order to forecast the irradiance due to the sun and the sky. In addition, we show that the irradiance due to reflections from nearby buildings varies smoothly over time and can be forecasted from the image. This approach enables assessing the solar energy potential of any surface and forecasting the temporal variation of a panel's irradiance. We validate our approach using real irradiance measurements in urban canyons. We show that our approach often yields more accurate irradiance forecasts compared to conventional irradiance-based transposition methods and 3D model-based simulations. We also show that a single spherical image can be used to find the best fixed orientation of a panel. Finally, we present Solaris, a device to capture the image seen by a panel in a variety of urban settings."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2409.15261v1",
             "title": "Identification and Localization of Cometary Activity in Solar System Objects with Machine Learning",
             "url": "https://arxiv.org/pdf/2409.15261v1",
-            "source": "arxiv",
-            "abstract": "In this chapter, we will discuss the use of Machine Learning methods for the identification and localization of cometary activity for Solar System objects in ground and in space-based wide-field all-sky surveys. We will begin the chapter by discussing the challenges of identifying known and unknown active, extended Solar System objects in the presence of stellar-type sources and the application of classical pre-ML identification techniques and their limitations. We will then transition to the discussion of implementing ML techniques to address the challenge of extended object identification. We will finish with prospective future methods and the application to future surveys such as the Vera C. Rubin Observatory."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -292,22 +280,19 @@
             "paper_id": "http://arxiv.org/abs/2503.11683v1",
             "title": "MealMeter: Using Multimodal Sensing and Machine Learning for Automatically Estimating Nutrition Intake",
             "url": "https://arxiv.org/pdf/2503.11683v1",
-            "source": "arxiv",
-            "abstract": "Accurate estimation of meal macronutrient composition is a pre-perquisite for precision nutrition, metabolic health monitoring, and glycemic management. Traditional dietary assessment methods, such as self-reported food logs or diet recalls are time-intensive and prone to inaccuracies and biases. Several existing AI-driven frameworks are data intensive. In this study, we propose MealMeter, a machine learning driven method that leverages multimodal sensor data of wearable and mobile devices. Data are collected from 12 participants to estimate macronutrient intake. Our approach integrates physiological signals (e.g., continuous glucose, heart rate variability), inertial motion data, and environmental cues to model the relationship between meal intake and metabolic responses. Using lightweight machine learning models trained on a diverse dataset of labeled meal events, MealMeter predicts the composition of carbohydrates, proteins, and fats with high accuracy. Our results demonstrate that multimodal sensing combined with machine learning significantly improves meal macronutrient estimation compared to the baselines including foundation model and achieves average mean absolute errors (MAE) and average root mean squared relative errors (RMSRE) as low as 13.2 grams and 0.37, respectively, for carbohydrates. Therefore, our developed system has the potential to automate meal tracking, enhance dietary interventions, and support personalized nutrition strategies for individuals managing metabolic disorders such as diabetes and obesity."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/1709.07916v1",
             "title": "Characterizing Diabetes, Diet, Exercise, and Obesity Comments on Twitter",
             "url": "https://arxiv.org/pdf/1709.07916v1",
-            "source": "arxiv",
-            "abstract": "Social media provide a platform for users to express their opinions and share information. Understanding public health opinions on social media, such as Twitter, offers a unique approach to characterizing common health issues such as diabetes, diet, exercise, and obesity (DDEO), however, collecting and analyzing a large scale conversational public health data set is a challenging research task. The goal of this research is to analyze the characteristics of the general public's opinions in regard to diabetes, diet, exercise and obesity (DDEO) as expressed on Twitter. A multi-component semantic and linguistic framework was developed to collect Twitter data, discover topics of interest about DDEO, and analyze the topics. From the extracted 4.5 million tweets, 8% of tweets discussed diabetes, 23.7% diet, 16.6% exercise, and 51.7% obesity. The strongest correlation among the topics was determined between exercise and obesity. Other notable correlations were: diabetes and obesity, and diet and obesity DDEO terms were also identified as subtopics of each of the DDEO topics. The frequent subtopics discussed along with Diabetes, excluding the DDEO terms themselves, were blood pressure, heart attack, yoga, and Alzheimer. The non-DDEO subtopics for Diet included vegetarian, pregnancy, celebrities, weight loss, religious, and mental health, while subtopics for Exercise included computer games, brain, fitness, and daily plan. Non-DDEO subtopics for Obesity included Alzheimer, cancer, and children. With 2.67 billion social media users in 2016, publicly available data such as Twitter posts can be utilized to support clinical providers, public health experts, and social scientists in better understanding common public opinions in regard to diabetes, diet, exercise, and obesity."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/1709.07915v1",
             "title": "Computational Content Analysis of Negative Tweets for Obesity, Diet, Diabetes, and Exercise",
             "url": "https://arxiv.org/pdf/1709.07915v1",
-            "source": "arxiv",
-            "abstract": "Social media based digital epidemiology has the potential to support faster response and deeper understanding of public health related threats. This study proposes a new framework to analyze unstructured health related textual data via Twitter users' post (tweets) to characterize the negative health sentiments and non-health related concerns in relations to the corpus of negative sentiments, regarding Diet Diabetes Exercise, and Obesity (DDEO). Through the collection of 6 million Tweets for one month, this study identified the prominent topics of users as it relates to the negative sentiments. Our proposed framework uses two text mining methods, sentiment analysis and topic modeling, to discover negative topics. The negative sentiments of Twitter users support the literature narratives and the many morbidity issues that are associated with DDEO and the linkage between obesity and diabetes. The framework offers a potential method to understand the publics' opinions and sentiments regarding DDEO. More importantly, this research provides new opportunities for computational social scientists, medical experts, and public health professionals to collectively address DDEO-related issues."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -354,22 +339,19 @@
             "paper_id": "http://arxiv.org/abs/1910.03672v1",
             "title": "Quantum Error Correction",
             "url": "https://arxiv.org/pdf/1910.03672v1",
-            "source": "arxiv",
-            "abstract": "Quantum error correction is a set of methods to protect quantum information--that is, quantum states--from unwanted environmental interactions (decoherence) and other forms of noise. The information is stored in a quantum error-correcting code, which is a subspace in a larger Hilbert space. This code is designed so that the most common errors move the state into an error space orthogonal to the original code space while preserving the information in the state. It is possible to determine whether an error has occurred by a suitable measurement and to apply a unitary correction that returns the state to the code space, without measuring (and hence disturbing) the protected state itself. In general, codewords of a quantum code are entangled states. No code that stores information can protect against all possible errors; instead, codes are designed to correct a specific error set, which should be chosen to match the most likely types of noise. An error set is represented by a set of operators that can multiply the codeword state. Quantum error correction is used to protect information in quantum communication (where quantum states pass through noisy channels) and quantum computation (where quantum states are transformed through a sequence of imperfect computational steps in the presence of environmental decoherence to solve a computational problem). In quantum computation, error correction is just one component of fault-tolerant design."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/1812.08451v5",
             "title": "Optimizing Quantum Error Correction Codes with Reinforcement Learning",
             "url": "https://arxiv.org/pdf/1812.08451v5",
-            "source": "arxiv",
-            "abstract": "Quantum error correction is widely thought to be the key to fault-tolerant quantum computation. However, determining the most suited encoding for unknown error channels or specific laboratory setups is highly challenging. Here, we present a reinforcement learning framework for optimizing and fault-tolerantly adapting quantum error correction codes. We consider a reinforcement learning agent tasked with modifying a family of surface code quantum memories until a desired logical error rate is reached. Using efficient simulations with about 70 data qubits with arbitrary connectivity, we demonstrate that such a reinforcement learning agent can determine near-optimal solutions, in terms of the number of data qubits, for various error models of interest. Moreover, we show that agents trained on one setting are able to successfully transfer their experience to different settings. This ability for transfer learning showcases the inherent strengths of reinforcement learning and the applicability of our approach for optimization from off-line simulations to on-line laboratory settings."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/quant-ph/0304016v2",
             "title": "Quantum Computing and Error Correction",
             "url": "https://arxiv.org/pdf/quant-ph/0304016v2",
-            "source": "arxiv",
-            "abstract": "The main ideas of quantum error correction are introduced. These are encoding, extraction of syndromes, error operators, and code construction. It is shown that general noise and relaxation of a set of 2-state quantum systems can always be understood as a combination of Pauli operators acting on the system. Each quantum error correcting code allows a subset of these errors to be corrected. In many situations the noise is such that the remaining uncorrectable errors are unlikely to arise, and hence quantum error correction has a high probability of success. In order to achieve the best noise tolerance in the presence of noise and imprecision throughout the computer, a hierarchical construction of a quantum computer is proposed."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -416,22 +398,19 @@
             "paper_id": "http://arxiv.org/abs/2006.01509v2",
             "title": "Detection of gravitational-wave signals from binary neutron star mergers using machine learning",
             "url": "https://arxiv.org/pdf/2006.01509v2",
-            "source": "arxiv",
-            "abstract": "As two neutron stars merge, they emit gravitational waves that can potentially be detected by earth bound detectors. Matched-filtering based algorithms have traditionally been used to extract quiet signals embedded in noise. We introduce a novel neural-network based machine learning algorithm that uses time series strain data from gravitational-wave detectors to detect signals from non-spinning binary neutron star mergers. For the Advanced LIGO design sensitivity, our network has an average sensitive distance of 130 Mpc at a false-alarm rate of 10 per month. Compared to other state-of-the-art machine learning algorithms, we find an improvement by a factor of 6 in sensitivity to signals with signal-to-noise ratio below 25. However, this approach is not yet competitive with traditional matched-filtering based methods. A conservative estimate indicates that our algorithm introduces on average 10.2 s of latency between signal arrival and generating an alert. We give an exact description of our testing procedure, which can not only be applied to machine learning based algorithms but all other search algorithms as well. We thereby improve the ability to compare machine learning and classical searches."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/1811.04468v4",
             "title": "Bose-Einstein Condensates as Gravitational Wave Detectors",
             "url": "https://arxiv.org/pdf/1811.04468v4",
-            "source": "arxiv",
-            "abstract": "We investigate a Bose-Einstein condensate (BEC) as a gravitational wave detector, and study its sensitivity by optimizing the properties of the condensate and the measurement duration. We show that detecting kilohertz gravitational waves is limited by current experimental techniques in squeezing BEC phonons. Future improvements in technology to squeeze BEC states can make them competitive detectors for gravitational waves of astrophysical and/or cosmological origin."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2409.14508v2",
             "title": "Evaluating Machine Learning Models for Supernova Gravitational Wave Signal Classification",
             "url": "https://arxiv.org/pdf/2409.14508v2",
-            "source": "arxiv",
-            "abstract": "We investigate the potential of using gravitational wave (GW) signals from rotating core-collapse supernovae to probe the equation of state (EOS) of nuclear matter. By generating GW signals from simulations with various EOSs, we train machine learning models to classify them and evaluate their performance. Our study builds on previous work by examining how different machine learning models, parameters, and data preprocessing techniques impact classification accuracy. We test convolutional and recurrent neural networks, as well as six classical algorithms: random forest, support vector machines, naïve Bayes, logistic regression, $k$-nearest neighbors, and eXtreme gradient boosting. All models, except naïve Bayes, achieve over 90 per cent accuracy on our dataset. Additionally, we assess the impact of approximating the GW signal using the general relativistic effective potential (GREP) on EOS classification. We find that models trained on GREP data exhibit low classification accuracy. However, normalizing time by the peak signal frequency, which partially compensates for the absence of the time dilation effect in GREP, leads to a notable improvement in accuracy. Despite this, the accuracy does not exceed 70 per cent, suggesting that GREP lacks the precision necessary for EOS classification. Finally, our study has several limitations, including the omission of detector noise and the focus on a single progenitor mass model, which will be addressed in future works."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -478,22 +457,19 @@
             "paper_id": "http://arxiv.org/abs/2305.06769v1",
             "title": "Comparative Analysis of Machine Learning Algorithms for Predicting On-Target and Off-Target Effects of CRISPR-Cas13d for gene editing",
             "url": "https://arxiv.org/pdf/2305.06769v1",
-            "source": "arxiv",
-            "abstract": "CRISPR-Cas13 is a system that utilizes single stranded RNAs for RNA editing. Prediction of on-target and off-target effects for the CRISPR-Cas13d dependency enables us to design specific single guide RNAs (sgRNAs) that help locate the desired RNA target positions. In this study, we compared the performance of multiple machine learning algorithms in predicting these effects using a reported dataset. Our results show that Catboost is the most accurate model with high sensitivity. This finding represents a significant advancement in our understanding of how to chose modeling methods to deal with RNA sequence feaatures effictivelys. Furthermore, our approach can potentially be applied to other CRISPR systems and genetic engineering techniques. Overall, this work has important implications for developing safer and more effective gene therapies and biotechnological applications."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2602.16327v1",
             "title": "Guide-Guard: Off-Target Predicting in CRISPR Applications",
             "url": "https://arxiv.org/pdf/2602.16327v1",
-            "source": "arxiv",
-            "abstract": "With the introduction of cyber-physical genome sequencing and editing technologies, such as CRISPR, researchers can more easily access tools to investigate and create remedies for a variety of topics in genetics and health science (e.g. agriculture and medicine). As the field advances and grows, new concerns present themselves in the ability to predict the off-target behavior. In this work, we explore the underlying biological and chemical model from a data driven perspective. Additionally, we present a machine learning based solution named \\textit{Guide-Guard} to predict the behavior of the system given a gRNA in the CRISPR gene-editing process with 84\\% accuracy. This solution is able to be trained on multiple different genes at the same time while retaining accuracy."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2409.05938v1",
             "title": "DeepFM-Crispr: Prediction of CRISPR On-Target Effects via Deep Learning",
             "url": "https://arxiv.org/pdf/2409.05938v1",
-            "source": "arxiv",
-            "abstract": "Since the advent of CRISPR-Cas9, a groundbreaking gene-editing technology that enables precise genomic modifications via a short RNA guide sequence, there has been a marked increase in the accessibility and application of this technology across various fields. The success of CRISPR-Cas9 has spurred further investment and led to the discovery of additional CRISPR systems, including CRISPR-Cas13. Distinct from Cas9, which targets DNA, Cas13 targets RNA, offering unique advantages for gene modulation. We focus on Cas13d, a variant known for its collateral activity where it non-specifically cleaves adjacent RNA molecules upon activation, a feature critical to its function. We introduce DeepFM-Crispr, a novel deep learning model developed to predict the on-target efficiency and evaluate the off-target effects of Cas13d. This model harnesses a large language model to generate comprehensive representations rich in evolutionary and structural data, thereby enhancing predictions of RNA secondary structures and overall sgRNA efficacy. A transformer-based architecture processes these inputs to produce a predictive efficacy score. Comparative experiments show that DeepFM-Crispr not only surpasses traditional models but also outperforms recent state-of-the-art deep learning methods in terms of prediction accuracy and reliability."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -540,22 +516,19 @@
             "paper_id": "277116802fac286efefdc211dcf4db917616905b",
             "title": "A conceptual framework for the environmental surveillance of antibiotics and antibiotic resistance.",
             "url": "https://www.semanticscholar.org/paper/277116802fac286efefdc211dcf4db917616905b",
-            "source": "semantic_scholar",
-            "abstract": "Environmental surveillance of antibiotics and antibiotic resistance could contribute toward the protection of human, animal and ecosystem health. However, justification for the choice of markers and sampling sites that informs about different risk scenarios is often lacking. Here, we define five fundamentally different objectives for surveillance of antibiotics and antibiotic resistance in the environment. The first objective is (1) to address the risk of transmission of already antibiotic-resistant bacteria to humans via environmental routes. The second is (2) to address the risk for accelerating the evolution of antibiotic resistance in pathogens through pollution with selective agents and bacteria of human or animal origin. The third objective is (3) to address the risks antibiotics pose for aquatic and terrestrial ecosystem health, including the effects on ecosystem functions and services. The two final objectives overlap with those of traditional clinical surveillance, namely, to identify (4) the population-level resistance prevalence and (5) population-level antibiotic use. The latter two environmental surveillance objectives have particular potential in countries where traditional clinical surveillance data and antibiotic consumption data are scarce or absent. For each objective, the levels of evidence provided by different phenotypic and genotypic microbial surveillance markers, as well as antibiotic residues, are discussed and evaluated on a conceptual level. Furthermore, sites where monitoring would be particularly informative are identified. The proposed framework could be one of the starting points for guiding environmental monitoring and surveillance of antibiotics and antibiotic resistance on various spatiotemporal scales, as well as for harmonizing such activities with existing human and animal surveillance systems."
+            "source": "semantic_scholar"
           },
           {
             "paper_id": "c38afbbf92c8be52913a52e7706b9263f0aee6ad",
-            "title": "Antibiotic resistance among ocular pathogens: current trends from the ARMOR surveillance study (2009–2016)",
+            "title": "Antibiotic resistance among ocular pathogens: current trends from the ARMOR surveillance study (2009\u20132016)",
             "url": "https://www.semanticscholar.org/paper/c38afbbf92c8be52913a52e7706b9263f0aee6ad",
-            "source": "semantic_scholar",
-            "abstract": "Background The Antibiotic Resistance Monitoring in Ocular micRoorganisms study is an ongoing surveillance study that tracks antibiotic resistance among bacterial isolates from ocular infections across the United States. We report antibiotic resistance rates and trends from 2009 through 2016. Materials and methods Staphylococcus aureus, coagulase-negative staphylococci (CoNS), Streptococcus pneumoniae, Pseudomonas aeruginosa, and Haemophilus influenzae from various ocular infections were obtained from participating United States centers. Isolates were sent to a central laboratory for determination of antibiotic resistance profiles. Minimum inhibitory concentrations were determined by broth microdilution according to the Clinical and Laboratory Standards Institute for drugs from more than ten antibiotic classes, and isolates were classified as susceptible or resistant based on systemic breakpoints, wherever available. Resistance rates were also evaluated based on decade of patient life and longitudinally over the 8-year time period. Results A total of 1,695 S. aureus, 1,475 CoNS, 474 S. pneumoniae, 586 H. influenzae, and 599 P. aeruginosa were collected from 87 sites. Resistance was high among staphylococci and pneumococci, with methicillin resistance detected in 621 (36.6%) S. aureus and 717 (48.6%) CoNS isolates. Multidrug resistance (≥3 drug classes) was observed among staphylococci, particularly in methicillin-resistant (MR) isolates (MR S. aureus [MRSA]: 76.2%; MR CoNS [MRCoNS]: 73.5%). Differences in methicillin resistance among staphylococci were observed based on patient age, with higher rates observed in older patients (P<0.0001). For certain organism-antibiotic combinations, there were significant changes in resistance over time, including a decrease in methicillin resistance among S. aureus (but not CoNS); no notable trends were observed for S. pneumoniae. Conclusion Antibiotic resistance was prevalent among gram-positive organisms, and MR staphylococcal isolates were more likely to be multidrug resistant. Although a small decrease in methicillin resistance was observed among S. aureus over time, the continued high prevalence of in vitro methicillin resistance should be considered when treating patients with ocular infections."
+            "source": "semantic_scholar"
           },
           {
             "paper_id": "bb6ee7945bf93df6eba1c5a235f31eccd08bd874",
             "title": "Genomic and metagenomic approaches for predictive surveillance of emerging pathogens and antibiotic resistance",
             "url": "https://www.semanticscholar.org/paper/bb6ee7945bf93df6eba1c5a235f31eccd08bd874",
-            "source": "semantic_scholar",
-            "abstract": "Antibiotic‐resistant organisms (AROs) are a major concern to public health worldwide. While antibiotics have been naturally produced by environmental bacteria for millions of years, modern widespread use of antibiotics has enriched resistance mechanisms in human‐impacted bacterial environments. Antibiotic resistance genes (ARGs) continue to emerge and spread rapidly. To combat the global threat of antibiotic resistance, researchers must develop methods to rapidly characterize AROs and ARGs, monitor their spread across space and time, and identify novel ARGs and resistance pathways. We review how high‐throughput sequencing‐based methods can be combined with classic culture‐based assays to characterize, monitor, and track AROs and ARGs. Then, we evaluate genomic and metagenomic methods for identifying ARGs and biosynthetic pathways for novel antibiotics from genomic data sets. Together, these genomic analyses can improve surveillance and prediction of emerging resistance threats and accelerate the development of new antibiotic therapies to combat resistance."
+            "source": "semantic_scholar"
           }
         ],
         "outputs": [
@@ -602,22 +575,19 @@
             "paper_id": "http://arxiv.org/abs/2603.10527v1",
             "title": "World Model for Battery Degradation Prediction Under Non-Stationary Aging",
             "url": "https://arxiv.org/pdf/2603.10527v1",
-            "source": "arxiv",
-            "abstract": "Degradation prognosis for lithium-ion cells requires forecasting the state-of-health (SOH) trajectory over future cycles. Existing data-driven approaches can produce trajectory outputs through direct regression, but lack a mechanism to propagate degradation dynamics forward in time. This paper formulates battery degradation prognosis as a world model problem, encoding raw voltage, current, and temperature time-series from each cycle into a latent state and propagating it forward via a learned dynamics transition to produce a future trajectory spanning 80 cycles. To investigate whether electrochemical knowledge improves the learned dynamics, a Single Particle Model (SPM) constraint is incorporated into the training loss. Three configurations are evaluated on the Severson LiFePO4 (LFP) dataset of 138 cells. Iterative rollout halves the trajectory forecast error compared to direct regression from the same encoder. The SPM constraint improves prediction at the degradation knee where the resistance to SOH relationship is most applicable, without changing aggregate accuracy."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2504.03701v1",
             "title": "Chemistry-aware battery degradation prediction under simulated real-world cyclic protocols",
             "url": "https://arxiv.org/pdf/2504.03701v1",
-            "source": "arxiv",
-            "abstract": "Battery degradation is governed by complex and randomized cyclic conditions, yet existing modeling and prediction frameworks usually rely on rigid, unchanging protocols that fail to capture real-world dynamics. The stochastic electrical signals make such prediction extremely challenging, while, on the other hand, they provide abundant additional information, such as voltage fluctuations, which may probe the degradation mechanisms. Here, we present chemistry-aware battery degradation prediction under dynamic conditions with machine learning, which integrates hidden Markov processes for realistic power simulations, an automated batch-testing system that generates a large electrochemical dataset under randomized conditions, an interfacial chemistry database derived from high-throughput X-ray photoelectron spectroscopy for mechanistic probing, and a machine learning model for prediction. By automatically constructing a polynomial-scale feature space from irregular electrochemical curves, our model accurately predicts both battery life and critical knee points. This feature space also predicts the composition of the solid electrolyte interphase, revealing six distinct failure mechanisms-demonstrating a viable approach to use electrical signals to infer interfacial chemistry. This work establishes a scalable and adaptive framework for integrating chemical engineering and data science to advance noninvasive diagnostics and optimize processes for more durable and sustainable energy storage technologies."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2410.14347v1",
             "title": "A Scientific Machine Learning Approach for Predicting and Forecasting Battery Degradation in Electric Vehicles",
             "url": "https://arxiv.org/pdf/2410.14347v1",
-            "source": "arxiv",
-            "abstract": "Carbon emissions are rising at an alarming rate, posing a significant threat to global efforts to mitigate climate change. Electric vehicles have emerged as a promising solution, but their reliance on lithium-ion batteries introduces the critical challenge of battery degradation. Accurate prediction and forecasting of battery degradation over both short and long time spans are essential for optimizing performance, extending battery life, and ensuring effective long-term energy management. This directly influences the reliability, safety, and sustainability of EVs, supporting their widespread adoption and aligning with key UN SDGs. In this paper, we present a novel approach to the prediction and long-term forecasting of battery degradation using Scientific Machine Learning framework which integrates domain knowledge with neural networks, offering more interpretable and scientifically grounded solutions for both predicting short-term battery health and forecasting degradation over extended periods. This hybrid approach captures both known and unknown degradation dynamics, improving predictive accuracy while reducing data requirements. We incorporate ground-truth data to inform our models, ensuring that both the predictions and forecasts reflect practical conditions. The model achieved MSE of 9.90 with the UDE and 11.55 with the NeuralODE, in experimental data, a loss of 1.6986 with the UDE, and a MSE of 2.49 in the NeuralODE, demonstrating the enhanced precision of our approach. This integration of data-driven insights with SciML's strengths in interpretability and scalability allows for robust battery management. By enhancing battery longevity and minimizing waste, our approach contributes to the sustainability of energy systems and accelerates the global transition toward cleaner, more responsible energy solutions, aligning with the UN's SDG agenda."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -670,22 +640,19 @@
             "paper_id": "http://arxiv.org/abs/2303.14223v1",
             "title": "Machine Guided Discovery of Novel Carbon Capture Solvents",
             "url": "https://arxiv.org/pdf/2303.14223v1",
-            "source": "arxiv",
-            "abstract": "The increasing importance of carbon capture technologies for deployment in remediating CO2 emissions, and thus the necessity to improve capture materials to allow scalability and efficiency, faces the challenge of materials development, which can require substantial costs and time. Machine learning offers a promising method for reducing the time and resource burdens of materials development through efficient correlation of structure-property relationships to allow down-selection and focusing on promising candidates. Towards demonstrating this, we have developed an end-to-end \"discovery cycle\" to select new aqueous amines compatible with the commercially viable acid gas scrubbing carbon capture. We combine a simple, rapid laboratory assay for CO2 absorption with a machine learning based molecular fingerprinting model approach. The prediction process shows 60% accuracy against experiment for both material parameters and 80% for a single parameter on an external test set. The discovery cycle determined several promising amines that were verified experimentally, and which had not been applied to carbon capture previously. In the process we have compiled a large, single-source data set for carbon capture amines and produced an open source machine learning tool for the identification of amine molecule candidates (https://github.com/IBM/Carbon-capture-fingerprint-generation)."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2310.07671v2",
             "title": "Discovery of Novel Reticular Materials for Carbon Dioxide Capture using GFlowNets",
             "url": "https://arxiv.org/pdf/2310.07671v2",
-            "source": "arxiv",
-            "abstract": "Artificial intelligence holds promise to improve materials discovery. GFlowNets are an emerging deep learning algorithm with many applications in AI-assisted discovery. By using GFlowNets, we generate porous reticular materials, such as metal organic frameworks and covalent organic frameworks, for applications in carbon dioxide capture. We introduce a new Python package (matgfn) to train and sample GFlowNets. We use matgfn to generate the matgfn-rm dataset of novel and diverse reticular materials with gravimetric surface area above 5000 m$^2$/g. We calculate single- and two-component gas adsorption isotherms for the top-100 candidates in matgfn-rm. These candidates are novel compared to the state-of-art ARC-MOF dataset and rank in the 90th percentile in terms of working capacity compared to the CoRE2019 dataset. We discover 15 materials outperforming all materials in CoRE2019."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2009.12289v2",
             "title": "Performance-based screening of porous materials for carbon capture",
             "url": "https://arxiv.org/pdf/2009.12289v2",
-            "source": "arxiv",
-            "abstract": "Computational screening methods have been accelerating discovery of new materials and deployment of technologies based on them in many areas from batteries and alloys to photovoltaics and separation processes. In this review, we focus on post-combustion carbon capture using adsorption in porous materials. Prompted by unprecedented developments in material science, researchers in material engineering, molecular simulations, and process modelling have been interested in finding the best materials for carbon capture using energy efficient pressure-swing adsorption processes. Recent efforts have been directed towards development of new multiscale and performance-based screening workflows where we are able to go from the atomistic structure of an adsorbent to its equilibrium and transport properties for gas adsorption, and eventually to its separation performance in the actual process. The objective of this article is to review the current status of these emerging approaches, explain their significance for materials screening, while at the same time highlighting the existing pitfalls and challenges that limit their application in practice and industry. It is also the intention of this review to encourage cross-disciplinary collaborations for the development of more advanced screening methodologies. For this specific reason, we undertake an additional task of compiling and introducing all the elements that are needed for the development and operation of the performance-based screening workflows, including information about available materials databases, state-of-the-art molecular simulation and process modelling tools and methods, and the full list of data and parameters required for each stage."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -732,22 +699,19 @@
             "paper_id": "http://arxiv.org/abs/2510.24254v1",
             "title": "Forecasting precipitation in the Arctic using probabilistic machine learning informed by causal climate drivers",
             "url": "https://arxiv.org/pdf/2510.24254v1",
-            "source": "arxiv",
-            "abstract": "Understanding and forecasting precipitation events in the Arctic maritime environments, such as Bear Island and Ny-Ålesund, is crucial for assessing climate risk and developing early warning systems in vulnerable marine regions. This study proposes a probabilistic machine learning framework for modeling and predicting the dynamics and severity of precipitation. We begin by analyzing the scale-dependent relationships between precipitation and key atmospheric drivers (e.g., temperature, relative humidity, cloud cover, and air pressure) using wavelet coherence, which captures localized dependencies across time and frequency domains. To assess joint causal influences, we employ Synergistic-Unique-Redundant Decomposition, which quantifies the impact of interaction effects among each variable on future precipitation dynamics. These insights inform the development of data-driven forecasting models that incorporate both historical precipitation and causal climate drivers. To account for uncertainty, we employ the conformal prediction method, which enables the generation of calibrated non-parametric prediction intervals. Our results underscore the importance of utilizing a comprehensive framework that combines causal analysis with probabilistic forecasting to enhance the reliability and interpretability of precipitation predictions in Arctic marine environments."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2210.12504v1",
             "title": "Generative Modeling of High-resolution Global Precipitation Forecasts",
             "url": "https://arxiv.org/pdf/2210.12504v1",
-            "source": "arxiv",
-            "abstract": "Forecasting global precipitation patterns and, in particular, extreme precipitation events is of critical importance to preparing for and adapting to climate change. Making accurate high-resolution precipitation forecasts using traditional physical models remains a major challenge in operational weather forecasting as they incur substantial computational costs and struggle to achieve sufficient forecast skill. Recently, deep-learning-based models have shown great promise in closing the gap with numerical weather prediction (NWP) models in terms of precipitation forecast skill, opening up exciting new avenues for precipitation modeling. However, it is challenging for these deep learning models to fully resolve the fine-scale structures of precipitation phenomena and adequately characterize the extremes of the long-tailed precipitation distribution. In this work, we present several improvements to the architecture and training process of a current state-of-the art deep learning precipitation model (FourCastNet) using a novel generative adversarial network (GAN) to better capture fine scales and extremes. Our improvements achieve superior performance in capturing the extreme percentiles of global precipitation, while comparable to state-of-the-art NWP models in terms of forecast skill at 1--2 day lead times. Together, these improvements set a new state-of-the-art in global precipitation forecasting."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2309.15400v2",
             "title": "Interpretable AI-Driven Discovery of Terrain-Precipitation Relationships for Enhanced Climate Insights",
             "url": "https://arxiv.org/pdf/2309.15400v2",
-            "source": "arxiv",
-            "abstract": "Despite the remarkable strides made by AI-driven models in modern precipitation forecasting, these black-box models cannot inherently deepen the comprehension of underlying mechanisms. To address this limitation, we propose an AI-driven knowledge discovery framework known as genetic algorithm-geographic weighted regression (GA-GWR). Our approach seeks to unveil the explicit equations that govern the intricate relationship between precipitation patterns and terrain characteristics in regions marked by complex terrain. Through this AI-driven knowledge discovery, we uncover previously undisclosed explicit equations that shed light on the connection between terrain features and precipitation patterns. These equations demonstrate remarkable accuracy when applied to precipitation data, outperforming conventional empirical models. Notably, our research reveals that the parameters within these equations are dynamic, adapting to evolving climate patterns. Ultimately, the unveiled equations have practical applications, particularly in fine-scale downscaling for precipitation predictions using low-resolution future climate data. This capability offers invaluable insights into the anticipated changes in precipitation patterns across diverse terrains under future climate scenarios, which enhances our ability to address the challenges posed by contemporary climate science."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -779,7 +743,7 @@
                   "sentence": "This approach helps improve our understanding of how precipitation works in the Arctic and allows for better early warning systems in vulnerable areas.",
                   "supported": true,
                   "max_similarity": 0.8139319220742431,
-                  "supporting_abstract_sentence": "Understanding and forecasting precipitation events in the Arctic maritime environments, such as Bear Island and Ny-Ålesund, is crucial for assessing climate risk and developing early warning systems in vulnerable marine regions."
+                  "supporting_abstract_sentence": "Understanding and forecasting precipitation events in the Arctic maritime environments, such as Bear Island and Ny-\u00c5lesund, is crucial for assessing climate risk and developing early warning systems in vulnerable marine regions."
                 }
               ]
             }
@@ -794,22 +758,19 @@
             "paper_id": "http://arxiv.org/abs/1803.04497v2",
             "title": "Automated software vulnerability detection with machine learning",
             "url": "https://arxiv.org/pdf/1803.04497v2",
-            "source": "arxiv",
-            "abstract": "Thousands of security vulnerabilities are discovered in production software each year, either reported publicly to the Common Vulnerabilities and Exposures database or discovered internally in proprietary code. Vulnerabilities often manifest themselves in subtle ways that are not obvious to code reviewers or the developers themselves. With the wealth of open source code available for analysis, there is an opportunity to learn the patterns of bugs that can lead to security vulnerabilities directly from data. In this paper, we present a data-driven approach to vulnerability detection using machine learning, specifically applied to C and C++ programs. We first compile a large dataset of hundreds of thousands of open-source functions labeled with the outputs of a static analyzer. We then compare methods applied directly to source code with methods applied to artifacts extracted from the build process, finding that source-based models perform better. We also compare the application of deep neural network models with more traditional models such as random forests and find the best performance comes from combining features learned by deep models with tree-based models. Ultimately, our highest performing model achieves an area under the precision-recall curve of 0.49 and an area under the ROC curve of 0.87."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2103.11316v1",
             "title": "Automated Software Vulnerability Assessment with Concept Drift",
             "url": "https://arxiv.org/pdf/2103.11316v1",
-            "source": "arxiv",
-            "abstract": "Software Engineering researchers are increasingly using Natural Language Processing (NLP) techniques to automate Software Vulnerabilities (SVs) assessment using the descriptions in public repositories. However, the existing NLP-based approaches suffer from concept drift. This problem is caused by a lack of proper treatment of new (out-of-vocabulary) terms for the evaluation of unseen SVs over time. To perform automated SVs assessment with concept drift using SVs' descriptions, we propose a systematic approach that combines both character and word features. The proposed approach is used to predict seven Vulnerability Characteristics (VCs). The optimal model of each VC is selected using our customized time-based cross-validation method from a list of eight NLP representations and six well-known Machine Learning models. We have used the proposed approach to conduct large-scale experiments on more than 100,000 SVs in the National Vulnerability Database (NVD). The results show that our approach can effectively tackle the concept drift issue of the SVs' descriptions reported from 2000 to 2018 in NVD even without retraining the model. In addition, our approach performs competitively compared to the existing word-only method. We also investigate how to build compact concept-drift-aware models with much fewer features and give some recommendations on the choice of classifiers and NLP representations for SVs assessment."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/1902.02595v3",
             "title": "A Manually-Curated Dataset of Fixes to Vulnerabilities of Open-Source Software",
             "url": "https://arxiv.org/pdf/1902.02595v3",
-            "source": "arxiv",
-            "abstract": "Advancing our understanding of software vulnerabilities, automating their identification, the analysis of their impact, and ultimately their mitigation is necessary to enable the development of software that is more secure. While operating a vulnerability assessment tool that we developed and that is currently used by hundreds of development units at SAP, we manually collected and curated a dataset of vulnerabilities of open-source software and the commits fixing them. The data was obtained both from the National Vulnerability Database (NVD) and from project-specific Web resources that we monitor on a continuous basis. From that data, we extracted a dataset that maps 624 publicly disclosed vulnerabilities affecting 205 distinct open-source Java projects, used in SAP products or internal tools, onto the 1282 commits that fix them. Out of 624 vulnerabilities, 29 do not have a CVE identifier at all and 46, which do have a CVE identifier assigned by a numbering authority, are not available in the NVD yet. The dataset is released under an open-source license, together with supporting scripts that allow researchers to automatically retrieve the actual content of the commits from the corresponding repositories and to augment the attributes available for each instance. Also, these scripts allow to complement the dataset with additional instances that are not security fixes (which is useful, for example, in machine learning applications). Our dataset has been successfully used to train classifiers that could automatically identify security-relevant commits in code repositories. The release of this dataset and the supporting code as open-source will allow future research to be based on data of industrial relevance; also, it represents a concrete step towards making the maintenance of this dataset a shared effort involving open-source communities, academia, and the industry."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -862,22 +823,19 @@
             "paper_id": "http://arxiv.org/abs/2407.01295v6",
             "title": "Towards Formal Verification of Deep Neural Networks for Object Detection",
             "url": "https://arxiv.org/pdf/2407.01295v6",
-            "source": "arxiv",
-            "abstract": "Deep neural networks (DNNs) are widely used in real-world computer vision applications, yet they remain vulnerable to errors and adversarial attacks. Formal verification offers a systematic approach to identify and mitigate these vulnerabilities, enhancing model robustness and reliability. While most existing verification methods focus on image classification models, this work extends formal verification to the more complex domain of object detection models. We propose a formulation for verifying the robustness of such models and demonstrate how state-of-the-art verification tools, originally developed for classification, can be adapted for this purpose. Through a comprehensive evaluation, we highlight the ability of formal verification to uncover vulnerabilities in object detection models, and derive formal robustness guarantees, underscoring the potential and need to further extend verification efforts in this domain. This work lays the foundation for further research into formal verification of object detection models across a broader range of computer vision applications. Our source code is publicly available online."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/1711.00455v3",
             "title": "A Unified View of Piecewise Linear Neural Network Verification",
             "url": "https://arxiv.org/pdf/1711.00455v3",
-            "source": "arxiv",
-            "abstract": "The success of Deep Learning and its potential use in many safety-critical applications has motivated research on formal verification of Neural Network (NN) models. Despite the reputation of learned NN models to behave as black boxes and the theoretical hardness of proving their properties, researchers have been successful in verifying some classes of models by exploiting their piecewise linear structure and taking insights from formal methods such as Satisifiability Modulo Theory. These methods are however still far from scaling to realistic neural networks. To facilitate progress on this crucial area, we make two key contributions. First, we present a unified framework that encompasses previous methods. This analysis results in the identification of new methods that combine the strengths of multiple existing approaches, accomplishing a speedup of two orders of magnitude compared to the previous state of the art. Second, we propose a new data set of benchmarks which includes a collection of previously released testcases. We use the benchmark to provide the first experimental comparison of existing algorithms and identify the factors impacting the hardness of verification problems."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/1910.05018v1",
             "title": "Verification of Neural Networks: Specifying Global Robustness using Generative Models",
             "url": "https://arxiv.org/pdf/1910.05018v1",
-            "source": "arxiv",
-            "abstract": "The success of neural networks across most machine learning tasks and the persistence of adversarial examples have made the verification of such models an important quest. Several techniques have been successfully developed to verify robustness, and are now able to evaluate neural networks with thousands of nodes. The main weakness of this approach is in the specification: robustness is asserted on a validation set consisting of a finite set of examples, i.e. locally. We propose a notion of global robustness based on generative models, which asserts the robustness on a very large and representative set of examples. We show how this can be used for verifying neural networks. In this paper we experimentally explore the merits of this approach, and show how it can be used to construct realistic adversarial examples."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -924,22 +882,19 @@
             "paper_id": "http://arxiv.org/abs/2605.02372v1",
             "title": "Privacy Preserving Machine Learning Workflow: from Anonymization to Personalized Differential Privacy Budgets in Federated Learning",
             "url": "https://arxiv.org/pdf/2605.02372v1",
-            "source": "arxiv",
-            "abstract": "The growing development of artificial intelligence based solutions, together with privacy legislation, has driven the rise of the so-called privacy preserving machine learning architectures, such as federated learning. While federated learning enables model training on decentralized data preventing their sharing and centralization, it still faces several challenges related to data integrity and privacy. This paper presents a comprehensive privacy preserving federated learning workflow for sensitive tabular data, including anonymization and differential privacy techniques. We also introduce a formal definition for the concept of client drift, together with ways of detecting it to mitigate poisoning attacks. Then, we detail a complete methodology for assigning personalized privacy budgets for global differential privacy to the different clients participating in the network, based on a re-identification risk metric. The proposed methodology is presented and tested on an openly available dataset of medical records. Within the experimental setup we show that the approach based on personalized budgets, compared to the architecture including global differential privacy with fixed privacy budget, achieves a better model performance in terms of two error metrics."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2004.11794v2",
             "title": "A Review of Privacy-preserving Federated Learning for the Internet-of-Things",
             "url": "https://arxiv.org/pdf/2004.11794v2",
-            "source": "arxiv",
-            "abstract": "The Internet-of-Things (IoT) generates vast quantities of data, much of it attributable to individuals' activity and behaviour. Gathering personal data and performing machine learning tasks on this data in a central location presents a significant privacy risk to individuals as well as challenges with communicating this data to the cloud. However, analytics based on machine learning and in particular deep learning benefit greatly from large amounts of data to develop high-performance predictive models. This work reviews federated learning as an approach for performing machine learning on distributed data with the goal of protecting the privacy of user-generated data as well as reducing communication costs associated with data transfer. We survey a wide variety of papers covering communication-efficiency, client heterogeneity and privacy preserving methods that are crucial for federated learning in the context of the IoT. Throughout this review, we identify the strengths and weaknesses of different methods applied to federated learning and finally, we outline future directions for privacy preserving federated learning research, particularly focusing on IoT applications."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2507.00230v3",
             "title": "PPFL-RDSN: Privacy-Preserving Federated Learning-based Residual Dense Spatial Networks for Encrypted Lossy Image Reconstruction",
             "url": "https://arxiv.org/pdf/2507.00230v3",
-            "source": "arxiv",
-            "abstract": "Reconstructing high-quality images from low-resolution inputs using Residual Dense Spatial Networks (RDSNs) is crucial yet challenging. It is even more challenging in centralized training where multiple collaborating parties are involved, as it poses significant privacy risks, including data leakage and inference attacks, as well as high computational and communication costs. We propose a novel Privacy-Preserving Federated Learning-based RDSN (PPFL-RDSN) framework specifically tailored for encrypted lossy image reconstruction. PPFL-RDSN integrates Federated Learning (FL), local differential privacy, and robust model watermarking techniques to ensure that data remains secure on local clients/devices, safeguards privacy-sensitive information, and maintains model authenticity without revealing underlying data. Empirical evaluations show that PPFL-RDSN achieves comparable performance to the state-of-the-art centralized methods while reducing computational burdens, and effectively mitigates security and privacy vulnerabilities, making it a practical solution for secure and privacy-preserving collaborative computer vision applications."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -986,22 +941,19 @@
             "paper_id": "http://arxiv.org/abs/2011.03807v1",
             "title": "Sim-to-Real Transfer for Vision-and-Language Navigation",
             "url": "https://arxiv.org/pdf/2011.03807v1",
-            "source": "arxiv",
-            "abstract": "We study the challenging problem of releasing a robot in a previously unseen environment, and having it follow unconstrained natural language navigation instructions. Recent work on the task of Vision-and-Language Navigation (VLN) has achieved significant progress in simulation. To assess the implications of this work for robotics, we transfer a VLN agent trained in simulation to a physical robot. To bridge the gap between the high-level discrete action space learned by the VLN agent, and the robot's low-level continuous action space, we propose a subgoal model to identify nearby waypoints, and use domain randomization to mitigate visual domain differences. For accurate sim and real comparisons in parallel environments, we annotate a 325m2 office space with 1.3km of navigation instructions, and create a digitized replica in simulation. We find that sim-to-real transfer to an environment not seen in training is successful if an occupancy map and navigation graph can be collected and annotated in advance (success rate of 46.8% vs. 55.9% in sim), but much more challenging in the hardest setting with no prior mapping at all (success rate of 22.5%)."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2605.15559v1",
             "title": "NavRL++: A System-Level Framework for Improving Sim-to-Real Transfer in Reinforcement Learning-Based Robot Navigation",
             "url": "https://arxiv.org/pdf/2605.15559v1",
-            "source": "arxiv",
-            "abstract": "Recent years have witnessed significant progress in autonomous navigation using reinforcement learning. However, existing approaches largely emphasize reinforcement learning framework design, such as input representations, action spaces, and reward functions, while providing limited analysis of sim-to-real transfer and insufficient insight into how training strategies affect real-world deployment performance. To bridge this gap, we not only introduce an effective RL framework but also present a complete training and deployment pipeline, along with a systematic empirical study that disentangles the key factors affecting sim-to-real transfer in reinforcement learning-based navigation, including sensor noise, perception failures, system latency, and control response. Building on insights from this analysis, we introduce perturbation-aware fine-tuning, a post-training adaptation strategy that improves transfer robustness by explicitly accounting for empirically identified domain discrepancies. To further mitigate perception degradation and enhance control smoothness in real-world deployment, we propose a Transformer-based temporal reasoning policy that leverages short-horizon observation for navigation control. We quantitatively evaluate how individual sim-to-real perturbations and training design choices impact navigation performance across environments. Experimental results demonstrate that the proposed training strategy and policy architecture outperform learning-based baselines in both static and dynamic environments, while achieving performance comparable to optimization-based planners in static settings. We validate our approach through real-world deployment on multiple robotic platforms, including aerial and legged robots, across navigation-centric tasks such as exploration and inspection, demonstrating zero-shot sim-to-real transfer."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2610.07192v1",
             "title": "Sim-to-Real Transfer of Vision-Language Navigation in Continuous Environments Using an Ackermann-Steered Mobile Robot",
             "url": "https://arxiv.org/pdf/2610.07192v1",
-            "source": "arxiv",
-            "abstract": "Vision-Language Navigation (VLN) enables robots to navigate through environments using natural language instructions, making human-robot interaction intuitive. Traditional VLN models often rely on navigation graphs, 360-degree views, and perfect localization which pose significant challenges when adapting these models to real-world settings. This work addresses these limitations by performing a simulation-to-real domain shift of a VLN approach that operates in continuous environments without requiring navigation graphs or panoramic views. The proposed system integrates vision-language models that align visual inputs and linguistic instructions within a shared embedding space, facilitating natural language-driven navigation. We employ a Cross-Modal Attention (CMA) based architecture trained on an existing dataset in a simulated environment and fine-tune it using real-world data collected from a custom-built Ackermann-steered robot equipped with a camera and a LiDAR sensor. By utilising linear photometric adjustments and fine-tuning on a limited number of episodes, our model successfully adapts to real-world environments, achieving effective navigation while running offline on dedicated hardware. Experimental results, evaluated using Success weighted by Path Length (SPL) and Normalized Dynamic Time Warping (nDTW) metrics, demonstrate the robustness and adaptability of our approach. Keywords: Vision-Language Navigation, Cross-Modal Attention, Natural Language Instructions, Sim-to-Real Transfer, Autonomous Navigation, Ackermann-steering."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -1048,22 +1000,19 @@
             "paper_id": "7573c2f2637d7a23a3312d9f6b3669d3ae15074e",
             "title": "Improved protein structure prediction using predicted interresidue orientations",
             "url": "https://www.semanticscholar.org/paper/7573c2f2637d7a23a3312d9f6b3669d3ae15074e",
-            "source": "semantic_scholar",
-            "abstract": "Significance Protein structure prediction is a longstanding challenge in computational biology. Through extension of deep learning-based prediction to interresidue orientations in addition to distances, and the development of a constrained optimization by Rosetta, we show that more accurate models can be generated. Results on a set of 18 de novo-designed proteins suggests the proposed method should be directly applicable to current challenges in de novo protein design. The prediction of interresidue contacts and distances from coevolutionary data using deep learning has considerably advanced protein structure prediction. Here, we build on these advances by developing a deep residual network for predicting interresidue orientations, in addition to distances, and a Rosetta-constrained energy-minimization protocol for rapidly and accurately generating structure models guided by these restraints. In benchmark tests on 13th Community-Wide Experiment on the Critical Assessment of Techniques for Protein Structure Prediction (CASP13)- and Continuous Automated Model Evaluation (CAMEO)-derived sets, the method outperforms all previously described structure-prediction methods. Although trained entirely on native proteins, the network consistently assigns higher probability to de novo-designed proteins, identifying the key fold-determining residues and providing an independent quantitative measure of the “ideality” of a protein structure. The method promises to be useful for a broad range of protein structure prediction and design problems."
+            "source": "semantic_scholar"
           },
           {
             "paper_id": "11c0c566140dd607c1c4c8f86f14e3dd6c238c1f",
-            "title": "Critical Assessment of Methods of Protein Structure Prediction (CASP) – Round XIV",
+            "title": "Critical Assessment of Methods of Protein Structure Prediction (CASP) \u2013 Round XIV",
             "url": "https://www.semanticscholar.org/paper/11c0c566140dd607c1c4c8f86f14e3dd6c238c1f",
-            "source": "semantic_scholar",
-            "abstract": "Critical assessment of structure prediction (CASP) is a community experiment to advance methods of computing three‐dimensional protein structure from amino acid sequence. Core components are rigorous blind testing of methods and evaluation of the results by independent assessors. In the most recent experiment (CASP14), deep‐learning methods from one research group consistently delivered computed structures rivaling the corresponding experimental ones in accuracy. In this sense, the results represent a solution to the classical protein‐folding problem, at least for single proteins. The models have already been shown to be capable of providing solutions for problematic crystal structures, and there are broad implications for the rest of structural biology. Other research groups also substantially improved performance. Here, we describe these results and outline some of the many implications. Other related areas of CASP, including modeling of protein complexes, structure refinement, estimation of model accuracy, and prediction of inter‐residue contacts and distances, are also described."
+            "source": "semantic_scholar"
           },
           {
             "paper_id": "968c770bc84420a5faed239e6c04bf1c6331c0bb",
             "title": "EigenFold: Generative Protein Structure Prediction with Diffusion Models",
             "url": "https://www.semanticscholar.org/paper/968c770bc84420a5faed239e6c04bf1c6331c0bb",
-            "source": "semantic_scholar",
-            "abstract": "Protein structure prediction has reached revolutionary levels of accuracy on single structures, yet distributional modeling paradigms are needed to capture the conformational ensembles and flexibility that underlie biological function. Towards this goal, we develop EigenFold, a diffusion generative modeling framework for sampling a distribution of structures from a given protein sequence. We define a diffusion process that models the structure as a system of harmonic oscillators and which naturally induces a cascading-resolution generative process along the eigenmodes of the system. On recent CAMEO targets, EigenFold achieves a median TMScore of 0.84, while providing a more comprehensive picture of model uncertainty via the ensemble of sampled structures relative to existing methods. We then assess EigenFold's ability to model and predict conformational heterogeneity for fold-switching proteins and ligand-induced conformational change. Code is available at https://github.com/bjing2016/EigenFold."
+            "source": "semantic_scholar"
           }
         ],
         "outputs": [
@@ -1110,22 +1059,19 @@
             "paper_id": "http://arxiv.org/abs/2505.04652v1",
             "title": "Rethinking Boundary Detection in Deep Learning-Based Medical Image Segmentation",
             "url": "https://arxiv.org/pdf/2505.04652v1",
-            "source": "arxiv",
-            "abstract": "Medical image segmentation is a pivotal task within the realms of medical image analysis and computer vision. While current methods have shown promise in accurately segmenting major regions of interest, the precise segmentation of boundary areas remains challenging. In this study, we propose a novel network architecture named CTO, which combines Convolutional Neural Networks (CNNs), Vision Transformer (ViT) models, and explicit edge detection operators to tackle this challenge. CTO surpasses existing methods in terms of segmentation accuracy and strikes a better balance between accuracy and efficiency, without the need for additional data inputs or label injections. Specifically, CTO adheres to the canonical encoder-decoder network paradigm, with a dual-stream encoder network comprising a mainstream CNN stream for capturing local features and an auxiliary StitchViT stream for integrating long-range dependencies. Furthermore, to enhance the model's ability to learn boundary areas, we introduce a boundary-guided decoder network that employs binary boundary masks generated by dedicated edge detection operators to provide explicit guidance during the decoding process. We validate the performance of CTO through extensive experiments conducted on seven challenging medical image segmentation datasets, namely ISIC 2016, PH2, ISIC 2018, CoNIC, LiTS17, and BTCV. Our experimental results unequivocally demonstrate that CTO achieves state-of-the-art accuracy on these datasets while maintaining competitive model complexity. The codes have been released at: https://github.com/xiaofang007/CTO."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2304.10517v3",
             "title": "Segment Anything Model for Medical Image Analysis: an Experimental Study",
             "url": "https://arxiv.org/pdf/2304.10517v3",
-            "source": "arxiv",
-            "abstract": "Training segmentation models for medical images continues to be challenging due to the limited availability of data annotations. Segment Anything Model (SAM) is a foundation model that is intended to segment user-defined objects of interest in an interactive manner. While the performance on natural images is impressive, medical image domains pose their own set of challenges. Here, we perform an extensive evaluation of SAM's ability to segment medical images on a collection of 19 medical imaging datasets from various modalities and anatomies. We report the following findings: (1) SAM's performance based on single prompts highly varies depending on the dataset and the task, from IoU=0.1135 for spine MRI to IoU=0.8650 for hip X-ray. (2) Segmentation performance appears to be better for well-circumscribed objects with prompts with less ambiguity and poorer in various other scenarios such as the segmentation of brain tumors. (3) SAM performs notably better with box prompts than with point prompts. (4) SAM outperforms similar methods RITM, SimpleClick, and FocalClick in almost all single-point prompt settings. (5) When multiple-point prompts are provided iteratively, SAM's performance generally improves only slightly while other methods' performance improves to the level that surpasses SAM's point-based performance. We also provide several illustrations for SAM's performance on all tested datasets, iterative segmentation, and SAM's behavior given prompt ambiguity. We conclude that SAM shows impressive zero-shot segmentation performance for certain medical imaging datasets, but moderate to poor performance for others. SAM has the potential to make a significant impact in automated medical image segmentation in medical imaging, but appropriate care needs to be applied when using it."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2302.02125v1",
             "title": "Weakly-Supervised 3D Medical Image Segmentation using Geometric Prior and Contrastive Similarity",
             "url": "https://arxiv.org/pdf/2302.02125v1",
-            "source": "arxiv",
-            "abstract": "Medical image segmentation is almost the most important pre-processing procedure in computer-aided diagnosis but is also a very challenging task due to the complex shapes of segments and various artifacts caused by medical imaging, (i.e., low-contrast tissues, and non-homogenous textures). In this paper, we propose a simple yet effective segmentation framework that incorporates the geometric prior and contrastive similarity into the weakly-supervised segmentation framework in a loss-based fashion. The proposed geometric prior built on point cloud provides meticulous geometry to the weakly-supervised segmentation proposal, which serves as better supervision than the inherent property of the bounding-box annotation (i.e., height and width). Furthermore, we propose contrastive similarity to encourage organ pixels to gather around in the contrastive embedding space, which helps better distinguish low-contrast tissues. The proposed contrastive embedding space can make up for the poor representation of the conventionally-used gray space. Extensive experiments are conducted to verify the effectiveness and the robustness of the proposed weakly-supervised segmentation framework. The proposed framework is superior to state-of-the-art weakly-supervised methods on the following publicly accessible datasets: LiTS 2017 Challenge, KiTS 2021 Challenge, and LPBA40. We also dissect our method and evaluate the performance of each component."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -1172,22 +1118,19 @@
             "paper_id": "http://arxiv.org/abs/2506.08266v1",
             "title": "Reinforcement Learning from Human Feedback with High-Confidence Safety Constraints",
             "url": "https://arxiv.org/pdf/2506.08266v1",
-            "source": "arxiv",
-            "abstract": "Existing approaches to language model alignment often treat safety as a tradeoff against helpfulness, which can lead to unacceptable responses in sensitive domains. To ensure reliable performance in such settings, we propose High-Confidence Safe Reinforcement Learning from Human Feedback (HC-RLHF), a method that provides high-confidence safety guarantees while maximizing helpfulness. Similar to previous methods, HC-RLHF explicitly decouples human preferences into helpfulness and harmlessness (safety), which are learned by training a reward model and a cost model, respectively. It then employs a two-step process to find safe solutions. In the first step, it optimizes the reward function under an intentionally pessimistic version of the cost constraint. In the second step, the trained model undergoes a safety test to verify whether its performance stays within an upper-confidence bound of the actual cost constraint. We provide a theoretical analysis of HC-RLHF, including proof that it will not return an unsafe solution with a probability greater than a user-specified threshold. For our empirical analysis, we apply HC-RLHF to align three different language models (Qwen2-1.5B, Qwen2.5-3B, and LLaMa3.2-3B) with human preferences. Our results demonstrate that HC-RLHF produces safe models with high probability and can improve harmlessness and helpfulness compared to previous methods."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/1808.04096v1",
             "title": "Directed Policy Gradient for Safe Reinforcement Learning with Human Advice",
             "url": "https://arxiv.org/pdf/1808.04096v1",
-            "source": "arxiv",
-            "abstract": "Many currently deployed Reinforcement Learning agents work in an environment shared with humans, be them co-workers, users or clients. It is desirable that these agents adjust to people's preferences, learn faster thanks to their help, and act safely around them. We argue that most current approaches that learn from human feedback are unsafe: rewarding or punishing the agent a-posteriori cannot immediately prevent it from wrong-doing. In this paper, we extend Policy Gradient to make it robust to external directives, that would otherwise break the fundamentally on-policy nature of Policy Gradient. Our technique, Directed Policy Gradient (DPG), allows a teacher or backup policy to override the agent before it acts undesirably, while allowing the agent to leverage human advice or directives to learn faster. Our experiments demonstrate that DPG makes the agent learn much faster than reward-based approaches, while requiring an order of magnitude less advice."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2607.24057v1",
             "title": "Constrained Reinforcement Learning Using Successor Representations",
             "url": "https://arxiv.org/pdf/2607.24057v1",
-            "source": "arxiv",
-            "abstract": "Real-world Reinforcement Learning depends on the ability to formulate safety constraints into a policy. A common way to model such constraints is to introduce an additional cost signal in the Markov Decision Process, which notifies the agent of unwanted behavior independently of the reward signal. Unfortunately, current methods are hard to adapt to changes in the cost function introduced by, e.g., domain shift or obstacles moving over time. The lack of adaptability means that policies are too unflexible to deal with complex real-world conditions. We propose the Safe Deep Successor Representation (SafeDSR), a novel method that allows quick retraining of policies towards new cost structures. SafeDSR extends the Deep Successor Representation (Kulkarni et al., 2016) to Constrained Reinforcement Learning by introducing a single learnable weight matrix to decouple the learned value function across dynamics, rewards, and costs. This matrix can be updated in a supervised manner instead of having to adapt the whole network if the cost structure of the environment changes. We demonstrate this ability in a freely configurable two-dimensional navigation environment and show that our method is competitive on a simple navigation task while being considerably more flexible"
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -1234,22 +1177,19 @@
             "paper_id": "http://arxiv.org/abs/2307.01875v1",
             "title": "Approximate, Adapt, Anonymize (3A): a Framework for Privacy Preserving Training Data Release for Machine Learning",
             "url": "https://arxiv.org/pdf/2307.01875v1",
-            "source": "arxiv",
-            "abstract": "The availability of large amounts of informative data is crucial for successful machine learning. However, in domains with sensitive information, the release of high-utility data which protects the privacy of individuals has proven challenging. Despite progress in differential privacy and generative modeling for privacy-preserving data release in the literature, only a few approaches optimize for machine learning utility: most approaches only take into account statistical metrics on the data itself and fail to explicitly preserve the loss metrics of machine learning models that are to be subsequently trained on the generated data. In this paper, we introduce a data release framework, 3A (Approximate, Adapt, Anonymize), to maximize data utility for machine learning, while preserving differential privacy. We also describe a specific implementation of this framework that leverages mixture models to approximate, kernel-inducing points to adapt, and Gaussian differential privacy to anonymize a dataset, in order to ensure that the resulting data is both privacy-preserving and high utility. We present experimental evidence showing minimal discrepancy between performance metrics of models trained on real versus privatized datasets, when evaluated on held-out real data. We also compare our results with several privacy-preserving synthetic data generation models (such as differentially private generative adversarial networks), and report significant increases in classification performance metrics compared to state-of-the-art models. These favorable comparisons show that the presented framework is a promising direction of research, increasing the utility of low-risk synthetic data release for machine learning."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2507.10489v1",
             "title": "SynthGuard: Redefining Synthetic Data Generation with a Scalable and Privacy-Preserving Workflow Framework",
             "url": "https://arxiv.org/pdf/2507.10489v1",
-            "source": "arxiv",
-            "abstract": "The growing reliance on data-driven applications in sectors such as healthcare, finance, and law enforcement underscores the need for secure, privacy-preserving, and scalable mechanisms for data generation and sharing. Synthetic data generation (SDG) has emerged as a promising approach but often relies on centralized or external processing, raising concerns about data sovereignty, domain ownership, and compliance with evolving regulatory standards. To overcome these issues, we introduce SynthGuard, a framework designed to ensure computational governance by enabling data owners to maintain control over SDG workflows. SynthGuard supports modular and privacy-preserving workflows, ensuring secure, auditable, and reproducible execution across diverse environments. In this paper, we demonstrate how SynthGuard addresses the complexities at the intersection of domain-specific needs and scalable SDG by aligning with requirements for data sovereignty and regulatory compliance. Developed iteratively with domain expert input, SynthGuard has been validated through real-world use cases, demonstrating its ability to balance security, privacy, and scalability while ensuring compliance. The evaluation confirms its effectiveness in implementing and executing SDG workflows and integrating privacy and utility assessments across various computational environments."
+            "source": "arxiv"
           },
           {
             "paper_id": "http://arxiv.org/abs/2409.16382v1",
             "title": "Towards Synthetic Data Generation for Improved Pain Recognition in Videos under Patient Constraints",
             "url": "https://arxiv.org/pdf/2409.16382v1",
-            "source": "arxiv",
-            "abstract": "Recognizing pain in video is crucial for improving patient-computer interaction systems, yet traditional data collection in this domain raises significant ethical and logistical challenges. This study introduces a novel approach that leverages synthetic data to enhance video-based pain recognition models, providing an ethical and scalable alternative. We present a pipeline that synthesizes realistic 3D facial models by capturing nuanced facial movements from a small participant pool, and mapping these onto diverse synthetic avatars. This process generates 8,600 synthetic faces, accurately reflecting genuine pain expressions from varied angles and perspectives. Utilizing advanced facial capture techniques, and leveraging public datasets like CelebV-HQ and FFHQ-UV for demographic diversity, our new synthetic dataset significantly enhances model training while ensuring privacy by anonymizing identities through facial replacements. Experimental results demonstrate that models trained on combinations of synthetic data paired with a small amount of real participants achieve superior performance in pain recognition, effectively bridging the gap between synthetic simulations and real-world applications. Our approach addresses data scarcity and ethical concerns, offering a new solution for pain detection and opening new avenues for research in privacy-preserving dataset generation. All resources are publicly available to encourage further innovation in this field."
+            "source": "arxiv"
           }
         ],
         "outputs": [
@@ -1289,5 +1229,6 @@
         ]
       }
     ]
-  }
+  },
+  "historical_results_label": "Historical local Gemma-2B results; corpus abstracts were removed from this artifact."
 }

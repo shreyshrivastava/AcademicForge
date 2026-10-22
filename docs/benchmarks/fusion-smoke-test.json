@@ -151,12 +151,12 @@
     }
   ],
   "cache_files": [
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_corpus_bge.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_queries_20.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_dense_scores_20.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_bm25_scores_20.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_stem_bm25_scores_20.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/scifact_train_query_ids_20.json"
+    "./.academicforge_cache/fusion/scifact_corpus_bge.npy",
+    "./.academicforge_cache/fusion/scifact_train_queries_20.npy",
+    "./.academicforge_cache/fusion/scifact_train_dense_scores_20.npy",
+    "./.academicforge_cache/fusion/scifact_train_bm25_scores_20.npy",
+    "./.academicforge_cache/fusion/scifact_train_stem_bm25_scores_20.npy",
+    "./.academicforge_cache/fusion/scifact_train_query_ids_20.json"
   ],
   "source_sha256": {
     "backend/retrieval/bm25.py": "0972967b71360e40719f89de5ef9d06858af9cfd10df9934c2f43717ec2674af",

@@ -5,12 +5,12 @@
   "queries": 20,
   "dataset_sha256": "efe5be03f8c5b86a5870102d0599d227c8c6e2484328e68c6522560385671b0b",
   "cache_files": [
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_corpus_bge.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_queries_20.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_dense_scores_20.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_bm25_scores_20.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_stem_bm25_scores_20.npy",
-    "/Users/shreyshrivastava/Projects/AcademicForge/.academicforge_cache/fusion/nfcorpus_test_query_ids_20.json"
+    "./.academicforge_cache/fusion/nfcorpus_corpus_bge.npy",
+    "./.academicforge_cache/fusion/nfcorpus_test_queries_20.npy",
+    "./.academicforge_cache/fusion/nfcorpus_test_dense_scores_20.npy",
+    "./.academicforge_cache/fusion/nfcorpus_test_bm25_scores_20.npy",
+    "./.academicforge_cache/fusion/nfcorpus_test_stem_bm25_scores_20.npy",
+    "./.academicforge_cache/fusion/nfcorpus_test_query_ids_20.json"
   ],
   "stage_seconds": {
     "cache": 78.63156745798187,
