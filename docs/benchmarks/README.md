@@ -84,7 +84,7 @@ The original local-Gemma run contains 20 outputs and 63 sentence-level screening
 python -m benchmarks.faithfulness --device cuda --controls-from docs/benchmarks/faithfulness.json
 ```
 
-The resulting [control artifact](faithfulness_controls.json) reports real-support, mismatched-support, injected-claim flagging, and reversed-conclusion flagging at thresholds 0.50 through 0.80. If reversed conclusions remain unflagged, cosine similarity cannot distinguish them; use an entailment/contradiction model or human review. The blind sheet is built with:
+The resulting [control artifact](faithfulness_controls.json) reports real-support, mismatched-support, injected-claim flagging, and reversed-conclusion flagging at thresholds 0.50 through 0.80. On the local MPS run, the selected 0.80 threshold marked 65.1% of real sentences supported, 0% of mismatched sentences supported, 100% of injected unsupported claims flagged, and 85% of reversed conclusions flagged. This remains a screening heuristic: the 15% of reversed conclusions not flagged show that semantic similarity alone cannot establish factuality. The blind sheet is built with:
 
 ```bash
 python -m scripts.build_human_eval

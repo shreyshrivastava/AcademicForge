@@ -31,7 +31,7 @@ The runner records nDCG@10, Recall@10, MRR@10, 1,000-resample bootstrap confiden
 
 ### Generated-output faithfulness screen
 
-On 21 October 2026, the local `mlx-community/gemma-2-2b-it-4bit` model completed 20 fixed-query summaries. Its 63 sentence-level BGE similarity decisions are a screening heuristic, not proof of factual correctness: similarity can accept related or contradicted claims. The [artifact](docs/benchmarks/faithfulness.json), [control method](benchmarks/faithfulness.py), and [blind human-evaluation builder](scripts/build_human_eval.py) retain auditable inputs and limitations. Run the controls before making a support-rate claim.
+The local `mlx-community/gemma-2-2b-it-4bit` model completed 20 fixed-query summaries. Its 63 sentence-level BGE similarity decisions are a screening heuristic, not proof of factual correctness. The local control run selected a 0.80 similarity threshold: it marked 65.1% of real sentences supported, 0% of mismatched sentences supported, 100% of injected unsupported claims flagged, and 85% of reversed conclusions flagged. The unflagged reversals mean similarity alone cannot establish factuality. The [artifact](docs/benchmarks/faithfulness.json), [control results](docs/benchmarks/faithfulness_controls.json), [control method](benchmarks/faithfulness.py), and [blind human-evaluation builder](scripts/build_human_eval.py) retain auditable inputs and limitations.
 
 ### Real example
 
