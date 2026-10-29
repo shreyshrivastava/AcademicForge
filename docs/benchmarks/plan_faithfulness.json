@@ -1,0 +1,367 @@
+{
+  "benchmark": "AcademicForge Research Plan citation-faithfulness screen",
+  "generated_at": "2026-10-29T19:03:59.439702+00:00",
+  "inputs": {
+    "query_fixture": "benchmarks/queries.json",
+    "query_fixture_sha256": "9d4acb9815ad40569761d12a7a1ea68c9158f8fc0f58f54aba672339e838e49e",
+    "frozen_input_sha256": "1f706a09a6d5900811ec46cb24276a2f0bdf9982466b6dce0edc6426e2d79372",
+    "queries": 10,
+    "papers_per_query": 3
+  },
+  "model": "mlx-community/gemma-2-2b-it-4bit",
+  "method": {
+    "citation_membership": "Every plan citation index must refer to a selected paper.",
+    "key_findings_coverage": "Every Key Findings bullet should contain a selected-paper citation.",
+    "limitation": "These checks do not establish that a cited paper entails a claim; human or NLI review is still required."
+  },
+  "summary": {
+    "plans": 10,
+    "plans_with_only_selected_paper_citations": 10,
+    "plans_with_all_key_findings_cited": 7,
+    "key_finding_bullets": 50,
+    "cited_key_finding_bullets": 43,
+    "key_findings_citation_coverage": 0.86
+  },
+  "plans": [
+    {
+      "id": "q01",
+      "query": "retrieval augmented generation factuality",
+      "papers": [
+        {
+          "paper_id": "http://arxiv.org/abs/2605.05244v1",
+          "title": "Towards Dependable Retrieval-Augmented Generation Using Factual Confidence Prediction"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2604.22843v1",
+          "title": "Structure Guided Retrieval-Augmented Generation for Factual Queries"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2604.12138v5",
+          "title": "Retrieval-Augmented Generation Must Move Beyond Factual Grounding to Represent Diverse Opinions"
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe papers highlight a growing need to move beyond simple factual grounding in RAG systems. Existing systems often optimize for reducing epistemic uncertainty, ignoring the inherent aleatoric uncertainty in opinion-rich content. This leads to a factual bias, potentially erasing minority voices and enabling opinion manipulation. The papers propose a shift towards representing diverse opinions and incorporating uncertainty quantification into RAG systems. This approach aims to address the limitations of traditional factual grounding and enhance the robustness of RAG systems.\n# Key Findings\n*  [3] argues that RAG systems should move beyond factual grounding to represent diverse opinions, addressing the limitations of traditional factual grounding.\n*  [3] proposes a novel approach to opinion-aware retrieval through uncertainty quantification and derives a unified objective using the Wasserstein distance.\n*  [2] introduces the Exact Retrieval Problem (ERP) to address the challenge of ensuring that generated responses fully satisfy the complex conditions specified by factual queries.\n*  [1] proposes a two-staged approach to predict fact faithfulness of the output of retrieval-augmented generations, incorporating conformal prediction to select only those retrieved chunks who have a high chance to come from the correct source.\n*  [1] introduces a new, two-staged approach to predict fact faithfulness of the output of retrieval-augmented generations, incorporating conformal prediction to select only those retrieved chunks who have a high chance to come from the correct source.\n# Research Gaps\n*  Existing RAG systems primarily rely on vector similarity for retrieval, which is prone to semantic noise and fails to ensure that generated responses fully satisfy the complex conditions specified by factual queries.\n*  The exact formulation of the Exact Retrieval Problem (ERP) and its impact on RAG system performance remains largely unexplored.\n*  The proposed approach of incorporating uncertainty quantification into RAG systems requires further research on the optimal methods and their impact on system performance.\n*  The impact of incorporating diverse opinions into RAG systems on the generation of factually accurate and unbiased responses remains unclear.\n*  The practical implementation of opinion-aware retrieval and its integration with existing RAG systems requires further research and development.\n# Recommended Build\nRecommended Architecture:\nA hybrid architecture combining both factual grounding and opinion-aware retrieval. This architecture would leverage the strengths of both approaches, incorporating factual grounding for accurate factual information and opinion-aware retrieval for capturing diverse opinions and ensuring unbiased responses.\nCore Components:\n*  Factual grounding module:  Utilizing a factual grounding model like BERT or GPT-3 to identify and extract factual information from the retrieved documents.\n*  Opinion-aware retrieval module:  Integrating a model like BERT or GPT-3 with a novel opinion-aware retrieval module that incorporates uncertainty quantification and a unified objective using the Wasserstein distance.\n*  Fact faithfulness prediction module:  Employing a model like BERT or GPT-3 to predict the fact faithfulness of the generated responses.\nDeployment Considerations:\n*  Training data:  The model should be trained on a large dataset of factual and opinion-rich text data to ensure robust performance.\n*  Evaluation metrics:  The model's performance should be evaluated using metrics like BLEU, ROUGE, and METEOR, which measure the similarity between generated text and reference text.\n*  Fine-tuning:  The model should be fine-tuned on a specific domain or task to improve its performance.\n# Builder Guidance\n*  Consider using BERT or GPT-3 as a base model for factual grounding and opinion-aware retrieval.\n*  Explore different methods for uncertainty quantification and their impact on system performance.\n*  Experiment with various opinion-aware retrieval techniques and their impact on factual accuracy and bias.\n*  Evaluate the model's performance using a combination of metrics like BLEU, ROUGE, and METEOR.\n*  Fine-tune the model on a specific domain or task to improve its performance.\n\n## Selected evidence\n[1] [Towards Dependable Retrieval-Augmented Generation Using Factual Confidence Prediction](https://arxiv.org/pdf/2605.05244v1) — Florian Geissler, Francesco Carella, Laura Fieback\n[2] [Structure Guided Retrieval-Augmented Generation for Factual Queries](https://arxiv.org/pdf/2604.22843v1) — Miao Xie, Xiao Zhang, Yi Li\n[3] [Retrieval-Augmented Generation Must Move Beyond Factual Grounding to Represent Diverse Opinions](https://arxiv.org/pdf/2604.12138v5) — Aditya Agrawal, Alwarappan Nakkiran, Aman Singh Thakur",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 5,
+        "coverage": 1.0
+      }
+    },
+    {
+      "id": "q02",
+      "query": "multimodal hallucination mitigation",
+      "papers": [
+        {
+          "paper_id": "http://arxiv.org/abs/2604.17982v1",
+          "title": "Mitigating Multimodal Hallucination via Phase-wise Self-reward"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2506.11712v3",
+          "title": "Mitigating Hallucination Through Theory-Consistent Symmetric Multimodal Preference Optimization"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2402.14545v2",
+          "title": "Less is More: Mitigating Multimodal Hallucination from an EOS Decision Perspective"
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe research focus is on mitigating multimodal hallucinations by understanding the dynamic patterns of hallucination emergence. The papers highlight the need for dynamic, phase-wise approaches to address this issue, moving away from static post-hoc strategies.\n# Key Findings\n*  Existing methods for hallucination mitigation often rely on large-scale annotated data for fine-tuning, which incurs massive computational overhead. [1]\n*  Direct Preference Optimization (DPO) has emerged as an effective approach for mitigating hallucination in Multimodal Large Language Models (MLLMs), but it suffers from non-rigorous optimization objective function and indirect preference supervision. [2]\n*  The model's decision to terminate generation with EOS is based on its visual perception, suggesting the model possesses an inherent potential of making proper EOS decisions based on its visual perception to avoid overly lengthy outputs. [3]\n*  Phase-wise self-rewarding frameworks enable dynamic hallucination mitigation at inference time without external supervision. [1]\n*  Symmetric Multimodal Preference Optimization (SymMPO) conducts symmetric preference learning with direct preference supervision (i.e., response pairs) for visual understanding enhancement, while maintaining rigorous theoretical alignment with standard DPO. [2]\n# Research Gaps\n*  The papers lack a comprehensive understanding of the optimal phase-wise self-rewarding framework for different hallucination scenarios. [1]\n*  The papers do not provide a clear understanding of how to effectively integrate the model's EOS decision with the self-rewarding framework. [3]\n*  The papers do not provide a clear understanding of the trade-offs between different self-rewarding strategies and their impact on model performance. [1]\n*  The papers do not provide a clear understanding of how to effectively evaluate the performance of the proposed self-rewarding framework in a real-world setting. [1]\n*  The papers do not provide a clear understanding of the potential impact of the proposed self-rewarding framework on model training efficiency and model size. [1]\n# Recommended Build\nRecommended Architecture:\nA multimodal hallucination mitigation system can be built based on a combination of phase-wise self-rewarding and a robust model termination strategy.\nCore Components:\n*  Phase-wise self-rewarding framework: This framework dynamically rewards the model for generating text that aligns with the visual input, penalizing it for generating inconsistent outputs.\n*  Model termination strategy: This strategy utilizes the model's EOS decision to terminate generation based on its visual perception, ensuring that the model does not generate overly lengthy outputs.\n*  Symmetric Multimodal Preference Optimization (SymMPO): This component utilizes direct preference supervision (i.e., response pairs) for visual understanding enhancement, ensuring that the model is aligned with standard DPO.\nDeployment Considerations:\n*  The system should be deployed on a platform that supports efficient model inference, such as cloud-based platforms or edge devices.\n*  The system should be trained on a large dataset of multimodal data, including images and text.\n*  The system should be evaluated in a real-world setting, using metrics such as accuracy, recall, and F1-score.\nEvaluation Strategy:\n*  The system should be evaluated using metrics such as accuracy, recall, and F1-score, which are commonly used in the field of natural language processing.\n*  The system should be evaluated in a real-world setting, using metrics such as accuracy, recall, and F1-score, which are commonly used in the field of natural language processing.\n*  The system should be evaluated using a variety of metrics, including accuracy, recall, F1-score, and BLEU score, to assess its performance in different scenarios.\n# Builder Guidance\n*  The system should be trained on a large dataset of multimodal data, including images and text.\n*  The system should be evaluated in a real-world setting, using metrics such as accuracy, recall, and F1-score, which are commonly used in the field of natural language processing.\n*  The system should be evaluated using a variety of metrics, including accuracy, recall, F1-score, and BLEU score, to assess its performance in different scenarios.\n*  The system should be deployed on a platform that supports efficient model inference, such as cloud-based platforms or edge devices.\n*  The system should be evaluated using metrics such as accuracy, recall, and F1-score, which are commonly used in the field of natural language processing.\n\n## Selected evidence\n[1] [Mitigating Multimodal Hallucination via Phase-wise Self-reward](https://arxiv.org/pdf/2604.17982v1) — Yu Zhang, Chuyang Sun, Kehai Chen\n[2] [Mitigating Hallucination Through Theory-Consistent Symmetric Multimodal Preference Optimization](https://arxiv.org/pdf/2506.11712v3) — Wenqi Liu, Xuemeng Song, Jiaxi Li\n[3] [Less is More: Mitigating Multimodal Hallucination from an EOS Decision Perspective](https://arxiv.org/pdf/2402.14545v2) — Zihao Yue, Liang Zhang, Qin Jin",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 5,
+        "coverage": 1.0
+      }
+    },
+    {
+      "id": "q03",
+      "query": "parameter efficient fine tuning language models",
+      "papers": [
+        {
+          "paper_id": "http://arxiv.org/abs/2305.15212v1",
+          "title": "Towards Adaptive Prefix Tuning for Parameter-Efficient Language Model Fine-tuning"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2411.04425v3",
+          "title": "DELIFT: Data Efficient Language model Instruction Fine Tuning"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2312.12148v1",
+          "title": "Parameter-Efficient Fine-Tuning Methods for Pretrained Language Models: A Critical Review and Assessment"
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe literature focuses on parameter-efficient fine-tuning methods for pretrained language models, particularly large language models (LLMs). The research direction aims to optimize model performance and reduce computational demands by reducing the number of fine-tuning parameters and memory usage.\n# Key Findings\n*  Adaptive Prefix Tuning (APT) [1] proposes a layer-aware approach to optimize model performance by adjusting the prefix vector based on layer-specific syntax and semantics.\n*  DELIFT [2] addresses the inefficiency of traditional fine-tuning by systematically optimizing data selection across all stages of fine-tuning, including instruction tuning, task-specific fine-tuning, and continual fine-tuning.\n*  PEFT methods [3] offer an effective solution by reducing the number of fine-tuning parameters and memory usage while achieving comparable performance to full fine-tuning.\n*  The papers highlight the need for further research on data selection strategies and their impact on model performance.\n*  The papers emphasize the importance of developing efficient and scalable methods for parameter-efficient fine-tuning, especially for large language models.\n# Research Gaps\n*  The papers lack a comprehensive analysis of the impact of different data selection strategies on model performance across various downstream tasks.\n*  The papers do not provide a clear framework for evaluating the effectiveness of parameter-efficient fine-tuning methods in real-world scenarios.\n*  The papers do not discuss the potential trade-offs between model performance and computational efficiency when implementing parameter-efficient fine-tuning methods.\n*  The papers do not address the challenges of deploying parameter-efficient fine-tuned models in resource-constrained environments.\n*  The papers do not provide a clear understanding of the optimal strategies for incorporating new data versions into the fine-tuning process.\n# Recommended Build\nRecommended Architecture:\nA modular architecture that combines the best practices from Adaptive Prefix Tuning, Data Efficient Language model Instruction Fine Tuning, and Parameter-Efficient Fine-Tuning methods.\nCore Components:\n*  Adaptive Prefix Tuning module:  Applies adaptive prefix vectors based on layer-specific syntax and semantics.\n*  Data Selection module:  Optimizes data selection across all stages of fine-tuning, including instruction tuning, task-specific fine-tuning, and continual fine-tuning.\n*  PEFT module:  Applies parameter-efficient fine-tuning techniques to reduce the number of fine-tuning parameters and memory usage.\nDeployment Considerations:\n*  The architecture should be designed to be easily scalable and deployable across various hardware platforms.\n*  The architecture should be optimized for efficient data processing and model inference.\n*  The architecture should be designed to be adaptable to new data versions and tasks.\nEvaluation Strategy:\n*  The architecture should be evaluated using a comprehensive set of metrics, including accuracy, precision, recall, F1-score, and training time.\n*  The architecture should be evaluated in a variety of downstream tasks and environments, including real-world scenarios.\n*  The architecture should be evaluated using both quantitative and qualitative metrics.\n# Builder Guidance\n*  The architecture should be implemented using a robust and efficient deep learning framework, such as TensorFlow or PyTorch.\n*  The architecture should be trained on a large and diverse dataset of text data.\n*  The architecture should be evaluated using a variety of metrics and benchmarks.\n*  The architecture should be deployed on a cloud platform or edge device, depending on the specific requirements.\n*  The architecture should be continuously monitored and evaluated to ensure its performance and accuracy over time.\n\n## Selected evidence\n[1] [Towards Adaptive Prefix Tuning for Parameter-Efficient Language Model Fine-tuning](https://arxiv.org/pdf/2305.15212v1) — Zhen-Ru Zhang, Chuanqi Tan, Haiyang Xu\n[2] [DELIFT: Data Efficient Language model Instruction Fine Tuning](https://arxiv.org/pdf/2411.04425v3) — Ishika Agarwal, Krishnateja Killamsetty, Lucian Popa\n[3] [Parameter-Efficient Fine-Tuning Methods for Pretrained Language Models: A Critical Review and Assessment](https://arxiv.org/pdf/2312.12148v1) — Lingling Xu, Haoran Xie, Si-Zhao Joe Qin",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 3,
+        "coverage": 0.6
+      }
+    },
+    {
+      "id": "q04",
+      "query": "solar energy forecasting machine learning",
+      "papers": [
+        {
+          "paper_id": "http://arxiv.org/abs/1801.05744v1",
+          "title": "Forecasting Solar Flares Using Magnetogram-based Predictors and Machine Learning"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2604.21982v1",
+          "title": "Forecasting Solar Energy Using a Single Image"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2605.09842v1",
+          "title": "Yield Curve Forecasting using Machine Learning and Econometrics: A Comparative Analysis"
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe main technical direction emerging from the papers is the application of machine learning techniques to solar energy forecasting, specifically focusing on solar energy forecasting. The papers explore various machine learning models and techniques, including traditional statistical methods and deep learning algorithms, to predict solar energy production.\n# Key Findings\n*  The papers highlight the potential of machine learning in forecasting solar energy production, as it can accurately predict irradiance based on visual cues in a single image. [2]\n*  The papers suggest that machine learning can be used to forecast solar energy production by analyzing historical yield curve data, as it can accurately predict yield curve trends. [3]\n*  The papers suggest that machine learning can be used to forecast solar energy production by analyzing historical yield curve data, as it can accurately predict yield curve trends. [3]\n*  The papers suggest that machine learning can be used to forecast solar energy production by analyzing historical yield curve data, as it can accurately predict yield curve trends. [3]\n*  The papers suggest that machine learning can be used to forecast solar energy production by analyzing historical yield curve data, as it can accurately predict yield curve trends. [3]\n# Research Gaps\n*  The papers do not provide a detailed analysis of the impact of different machine learning models on solar energy forecasting accuracy. [1]\n*  The papers do not provide a detailed analysis of the impact of different machine learning models on solar energy forecasting accuracy. [1]\n*  The papers do not provide a detailed analysis of the impact of different machine learning models on solar energy forecasting accuracy. [1]\n*  The papers do not provide a detailed analysis of the impact of different machine learning models on solar energy forecasting accuracy. [1]\n*  The papers do not provide a detailed analysis of the impact of different machine learning models on solar energy forecasting accuracy. [1]\n# Recommended Build\nRecommended Architecture:\nA hybrid architecture combining traditional statistical methods and deep learning algorithms could be a promising approach for solar energy forecasting. This architecture could leverage the strengths of both approaches, allowing for accurate prediction of solar energy production based on historical data and advanced machine learning techniques.\nCore Components:\n*  A time-series model based on traditional statistical methods, such as ARIMA or SARIMA, to capture the time-dependent patterns in solar energy production.\n*  A deep learning model, such as a convolutional neural network (CNN), to learn complex relationships between solar irradiance and other relevant factors, such as cloud cover, temperature, and wind speed.\n*  A feature selection algorithm to identify the most relevant features for prediction, based on statistical analysis and domain expertise.\nDeployment Considerations:\n*  The model should be deployed on a cloud platform, such as AWS, Azure, or Google Cloud, to ensure scalability and availability.\n*  The model should be regularly updated with new data to maintain accuracy over time.\n*  The model should be monitored for performance and accuracy, and any necessary adjustments should be made.\nEvaluation Strategy:\n*  The model should be evaluated using a hold-out dataset, where a portion of the data is held back from training and used for testing.\n*  The model should be evaluated using metrics such as mean squared error (MSE) and R-squared to assess its accuracy.\n*  The model should be evaluated using a hold-out dataset, where a portion of the data is held back from training and used for testing.\n# Builder Guidance\n*  Explore different machine learning models, such as CNN, RNN, and LSTM, to determine the most suitable model for solar energy forecasting.\n*  Experiment with different feature selection techniques, such as feature importance analysis and random forest, to identify the most relevant features for prediction.\n*  Use a cloud platform, such as AWS, Azure, or Google Cloud, to deploy the model and ensure scalability and availability.\n*  Regularly update the model with new data to maintain accuracy over time.\n*  Monitor the model's performance and accuracy, and make any necessary adjustments.\n\n## Selected evidence\n[1] [Forecasting Solar Flares Using Magnetogram-based Predictors and Machine Learning](https://arxiv.org/pdf/1801.05744v1) — Kostas Florios, Ioannis Kontogiannis, Sung-Hong Park\n[2] [Forecasting Solar Energy Using a Single Image](https://arxiv.org/pdf/2604.21982v1) — Jeremy Klotz, Shree K. Nayar\n[3] [Yield Curve Forecasting using Machine Learning and Econometrics: A Comparative Analysis](https://arxiv.org/pdf/2605.09842v1) — Aman Singh, Tokunbo Ogunfunmi, Sanjiv Das",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 5,
+        "coverage": 1.0
+      }
+    },
+    {
+      "id": "q05",
+      "query": "obesity intervention diet exercise nutrition",
+      "papers": [
+        {
+          "paper_id": "http://arxiv.org/abs/2308.02796v1",
+          "title": "OBESEYE: Interpretable Diet Recommender for Obesity Management using Machine Learning and Explainable AI"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/1709.07916v1",
+          "title": "Characterizing Diabetes, Diet, Exercise, and Obesity Comments on Twitter"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2405.10746v2",
+          "title": "Causality in the Can: Diet Coke's Impact on Fatness"
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe main technical direction emerging from the papers is the development of causal inference methods for analyzing the impact of diet, exercise, and other lifestyle factors on obesity. The papers highlight the need for robust methods to understand the causal relationship between these factors and obesity, moving beyond association-based methods and towards structural causal models.\n# Key Findings\n*  The papers emphasize the need for causal inference methods to understand the causal relationship between diet, exercise, and obesity. [3]\n*  Structural causal models are proposed as a powerful tool for analyzing the impact of diet, exercise, and other lifestyle factors on obesity. [3]\n*  Observational and Randomized Controlled Trial (RCT) data are crucial for causal inference methods, as they provide a more accurate understanding of the causal relationship between Diet Coke consumption and obesity. [3]\n*  The papers suggest that social media data, like Twitter, can be a valuable source of information for understanding public health opinions on diet, exercise, and obesity. [2]\n*  The papers highlight the need for developing interpretable diet recommender systems that can provide personalized recommendations based on individual needs and preferences. [1]\n# Research Gaps\n*  The papers primarily focus on the causal relationship between diet, exercise, and obesity, leaving potential gaps in understanding the impact of other lifestyle factors such as sleep, stress, and genetics.\n*  The papers lack a comprehensive evaluation strategy for assessing the effectiveness of causal inference methods in real-world settings.\n*  The papers do not provide specific recommendations for implementing causal inference methods in a practical, scalable, and user-friendly manner.\n*  The papers do not discuss the potential challenges and limitations of using social media data for understanding public health opinions on diet, exercise, and obesity.\n*  The papers do not discuss the potential for bias in social media data and how to mitigate it.\n# Recommended Build\nRecommended Architecture:\nA hybrid architecture combining causal inference methods with a user-friendly recommendation system is recommended. This architecture should leverage both observational and RCT data to understand the causal relationship between diet, exercise, and obesity.\nCore Components:\n*  Structural Causal Model (SCM)\n*  Machine Learning (ML) model for personalized diet recommendations\n*  Social Media Data Analysis Module\n*  Data Integration and Management System\nDeployment Considerations:\nThe system should be deployed in a cloud-based environment with robust data storage and processing capabilities.\nEvaluation Strategy:\nThe system should be evaluated through rigorous testing and validation using real-world data and user feedback.\n# Builder Guidance\nThe system should be designed with modularity and flexibility in mind, allowing for easy integration of new data sources, algorithms, and features.\n\n## Selected evidence\n[1] [OBESEYE: Interpretable Diet Recommender for Obesity Management using Machine Learning and Explainable AI](https://arxiv.org/pdf/2308.02796v1) — Mrinmoy Roy, Srabonti Das, Anica Tasnim Protity\n[2] [Characterizing Diabetes, Diet, Exercise, and Obesity Comments on Twitter](https://arxiv.org/pdf/1709.07916v1) — Amir Karami, Alicia A. Dahl, Gabrielle Turner-McGrievy\n[3] [Causality in the Can: Diet Coke's Impact on Fatness](https://arxiv.org/pdf/2405.10746v2) — Yicheng Qi, Ang Li",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 5,
+        "coverage": 1.0
+      }
+    },
+    {
+      "id": "q06",
+      "query": "quantum error correction",
+      "papers": [
+        {
+          "paper_id": "http://arxiv.org/abs/1910.03672v1",
+          "title": "Quantum Error Correction"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/0811.3734v1",
+          "title": "Quantum error correction beyond qubits"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/quant-ph/0504189v3",
+          "title": "Operator quantum error correction"
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe main technical direction emerging from the papers is the development and implementation of quantum error correction techniques for quantum operations. The papers explore various approaches, including entanglement-based error correction, operator-based error correction, and the application of decoherence-free subspaces. The focus is on developing robust and efficient error correction methods that can protect quantum states from environmental noise and other forms of corruption.\n# Key Findings\n*  Quantum error correction is a crucial aspect of quantum information processing, ensuring the robustness of quantum operations against environmental noise. [2]\n*  The papers highlight the importance of error correction techniques for protecting fragile quantum states from corruption. [2]\n*  Operator-based error correction offers a new framework for error correction that incorporates existing techniques like the standard error correction model and the method of decoherence-free subspaces. [3]\n*  The papers discuss the potential of using noiseless subsystems to enhance error correction capabilities. [3]\n*  Continuous-variable experimental implementations of quantum error correction codes based on entanglement among optical beams are presented in [2].\n# Research Gaps\n*  The papers do not provide a comprehensive analysis of the performance of different error correction techniques in various quantum systems. [2]\n*  The papers do not discuss the potential of integrating error correction techniques with quantum communication protocols. [2]\n*  The papers do not provide a detailed analysis of the scalability of error correction techniques as the number of qubits increases. [2]\n*  The papers do not discuss the potential of developing error correction techniques that are robust against both decoherence and other forms of noise. [2]\n*  The papers do not discuss the potential of developing error correction techniques that are scalable and efficient in the context of large-scale quantum computers. [2]\n# Recommended Build\nRecommended Architecture:\nA modular architecture that integrates error correction techniques with quantum operations is recommended. This architecture should include components for error detection, correction, and mitigation.\nCore Components:\n*  Decoherence-free subspaces: A key component for error correction, this component should be integrated into the architecture.\n*  Operator-based error correction: This component should be integrated into the architecture and should be used to correct errors in quantum operations.\n*  Entanglement-based error correction: This component should be integrated into the architecture and should be used to correct errors in quantum operations.\nDeployment Considerations:\nThe architecture should be designed for scalability and efficiency, considering the potential for integration with large-scale quantum computers.\nEvaluation Strategy:\nThe evaluation strategy should focus on assessing the performance of the error correction techniques in various quantum systems, including their efficiency, accuracy, and robustness against different noise sources.\n# Builder Guidance\nImplement error correction techniques using the components outlined in the recommended architecture. Consider the following:\n*  Use entanglement-based error correction techniques to protect against decoherence.\n*  Implement operator-based error correction techniques to correct errors in quantum operations.\n*  Use decoherence-free subspaces to enhance error correction capabilities.\n*  Develop a robust error correction system that is scalable and efficient in the context of large-scale quantum computers.\n*  Evaluate the performance of the error correction techniques in various quantum systems.\n\n## Selected evidence\n[1] [Quantum Error Correction](https://arxiv.org/pdf/1910.03672v1) — Todd A. Brun\n[2] [Quantum error correction beyond qubits](https://arxiv.org/pdf/0811.3734v1) — Takao Aoki, Go Takahashi, Tadashi Kajiya\n[3] [Operator quantum error correction](https://arxiv.org/pdf/quant-ph/0504189v3) — David W. Kribs, Raymond Laflamme, David Poulin",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 5,
+        "coverage": 1.0
+      }
+    },
+    {
+      "id": "q07",
+      "query": "gravitational wave detection machine learning",
+      "papers": [
+        {
+          "paper_id": "f9d005019faf23e03695007233c864521771a8f5",
+          "title": "Detection of Gravitational Waves Using Machine Learning"
+        },
+        {
+          "paper_id": "77b5e94014e8f9e6886b4aacfd2446fe55dcdb78",
+          "title": "Machine Learning Applications in Gravitational Wave Astronomy"
+        },
+        {
+          "paper_id": "e8235b43f26997ce5ca680b2a51bbbd84bc8db43",
+          "title": "Applications of machine learning in gravitational-wave research with current interferometric detectors"
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe research focus is on leveraging machine learning techniques, particularly deep learning models, to enhance gravitational wave detection and parameter estimation. The papers highlight the potential of ANN, CNN, and Random Forests in accelerating signal processing, noise reduction, and source parameter estimation. The focus is on developing robust and accurate machine learning models that can be integrated with existing interferometric detectors to improve their performance.\n# Key Findings\n*  Machine learning techniques are being explored for improving gravitational wave detection and parameter estimation. [2]\n*  Machine learning algorithms can be used to optimize detector performance by predicting and mitigating environmental disturbances in real time. [3]\n*  The application of machine learning in gravitational wave research is still in its early stages, but has reached sufficient popularity to warrant an assessment of its impact across various domains. [3]\n*  Deep learning models, such as ANN and CNN, are being explored for their potential in accelerating signal processing, noise reduction, and source parameter estimation. [1]\n*  Autoencoders are being explored as a potential tool for accelerating the computation of surrogate models. [2]\n# Research Gaps\n*  The optimal combination of machine learning techniques for gravitational wave detection and parameter estimation remains an open question. [1]\n*  The performance of machine learning models in real-world gravitational wave detection scenarios needs further investigation. [2]\n*  The development of robust and scalable machine learning models for gravitational wave analysis requires further research. [3]\n*  The integration of machine learning models with existing interferometric detectors requires further investigation. [3]\n*  The impact of machine learning on the cost and efficiency of gravitational wave detection needs further exploration. [3]\n# Recommended Build\nRecommended Architecture:\nA combination of deep learning models, such as ANN and CNN, and traditional machine learning techniques, such as Random Forests, could be used to enhance gravitational wave detection and parameter estimation.\nCore Components:\n*  Deep learning models, such as ANN and CNN, for signal processing, noise reduction, and source parameter estimation.\n*  Traditional machine learning techniques, such as Random Forests, for feature extraction and classification.\n*  Integration with existing interferometric detectors for real-time performance optimization.\nDeployment Considerations:\n*  The deployment of machine learning models in real-world gravitational wave detection scenarios requires careful consideration of data preprocessing, model training, and deployment strategies.\n*  The integration of machine learning models with existing interferometric detectors requires careful consideration of data flow, communication protocols, and system integration.\n*  The development of robust and scalable machine learning models for gravitational wave analysis requires further research.\nEvaluation Strategy:\n*  Performance evaluation of machine learning models should be based on metrics such as accuracy, precision, recall, and F1-score.\n*  The impact of machine learning on the cost and efficiency of gravitational wave detection should be evaluated through simulations and real-world experiments.\n# Builder Guidance\nFor practical implementation, consider using existing machine learning libraries and frameworks, such as TensorFlow, PyTorch, and Scikit-learn, to develop and deploy machine learning models for gravitational wave analysis.\n\n## Selected evidence\n[1] [Detection of Gravitational Waves Using Machine Learning](https://www.semanticscholar.org/paper/f9d005019faf23e03695007233c864521771a8f5) — Aditya Sharma, Inderdeep Kaur, Paurav Goel\n[2] [Machine Learning Applications in Gravitational Wave Astronomy](https://www.semanticscholar.org/paper/77b5e94014e8f9e6886b4aacfd2446fe55dcdb78) — N. Stergioulas\n[3] [Applications of machine learning in gravitational-wave research with current interferometric detectors](https://www.semanticscholar.org/paper/e8235b43f26997ce5ca680b2a51bbbd84bc8db43) — E. Cuoco, M. Cavaglià, I. Heng",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 5,
+        "coverage": 1.0
+      }
+    },
+    {
+      "id": "q08",
+      "query": "CRISPR off target prediction",
+      "papers": [
+        {
+          "paper_id": "http://arxiv.org/abs/2305.06769v1",
+          "title": "Comparative Analysis of Machine Learning Algorithms for Predicting On-Target and Off-Target Effects of CRISPR-Cas13d for gene editing"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2602.16327v1",
+          "title": "Guide-Guard: Off-Target Predicting in CRISPR Applications"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2409.05938v1",
+          "title": "DeepFM-Crispr: Prediction of CRISPR On-Target Effects via Deep Learning"
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe research focus is to develop a robust and accurate off-target prediction model for CRISPR-Cas13d systems. This model should leverage machine learning techniques and incorporate insights from the biological and chemical model of CRISPR-Cas13d. The literature suggests that machine learning models, such as Catboost, DeepFM-Crispr, and Guide-Guard, can effectively predict off-target effects. The papers also highlight the importance of incorporating biological and chemical model information into these models.\n# Key Findings\n*  Catboost is the most accurate model with high sensitivity in predicting on-target and off-target effects of CRISPR-Cas13d. [1]\n*  Guide-Guard, a machine learning based solution, achieves 84% accuracy in predicting off-target behavior of CRISPR-Cas13d systems. [2]\n*  DeepFM-Crispr, a novel deep learning model, is developed to predict the on-target effects of CRISPR-Cas13d systems. [3]\n*  The papers emphasize the need for incorporating biological and chemical model information into machine learning models for accurate off-target prediction. [1, 2, 3]\n*  The papers highlight the importance of training these models on multiple different genes to improve their accuracy and generalization capabilities. [1, 2, 3]\n# Research Gaps\n*  The papers do not provide information on the training data used for these models.\n*  The papers do not discuss the impact of different genetic backgrounds on off-target prediction accuracy.\n*  The papers do not discuss the potential for incorporating additional biological and chemical model information, such as RNA structure and binding affinity, into these models.\n*  The papers do not discuss the potential for incorporating user-specific information, such as desired gene editing targets and desired off-target effects, into these models.\n*  The papers do not discuss the potential for incorporating user-specific information, such as desired gene editing targets and desired off-target effects, into these models.\n# Recommended Build\nRecommended Architecture:\nA hybrid model combining machine learning and biological/chemical model information is recommended. This model should leverage the strengths of both approaches, incorporating machine learning techniques for prediction and incorporating biological/chemical model information for a more accurate and nuanced understanding of off-target effects.\nCore Components:\n*  Catboost model:  Based on the paper [1], this model can be used for off-target prediction.\n*  DeepFM-Crispr model:  Based on the paper [3], this model can be used for off-target prediction.\n*  Guide-Guard model:  Based on the paper [2], this model can be used for off-target prediction.\n*  Biological/chemical model information:  This information can be incorporated into the model through various methods, such as feature engineering, rule-based systems, or expert systems.\nDeployment Considerations:\n*  The model should be deployed as a web service or API, allowing users to input their desired gene and off-target effects.\n*  The model should be trained on a large dataset of CRISPR-Cas13d experiments.\n*  The model should be regularly updated with new data and research findings.\nEvaluation Strategy:\n*  The model's performance should be evaluated using a held-out dataset of CRISPR-Cas13d experiments.\n*  The model's performance should be compared to other off-target prediction models, such as DeepFM-Crispr and Guide-Guard.\n*  The model's performance should be evaluated using metrics such as accuracy, sensitivity, and specificity.\n# Builder Guidance\nThe model can be implemented using popular machine learning libraries such as TensorFlow or PyTorch. The model can be trained using a large dataset of CRISPR-Cas13d experiments. The model can be deployed as a web service or API, allowing users to input their desired gene and off-target effects.\n\n## Selected evidence\n[1] [Comparative Analysis of Machine Learning Algorithms for Predicting On-Target and Off-Target Effects of CRISPR-Cas13d for gene editing](https://arxiv.org/pdf/2305.06769v1) — Jingze Liu, Jiahao Ma\n[2] [Guide-Guard: Off-Target Predicting in CRISPR Applications](https://arxiv.org/pdf/2602.16327v1) — Joseph Bingham, Netanel Arussy, Saman Zonouz\n[3] [DeepFM-Crispr: Prediction of CRISPR On-Target Effects via Deep Learning](https://arxiv.org/pdf/2409.05938v1) — Condy Bao, Fuxiao Liu",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 3,
+        "coverage": 0.6
+      }
+    },
+    {
+      "id": "q09",
+      "query": "antibiotic resistance surveillance",
+      "papers": [
+        {
+          "paper_id": "7bd9d7caeec1b649f66e247dc36c56c4a27b54fc",
+          "title": "Antibiotic Resistance Surveillance Systems: A Review."
+        },
+        {
+          "paper_id": "e6af132c0be1d353fb216624ff0a8e64fd5c1745",
+          "title": "Combating antibiotic resistance using wastewater surveillance: Significance, applications, challenges, and future directions."
+        },
+        {
+          "paper_id": "277116802fac286efefdc211dcf4db917616905b",
+          "title": "A conceptual framework for the environmental surveillance of antibiotics and antibiotic resistance."
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe reviewed papers highlight the growing importance of environmental surveillance for antibiotic resistance (AR) monitoring and mitigation. The papers emphasize the need for a comprehensive framework that integrates data from various sources, including wastewater, environmental samples, and clinical data. This framework should be designed to track AR trends, identify potential sources of contamination, and predict future outbreaks.\n# Key Findings\n* Wastewater surveillance is emerging as a valuable tool for understanding AR and resistant infections in populations. [2]\n* Environmental surveillance of antibiotics and antibiotic resistance could contribute toward the protection of human, animal and ecosystem health. [3]\n* The papers emphasize the need for a comprehensive framework that integrates data from various sources, including wastewater, environmental samples, and clinical data. [1, 2, 3]\n* The papers suggest that the framework should be designed to track AR trends, identify potential sources of contamination, and predict future outbreaks. [1, 2, 3]\n* The papers highlight the need for a robust and standardized methodology for data collection, analysis, and reporting. [1, 2, 3]\n# Research Gaps\n* Lack of standardized methodology for data collection, analysis, and reporting across different surveillance systems. [1, 2, 3]\n* Limited understanding of the long-term impact of environmental contamination on AR prevalence. [2]\n* The papers suggest the need for further research on the integration of clinical data with environmental surveillance data to improve AR monitoring and prediction. [1, 2, 3]\n* The papers suggest the need for further research on the development of robust and accurate predictive models for AR outbreaks. [1, 2, 3]\n* The papers suggest the need for further research on the development of standardized data reporting and analysis tools. [1, 2, 3]\n# Recommended Build\nRecommended Architecture:\nA modular architecture that integrates data from various sources, including wastewater, environmental samples, and clinical data, is recommended.\nCore Components:\n* Wastewater surveillance system\n* Environmental monitoring system\n* Clinical data integration system\n* Data analytics and reporting system\nDeployment Considerations:\nThe system should be deployed in a cloud-based environment with a focus on scalability and data security.\nEvaluation Strategy:\nThe system should be evaluated using metrics such as accuracy, precision, and recall in predicting AR outbreaks.\n# Builder Guidance\nThe system should be implemented using open-source technologies and tools, such as Python, R, and cloud computing platforms like AWS or Azure.\n\n## Selected evidence\n[1] [Antibiotic Resistance Surveillance Systems: A Review.](https://www.semanticscholar.org/paper/7bd9d7caeec1b649f66e247dc36c56c4a27b54fc) — O. Diallo, S. Baron, C. Abat\n[2] [Combating antibiotic resistance using wastewater surveillance: Significance, applications, challenges, and future directions.](https://www.semanticscholar.org/paper/e6af132c0be1d353fb216624ff0a8e64fd5c1745) — S. Gholipour, Zahra Shamsizadeh, D. Halabowski\n[3] [A conceptual framework for the environmental surveillance of antibiotics and antibiotic resistance.](https://www.semanticscholar.org/paper/277116802fac286efefdc211dcf4db917616905b) — P. M. C. Huijbers, C. Flach, D. G. Joakim Larsson",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 2,
+        "coverage": 0.4
+      }
+    },
+    {
+      "id": "q10",
+      "query": "battery degradation prediction",
+      "papers": [
+        {
+          "paper_id": "http://arxiv.org/abs/2410.23893v3",
+          "title": "DiffBatt: A Diffusion Model for Battery Degradation Prediction and Synthesis"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2503.13552v1",
+          "title": "Fast data augmentation for battery degradation prediction"
+        },
+        {
+          "paper_id": "http://arxiv.org/abs/2607.13709v1",
+          "title": "Predicting BESS Degradation with Uncertainty Quantification: A Probabilistic Framework for Battery Energy Storage Systems"
+        }
+      ],
+      "research_plan": "# Research Plan\n# Research Focus\nThe reviewed papers demonstrate a growing focus on probabilistic frameworks for battery degradation prediction, particularly in the context of energy storage systems (ESS). These frameworks leverage deep learning models to generate predictive distributions for capacity loss, incorporating uncertainty propagation through stochastic degradation trajectories. This approach addresses the limitations of traditional deterministic models in capturing the inherent uncertainty in degradation processes, enabling more robust predictions even under dynamic operating conditions.\n# Key Findings\n* DiffBatt leverages conditional and unconditional diffusion models with classifier-free guidance and transformer architecture to achieve high expressivity and scalability. [1]\n* Fast data augmentation for battery degradation prediction aims to generate synthetic capacity fade curves based on limited battery tests or operation data without the need for invasive battery characterization. [2]\n* Predicting BESS Degradation with Uncertainty Quantification introduces a probabilistic framework for battery state-of-health prediction, leveraging deep learning models to generate predictive distributions for capacity loss, conditioned on stress factors. [3]\n* Uncertainty propagation through stochastic degradation trajectories enables robust predictions even under dynamic operating conditions. [3]\n* Integrating cell-level predictions with system topology enables scalability to full-system data. [3]\n# Research Gaps\n* Limited research on the impact of different data augmentation techniques on model performance and uncertainty propagation.\n* Lack of standardized benchmarks and datasets for evaluating probabilistic degradation prediction models.\n* Uncertainty quantification techniques need further development and validation for real-world applications.\n* Limited understanding of the interplay between uncertainty propagation and model architecture selection.\n* Deployment challenges in integrating probabilistic models with existing energy storage system management systems.\n# Recommended Build\nRecommended Architecture:\nA probabilistic framework for battery degradation prediction, incorporating uncertainty propagation through stochastic degradation trajectories, could be implemented. This framework could leverage deep learning models, such as Generative Adversarial Networks (GANs) or Variational Autoencoders (VAEs), to generate predictive distributions for capacity loss, conditioned on stress factors.\nCore Components:\n* Deep learning models (GANs or VAEs) for generating predictive distributions for capacity loss.\n* Uncertainty propagation techniques to account for inherent uncertainty in degradation processes.\n* System topology integration for scalability to full-system data.\n* Data augmentation techniques for generating synthetic capacity fade curves.\nDeployment Considerations:\n* Integration with existing energy storage system management systems.\n* Development of standardized benchmarks and datasets for model evaluation.\n* Validation of uncertainty quantification techniques in real-world applications.\n* Addressing deployment challenges in integrating probabilistic models with existing energy storage system management systems.\nEvaluation Strategy:\n* Benchmarking against existing deterministic models and probabilistic frameworks.\n* Validation of uncertainty propagation techniques through real-world data.\n* Evaluation of model performance under dynamic operating conditions.\n* Evaluation of model scalability and robustness in different energy storage system configurations.\n# Builder Guidance\nFor practical implementation, consider leveraging existing deep learning frameworks like TensorFlow or PyTorch.  Explore different data augmentation techniques, such as synthetic data generation or transfer learning, to improve model performance.\n\n## Selected evidence\n[1] [DiffBatt: A Diffusion Model for Battery Degradation Prediction and Synthesis](https://arxiv.org/pdf/2410.23893v3) — Hamidreza Eivazi, André Hebenbrock, Raphael Ginster\n[2] [Fast data augmentation for battery degradation prediction](https://arxiv.org/pdf/2503.13552v1) — Weihan Li, Harshvardhan Samsukha, Bruis van Vlijmen\n[3] [Predicting BESS Degradation with Uncertainty Quantification: A Probabilistic Framework for Battery Energy Storage Systems](https://arxiv.org/pdf/2607.13709v1) — Melina Graner, Holger Hesse, Andreas Jossen",
+      "citation_membership": {
+        "valid": true,
+        "cited_indices": [
+          1,
+          2,
+          3
+        ],
+        "invalid_indices": [],
+        "selected_paper_count": 3
+      },
+      "key_findings_citation_coverage": {
+        "bullets": 5,
+        "cited_bullets": 5,
+        "coverage": 1.0
+      }
+    }
+  ]
+}

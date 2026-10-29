@@ -164,6 +164,18 @@ python -m benchmarks.faithfulness --device mps
 
 When `FIREWORKS_API_KEY` is set, the script also evaluates the explicitly enabled Fireworks DeepSeek model. It writes no artifact if any requested model call fails.
 
+### Research Plan citation screen
+
+`benchmarks/plan_faithfulness.py` freezes the first 10 fixed questions and three selected papers per question in ignored local storage on its first run. It then runs the application’s Research Plan generator and records only paper IDs/titles, generated plans, and citation checks in [plan_faithfulness.json](plan_faithfulness.json). The 30 October 2026 local MLX run used `mlx-community/gemma-2-2b-it-4bit`: all 10 plans cited only selected papers, 43 of 50 Key Findings bullets carried citations (86%), and 7 of 10 plans cited every Key Findings bullet.
+
+These are structural citation-discipline checks. They do not show that a citation entails its claim, that a plan is factually correct, or that users find it useful. Run it locally with:
+
+```bash
+python -m benchmarks.plan_faithfulness
+```
+
+The ignored per-plan cache makes interrupted reruns reuse completed local generations when the query, selected-paper IDs, and model are unchanged.
+
 ## Sources and attribution
 
 The datasets are from the [BEIR distribution](https://github.com/beir-cellar/beir#available-datasets), including [SciFact by Wadden et al.](https://github.com/allenai/scifact), *Fact or Fiction: Verifying Scientific Claims* (2020). Evaluation conventions follow [BEIR](https://github.com/beir-cellar/beir); the independent evaluator is [pytrec_eval / TREC](https://github.com/terrierteam/pytrec_eval).

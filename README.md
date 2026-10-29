@@ -41,6 +41,8 @@ This frozen replication uses the SciFact-selected settings, not NFCorpus tuning,
 
 The local `mlx-community/gemma-2-2b-it-4bit` model completed 20 fixed-query summaries. Its 63 sentence-level BGE similarity decisions are a screening heuristic, not proof of factual correctness. The local control run selected a 0.80 similarity threshold: it marked 65.1% of real sentences supported, 0% of mismatched sentences supported, 100% of injected unsupported claims flagged, and 85% of reversed conclusions flagged. The unflagged reversals mean similarity alone cannot establish factuality. The [artifact](docs/benchmarks/faithfulness.json), [control results](docs/benchmarks/faithfulness_controls.json), [control method](benchmarks/faithfulness.py), and [blind human-evaluation builder](scripts/build_human_eval.py) retain auditable inputs and limitations.
 
+For Research Plans, a separate local Gemma run froze 10 queries with three selected papers each. All 10 plans used only selected-paper citation indices; 43 of 50 Key Findings bullets carried a citation (86%), and 7 of 10 plans cited every Key Findings bullet. This is citation-membership and coverage checking, not entailment or factuality verification. The [plan artifact](docs/benchmarks/plan_faithfulness.json) contains generated plans and paper IDs/titles, but no source abstracts.
+
 ### Real example
 
 The [RAG hallucination Research Plan](docs/examples/rag-hallucination-research-plan.md) was generated from a live search using three retrieved papers, local Gemma summaries, and the same Research Plan generator served by FastAPI. Recreate it with:

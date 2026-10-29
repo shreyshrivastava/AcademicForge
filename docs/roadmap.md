@@ -13,6 +13,7 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 - persistent summary and Research Plan cache
 - numbered Research Plan citations tied to selected papers
 - reproducible SciFact and frozen NFCorpus retrieval evaluations
+- deterministic local Research Plan citation-membership and Key Findings citation-coverage screen
 
 - lightweight tests for retrieval, generation, cache, and API contracts
 
@@ -28,7 +29,6 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 
 - Add project and implementation discovery from GitHub.
 - Add Papers with Code integration for code, datasets, and benchmarks.
-- Run a deterministic citation-faithfulness evaluation on generated Research Plans.
 - Add saved research sessions.
 - Add comparison views for selected papers.
 - Add richer export formats.
