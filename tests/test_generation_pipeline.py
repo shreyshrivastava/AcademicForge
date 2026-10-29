@@ -3,7 +3,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backend.research_plan_generator import build_research_plan_context, generate_research_plan
+from backend.research_plan_generator import (
+    build_research_plan_context,
+    generate_research_plan,
+    validate_evidence_citations,
+)
 from backend.research_plan_generator import stream_research_plan
 import backend.research_plan_generator as research_plan_generator
 from backend.guidance_generator import generate_paper_guidance
@@ -41,7 +45,7 @@ Domain transfer and ambiguous evidence remain open problems.
 
 def test_research_plan_context_is_compact_and_structured():
     context = build_research_plan_context([PAPER], [SUMMARY])
-    assert "[Evidence 1] Reducing Hallucination" in context
+    assert "[1] Reducing Hallucination" in context
     assert "Retrieval:" not in context
     assert "RRF" not in context
     assert "Prior extracted notes:" in context
@@ -58,7 +62,7 @@ def test_generate_research_plan_uses_compact_context():
         captured["user_prompt"] = user_prompt
         captured["token_budget"] = token_budget
         captured["task"] = task
-        return "research plan"
+        return "# Research Plan\n\nA supported recommendation. [Evidence 1]\n\nUnsupported [9]"
 
     research_plan_generator.generate_text = fake_generate_text
     try:
@@ -66,7 +70,10 @@ def test_generate_research_plan_uses_compact_context():
     finally:
         research_plan_generator.generate_text = original_generate_text
 
-    assert result == "research plan"
+    assert "A supported recommendation. [1]" in result
+    assert "[9]" not in result
+    assert "## Selected evidence" in result
+    assert "[1] [Reducing Hallucination in Retrieval-Augmented Generation]" in result
     assert captured["token_budget"] == 1900
     assert captured["task"] == "research_plan"
     assert "AI Research Engineer" in captured["system_prompt"]
@@ -82,6 +89,20 @@ def test_generate_research_plan_uses_compact_context():
     assert "1. What this paper is about" not in captured["user_prompt"]
     assert "4. Step-by-step reading plan" not in captured["user_prompt"]
     assert " ".join(["long-abstract"] * 80) not in captured["user_prompt"]
+    assert "ending with citations such as [1]" in captured["user_prompt"]
+
+
+def test_research_plan_citations_must_refer_to_selected_papers():
+    valid = validate_evidence_citations("Finding [1] and [Evidence 1]", [PAPER])
+    invalid = validate_evidence_citations("Finding [2]", [PAPER])
+    assert valid == {
+        "valid": True,
+        "cited_indices": [1],
+        "invalid_indices": [],
+        "selected_paper_count": 1,
+    }
+    assert invalid["valid"] is False
+    assert invalid["invalid_indices"] == [2]
 
 
 def test_generate_paper_guidance_uses_paper_specific_prompt():

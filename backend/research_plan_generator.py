@@ -5,6 +5,7 @@ from backend.llm import generate_text, generate_text_stream, model_name
 
 
 logger = logging.getLogger(__name__)
+CITATION_PATTERN = re.compile(r"\[(?:Evidence\s*)?(\d+)\]", re.IGNORECASE)
 
 
 def _truncate(text, limit=900):
@@ -14,8 +15,44 @@ def _truncate(text, limit=900):
     return text[:limit].rsplit(" ", 1)[0] + "..."
 
 
-def strip_evidence_citations(text):
-    return re.sub(r"\s*\[(?:Evidence\s*)?\d+\]", "", text or "", flags=re.IGNORECASE)
+def normalize_evidence_citations(text, paper_count):
+    """Keep only citations that point to a selected paper and normalize `[Evidence 1]` to `[1]`."""
+    def replace(match):
+        index = int(match.group(1))
+        return f"[{index}]" if 1 <= index <= paper_count else ""
+
+    return CITATION_PATTERN.sub(replace, text or "")
+
+
+def validate_evidence_citations(text, papers):
+    """Return deterministic citation validation for a plan and its selected evidence."""
+    cited = [int(index) for index in CITATION_PATTERN.findall(text or "")]
+    invalid = sorted({index for index in cited if not 1 <= index <= len(papers)})
+    return {
+        "valid": not invalid,
+        "cited_indices": sorted(set(cited)),
+        "invalid_indices": invalid,
+        "selected_paper_count": len(papers),
+    }
+
+
+def selected_evidence_references(papers):
+    """Build the stable citation key presented with every Research Plan."""
+    lines = ["## Selected evidence"]
+    for index, paper in enumerate(papers, start=1):
+        authors = ", ".join(paper.get("authors", [])[:3]) or "Unknown authors"
+        url = paper.get("url") or paper.get("link") or ""
+        title = paper.get("title", "Untitled paper")
+        linked_title = f"[{title}]({url})" if url else title
+        lines.append(f"[{index}] {linked_title} — {authors}")
+    return "\n".join(lines)
+
+
+def finalize_research_plan(text, papers):
+    """Normalize plan citations and append the selected-paper reference key."""
+    plan = normalize_evidence_citations(text, len(papers)).strip()
+    references = selected_evidence_references(papers)
+    return f"{plan}\n\n{references}".strip()
 
 
 def _extract_summary_sections(summary):
@@ -65,7 +102,7 @@ def build_research_plan_context(papers, summaries=None):
 
         paper_blocks.append(
             f"""
-[Evidence {index}] {paper["title"]}
+[{index}] {paper["title"]}
 Authors: {authors}
 Date: {paper.get("date") or paper.get("published") or "unknown"}
 URL: {paper.get("url") or paper.get("link") or ""}
@@ -83,8 +120,8 @@ def generate_research_plan(papers, summaries=None, query="", model=None, mode=No
     paper_context = build_research_plan_context(papers, summaries)
     logger.info("Research Plan generation started paper_count=%d", len(papers))
     system_prompt, user_prompt = build_research_plan_prompt(paper_context, query)
-    research_plan = strip_evidence_citations(
-        generate_text(system_prompt, user_prompt, token_budget=1900, task="research_plan", model=model)
+    research_plan = finalize_research_plan(
+        generate_text(system_prompt, user_prompt, token_budget=1900, task="research_plan", model=model), papers
     )
     logger.info("Research Plan generation completed paper_count=%d", len(papers))
     return research_plan
@@ -105,9 +142,12 @@ def stream_research_plan(papers, summaries=None, query="", model=None, mode=None
     )
     for chunk in _clean_streamed_markdown(raw_chunks):
         chunks.append(chunk)
-        yield strip_evidence_citations(chunk)
+        yield normalize_evidence_citations(chunk, len(papers))
 
-    research_plan = "".join(chunks).strip()
+    references = selected_evidence_references(papers)
+    if references:
+        yield f"\n\n{references}"
+    research_plan = finalize_research_plan("".join(chunks), papers)
     logger.info("Mixed Research Plan stream generation completed paper_count=%d", len(papers))
 
 
@@ -163,7 +203,7 @@ INSTRUCTIONS:
 2. Never infer the user's goals or output any User Goal Analysis or User Intent Analysis.
 3. Every recommendation (including datasets, frameworks, or architectures) must be traceable to the evidence. Do not suggest anything not present in the papers unless clearly labeled as an example.
 4. Keep the 'Research Focus' concise, maximum 150 words. Explain the main technical direction emerging from the literature.
-5. Under 'Key Findings', output a maximum of 5 bullets. Each finding must be directly supported by retrieved evidence, but do not include bracketed citation markers.
+5. Under 'Key Findings', output a maximum of 5 bullets. Each finding must be directly supported by retrieved evidence and end with one or more matching citations such as [1] or [2]. Use only the numbered papers in RETRIEVED PAPERS.
 6. Under 'Research Gaps', output a maximum of 5 bullets focusing on limitations, unanswered questions, and deployment challenges.
 7. Under 'Recommended Build', structure your engineering recommendations exactly with these sections:
    - Recommended Architecture
@@ -184,7 +224,7 @@ OUTPUT FORMAT:
 
 # Key Findings
 
-(Max 5 bullets, each directly supported by retrieved evidence. Do not include citations like [1], [2], or [Evidence 1].)
+(Max 5 bullets, each directly supported by retrieved evidence and ending with citations such as [1].)
 
 # Research Gaps
 
