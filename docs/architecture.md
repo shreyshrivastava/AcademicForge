@@ -59,6 +59,12 @@ The retrieval layer lives in `backend/retrieval/`.
 - `reranker.py` applies a BGE cross-encoder.
 - `device.py` selects GPU by default when PyTorch exposes one.
 
+OpenJev is an optional Quality-mode decision service. It asks typed relevance,
+paper-type, and implementation-difficulty questions for a small top-paper set,
+caches the result, and preserves the existing ranking if it is unavailable or
+returns an invalid response. It is not part of the measured retrieval default
+and should not be presented as a proven quality improvement.
+
 On ROCm, PyTorch exposes AMD GPUs through the `cuda` API, so `retrieval_device: cuda` in `/version` is expected. On NVIDIA, the same field indicates CUDA-backed retrieval.
 
 ## Frontend

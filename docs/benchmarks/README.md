@@ -31,7 +31,8 @@ AcademicForge has a reproducible ablation runner for the production retrieval cl
 The cache-first SciFact evaluation completed locally on Apple Silicon MPS. Its
 configuration sweep used the official SciFact train qrels because SciFact ships
 no development qrels; the official test qrels were evaluated once after that
-choice was frozen. NFCorpus has not been run.
+choice was frozen. NFCorpus was evaluated once with the frozen SciFact
+configuration; see the table below.
 
 <!-- BEGIN GENERATED ABLATION TABLE -->
 | Dataset | Dense-only | Score fusion | Fusion + reranker@20 |
@@ -56,9 +57,9 @@ uses dense alpha 0.9. There was no NFCorpus tuning and no cross-encoder run.
 
 The metrics convert NFCorpus’s graded qrels to binary relevance: each judgment
 above zero is relevant and grade magnitude is not used. This supports frozen
-fusion on NFCorpus but does not override the decision rule: SciFact fusion did
-not significantly beat dense-only, so dense remains the default. Together these
-two tests cover abstracts only, MPS cache-replay latency, and no human evaluation.
+fusion on NFCorpus. The dated amendment above makes score fusion the default
+while stating plainly that SciFact alone was inconclusive. Together these two
+tests cover abstracts only, MPS cache-replay latency, and no human evaluation.
 See [the full NFCorpus artifact](nfcorpus-frozen-evaluation.json).
 
 Reproduce the cache-first SciFact sweep and frozen test evaluation on MPS:
