@@ -168,7 +168,7 @@ When `FIREWORKS_API_KEY` is set, the script also evaluates the explicitly enable
 
 `benchmarks/plan_faithfulness.py` freezes the first 10 fixed questions and three selected papers per question in ignored local storage on its first run. It then runs the application’s Research Plan generator and records only paper IDs/titles, generated plans, and citation checks in [plan_faithfulness.json](plan_faithfulness.json). The 30 October 2026 local MLX run used `mlx-community/gemma-2-2b-it-4bit`: all 10 plans cited only selected papers, 43 of 50 Key Findings bullets carried citations (86%), and 7 of 10 plans cited every Key Findings bullet.
 
-These are structural citation-discipline checks. They do not show that a citation entails its claim, that a plan is factually correct, or that users find it useful. Run it locally with:
+These are structural citation-discipline checks. They do not show that a citation entails its claim, that a plan is factually correct, that the selected papers fully cover live sources, or that users find it useful. Run it locally with:
 
 ```bash
 python -m benchmarks.plan_faithfulness
