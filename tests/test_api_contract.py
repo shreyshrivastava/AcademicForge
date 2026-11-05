@@ -32,8 +32,8 @@ def test_version_endpoint_reports_active_retrieval_mode():
 
 
 def test_documented_retrieval_default_matches_config_endpoint():
-    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
-    assert "Best score fusion **(default)**" in readme
+    guide = (Path(__file__).resolve().parents[1] / "docs/benchmarks/README.md").read_text(encoding="utf-8")
+    assert "makes score fusion the default" in guide
     assert TestClient(app).get("/config").json()["retrieval_mode"] == "score_fusion"
 
 
