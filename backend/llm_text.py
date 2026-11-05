@@ -1,6 +1,13 @@
 """Post-processing for generated text."""
 import re
 
+# Appended to every system prompt so generated text reads like a person wrote it (see DESIGN.md, Copy).
+PLAIN_STYLE = (
+    "Write plainly, like an engineer explaining to a colleague. Use simple verbs such as is, has and uses. "
+    "Do not use em dashes, hype words (crucial, pivotal, robust, delve, leverage, showcase, groundbreaking), "
+    "'not X but Y' contrasts, or a closing sentence that restates the point."
+)
+
 
 def _clean_response(text):
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)

@@ -1,5 +1,6 @@
 import logging
 
+from backend.llm_text import PLAIN_STYLE
 from backend.llm import generate_text
 from backend.llm import model_name
 
@@ -19,11 +20,11 @@ def summarize_paper(paper, model=None, mode=None):
     authors = ", ".join(paper.get("authors", []))
     abstract = paper["abstract"]
 
-    system_prompt = """You are a specialized academic assistant. 
-Your goal is to explain complex research to AI engineers and builders.
-Write concise, plain-English summaries that skip the academic filler.
-Focus strictly on: what is the problem, what is the core idea, and why it matters.
-CRITICAL: You must respond exclusively in English, regardless of the input language."""
+    system_prompt = (
+        "You explain research papers to AI engineers. Say what problem the paper tackles, "
+        "what its main idea is, and what it means for someone building a system. "
+        "Answer in English whatever the input language. " + PLAIN_STYLE
+    )
 
     user_prompt = f"""TITLE: {title}
 AUTHORS: {authors}

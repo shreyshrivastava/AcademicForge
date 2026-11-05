@@ -1,6 +1,6 @@
 # Search fields
 
-Use **Search field** below the question box to tell AcademicForge which subject you mean. This control is separate from **Research Lens**, which chooses the kind of evidence to prioritize.
+Use **Field** below the question box to tell AcademicForge which subject you mean. It is separate from **Lens**, which chooses the kind of paper to put first.
 
 ## Example: RAG and RAGAS
 

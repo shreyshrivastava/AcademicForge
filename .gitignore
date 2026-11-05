@@ -5,7 +5,8 @@ __pycache__/
 .venv-demo/
 venv/
 .DS_Store
-.streamlit/
+.streamlit/*
+!.streamlit/config.toml
 .academicforge_cache/
 benchmark-results.*
 docs/benchmarks/human_eval_key.csv
@@ -19,3 +20,4 @@ docs/benchmarks/assisted_summary_review.csv
 # Bundle and artifact archives
 *.tar.gz
 *.zip
+brag-output/work/

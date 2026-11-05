@@ -1,95 +1,64 @@
 # Architecture
 
-AcademicForge has two processes:
+AcademicForge is two processes: a FastAPI backend (`backend/app.py`) and a Streamlit interface (`frontend/streamlit_app.py`). The interface reaches the backend at `ACADEMICFORGE_BACKEND_URL`. The standalone demo (`frontend/streamlit_cloud_app.py`) runs the same interface with an in-process adapter and no backend.
 
-- FastAPI backend in `backend/app.py`
-- Streamlit frontend in `frontend/streamlit_app.py`
-
-## Runtime Flow
+## Request flow
 
 ```text
-Streamlit UI
-  -> FastAPI backend
-  -> arXiv + Semantic Scholar live search
-  -> relevance filtering
-  -> stemmed BM25 + BGE score fusion (default, dense alpha 0.9)
-  -> optional dense-only or RRF retrieval
-  -> optional BGE cross-encoder reranking
-  -> selected evidence papers
-  -> local Gemma summaries and guidance
-  -> compact Research Plan context
-  -> local Gemma Research Plan, or opt-in Fireworks DeepSeek
+Streamlit interface
+  -> POST /search
+       paper_search.py   live arXiv search; Semantic Scholar too when SEMANTIC_SCHOLAR_API_KEY is set
+       relevance.py      drop off-topic papers, check the chosen field
+       data_pipeline.py  rank: score fusion of stemmed BM25 + BGE dense (alpha 0.9)
+                         optional dense-only, RRF, cross-encoder, OpenJev
+       evidence.py       pick a balanced set of up to 10 papers
+  -> POST /summarize, /paper-guidance     one paper at a time
+  -> POST /research-plan/stream           the selected papers and their summaries
+       research_plan_generator.py         prompt, citations, "Selected evidence" key
+       llm.py                             route to the local or cloud model
 ```
 
-## Backend Routes
+## Backend modules
 
-- `GET /health`
-- `GET /version`
-- `GET /config`
+| Module | Job |
+| :--- | :--- |
+| `app.py` | Routes, request limits, API key check, error codes. |
+| `data_pipeline.py` | Orchestrates a search: rewrite the query, fetch, filter, rank, select, cache. |
+| `paper_search.py` | arXiv and Semantic Scholar clients and de-duplication. |
+| `relevance.py` | Relevance scores and domain checks. |
+| `evidence.py` | Sorts papers into categories (Foundational, Survey and so on) and picks the final set. |
+| `search_context.py` | The Field presets and how they rewrite a query. |
+| `sources.py` | Per-source status, warnings, and the shared retry and timeout budget. |
+| `retrieval/` | `bm25.py`, `dense.py` (BGE), `rrf.py`, `reranker.py` (BGE cross-encoder), `device.py`. |
+| `jev.py` | Optional OpenJev rescoring of the top papers in Quality search mode. |
+| `llm.py` | Picks a backend for each request and records which one answered. |
+| `llm_local.py`, `llm_remote.py` | MLX and Transformers backends; Groq-style and Fireworks clients. |
+| `llm_text.py`, `llm_common.py` | Output cleanup, the shared plain-writing rule for prompts, shared settings. |
+| `summarizer.py`, `guidance_generator.py`, `research_plan_generator.py` | The three prompts. |
+| `health.py`, `runtime.py` | Warmup and readiness per component. |
 
-Retrieval defaults to stemmed-BM25/BGE score fusion with dense alpha 0.9.
-`ACADEMICFORGE_RETRIEVAL_MODE=dense`, `hybrid`, and `hybrid_rerank` select the
-alternatives; `hybrid_rerank` additionally enables the BGE cross-encoder. The
-amended decision is documented with SciFact and frozen NFCorpus evidence in
-`docs/benchmarks/README.md`.
-- `POST /search`
-- `POST /summarize`
-- `POST /paper-guidance`
-- `POST /research-plan`
-- `POST /research-plan/stream`
+## Ranking
 
-## Model Routing
+Score fusion of stemmed BM25 and `BAAI/bge-small-en-v1.5` (dense weight 0.9) is the default. `ACADEMICFORGE_RETRIEVAL_MODE` switches to `dense`, `hybrid` (RRF) or `hybrid_rerank` (RRF plus the `BAAI/bge-reranker-base` cross-encoder). The choice and its evidence are in [the benchmark guide](benchmarks/README.md).
 
-- `LOCAL_LLM_PROVIDER=auto` selects MLX on Apple Silicon and Transformers/PyTorch elsewhere.
-- The Transformers/PyTorch backend supports both NVIDIA CUDA and AMD ROCm. The
-  application uses the same code path for both because PyTorch exposes both
-  accelerators through its CUDA device API.
-- Fast local model on AMD/ROCm: `google/gemma-2-2b-it`.
-- Fast local model on Apple Silicon: `mlx-community/gemma-2-2b-it-4bit`.
-- Research Plan defaults to local Gemma.
-- Fireworks DeepSeek is used only when `LOCAL_LLM_USE_FIREWORKS=true`.
+OpenJev runs only in Quality search mode with `JEV_ENABLED=true`. It asks a local or hosted decision model about relevance, paper type and difficulty for the top few papers, caches the answer, and keeps the original order if the call fails or returns something malformed. It is not part of the measured default.
 
-## Retrieval
+## Models
 
-The retrieval layer lives in `backend/retrieval/`.
+`LOCAL_LLM_PROVIDER=auto` picks MLX (`mlx-community/gemma-2-2b-it-4bit`) on Apple Silicon and Transformers (`google/gemma-2-2b-it`) elsewhere. Transformers covers both NVIDIA CUDA and AMD ROCm through one code path, because PyTorch exposes AMD GPUs through its CUDA device API. That's also why `/version` reports `retrieval_device: cuda` on ROCm.
 
-- `bm25.py` performs lexical keyword ranking.
-- `dense.py` performs BGE dense semantic retrieval.
-- `rrf.py` fuses BM25 and dense ranks.
-- `reranker.py` applies a BGE cross-encoder.
-- `device.py` selects GPU by default when PyTorch exposes one.
+Deep mode can use Groq (`REMOTE_LLM_USE_FOR_DEEP=true`) or Fireworks DeepSeek (`LOCAL_LLM_USE_FIREWORKS=true`). If a cloud call fails before any output, the request falls back to the local model and the response says so.
 
-OpenJev is an optional Quality-mode decision service. It asks typed relevance,
-paper-type, and implementation-difficulty questions for a small top-paper set,
-caches the result, and preserves the existing ranking if it is unavailable or
-returns an invalid response. It is not part of the measured retrieval default
-and should not be presented as a proven quality improvement.
+## Interface
 
-On ROCm, PyTorch exposes AMD GPUs through the `cuda` API, so `retrieval_device: cuda` in `/version` is expected. On NVIDIA, the same field indicates CUDA-backed retrieval.
+The interface is one column: the question box with Field, Lens and Model, then the ranked paper cards (Use in plan, Summary, Guidance), then the research plan. The papers and plan section is a Streamlit fragment, so ticking a paper or asking for a summary reruns only that section. The backend config is reused for 30 seconds per session. Colors, type and copy rules are in [DESIGN.md](../DESIGN.md).
 
-## Frontend
+## Reliability
 
-The Streamlit UI provides:
+- Request schemas limit input size before any model or network work.
+- Search and generation run in worker threads behind separate admission limits.
+- Each source reports its own status, so a partial outage shows a warning and a total one returns HTTP 503.
+- Streams are NDJSON and always end in `done` or `error`. A broken stream is never silently replayed.
+- Public errors carry a stable code and a request ID.
 
-- research question input
-- Fast/Deep mode selector
-- Research Lens selector
-- ranked paper cards
-- paper selection
-- inline Summary and Guidance generation
-- streamed Research Plan generation
-- Markdown export
-
-The UI talks to FastAPI through `ACADEMICFORGE_BACKEND_URL`.
-
-## Reliability boundaries
-
-- Request schemas bound inputs before model or source work.
-- Search and generation use separate admission limits and execute outside the event loop.
-- Model warmup runs through the application lifespan with explicit component readiness.
-- Sources preserve partial results and distinguish outages from no matches.
-- Streams use NDJSON events with explicit completion or error. Partial output is never followed by an automatic full-answer replay.
-- API responses identify cloud-to-local fallback. Public errors have stable codes and request IDs.
-- The interface keeps presentation components, CSS, workflow cache identities, and backend access in separate modules.
-
-See [reliability changes](reliability.md) for implementation status, verification, and deployment limits.
+See [reliability](reliability.md) for the full list and its limits.

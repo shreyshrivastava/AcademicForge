@@ -1,5 +1,6 @@
 import logging
 from backend.config import get_config
+from backend.llm_text import PLAIN_STYLE
 from backend.llm import generate_text, model_name
 logger = logging.getLogger(__name__)
 
@@ -23,8 +24,7 @@ def build_paper_guidance_prompt(paper):
         "for how a builder can use one paper. Guidance answers only: how can I "
         "use this paper? Use only the paper title, abstract, and metadata. Do "
         "not include conversational prefaces and do not invent implementation "
-        "details.\n"
-        "CRITICAL: You must respond exclusively in English, regardless of the input language."
+        "details. Answer in English whatever the input language. " + PLAIN_STYLE
     )
     user_prompt = f"""
 Evidence [1]

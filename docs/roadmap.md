@@ -1,50 +1,40 @@
-# Product Roadmap
+# Roadmap
 
-AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local execution, and a strong research-to-build workflow.
+AcademicForge is a working MVP built for a hackathon. The goal is a clear question-to-plan workflow that runs on your own machine.
 
-## Completed
+## Done
 
-- arXiv and Semantic Scholar live search by topic or direct URL
-- score-fusion retrieval: stemmed BM25 plus BGE dense retrieval
-- optional RRF and cross-encoder retrieval modes
-- paper selection UI
-- local MLX summarization
-- streamed local MLX Research Plan generation
-- persistent summary and Research Plan cache
-- numbered Research Plan citations tied to selected papers
-- reproducible SciFact and frozen NFCorpus retrieval evaluations
-- deterministic local Research Plan citation-membership and Key Findings citation-coverage screen
+- Live arXiv search by topic or arXiv ID, with Semantic Scholar as an optional second source when an API key is set
+- Field presets and custom fields that separate meanings such as RAG and ragas
+- Score-fusion ranking (stemmed BM25 + BGE), with optional RRF, cross-encoder and OpenJev
+- Paper cards with per-paper summaries and guidance
+- Streamed research plans with numbered citations to the selected papers
+- Local generation on MLX, CUDA and ROCm, with optional Groq or Fireworks for Deep mode
+- A redesigned single-column interface ([DESIGN.md](../DESIGN.md)) and plain-language prompts
+- SciFact and frozen NFCorpus retrieval evaluations, a summary faithfulness screen and a plan citation check
+- Screenshots and a worked example plan in [docs/examples](examples/)
+- A standalone Streamlit demo that needs no keys
 
-- lightweight tests for retrieval, generation, cache, and API contracts
+## Next
 
-## Near-Term
+- Re-run the summary and plan checks with the current prompts.
+- Add OpenAlex as another source, using its free API key so it isn't throttled.
+- Compare Gemma 2B with a larger local model on the plan citation set.
+- Show method, benchmark, theory and dataset badges on paper cards.
+- A one-click recommended selection based on each paper's category.
+- Better spelling correction for queries.
 
-- Add screenshots and a short demo GIF.
-- Add example generated Research Plan to `docs/examples/`.
-- Improve paper cards with clearer badges for method, benchmark, theory, and dataset.
-- Add a one-click "recommended selection" based on retrieval roles.
-- Add better query spelling normalization.
+## Later
 
-## Mid-Term
+- Find code and datasets for a paper (GitHub, Papers with Code).
+- Save research sessions and compare selected papers side by side.
+- More export formats.
+- Shared workspaces.
 
-- Add project and implementation discovery from GitHub.
-- Add Papers with Code integration for code, datasets, and benchmarks.
-- Add saved research sessions.
-- Add comparison views for selected papers.
-- Add richer export formats.
+## Known limits
 
-## Long-Term
-
-- Add user workspaces.
-- Add collaborative research boards.
-- Add code-generation mode using a task-specific coder model.
-- Compare local Gemma-2B with a larger model on the citation-faithfulness set.
-- Evaluate future CUDA and ROCm inference backends when the MLX path is stable.
-
-## Known Limitations
-
-- Search quality evidence covers two abstract-only BEIR datasets; it does not measure live-source recall, full texts, or user outcomes.
-- Retrieval is in-memory and optimized for MVP candidate sets.
-- Score fusion is the default; cross-encoder reranking remains opt-in because its SciFact gain was not significant.
-- Local generation speed depends on hardware and selected model.
-- Research Plans are generated from abstracts and summaries, not full PDFs. Citation IDs prove only that a cited paper was selected, not that each claim is entailed.
+- The retrieval evidence covers two BEIR datasets of abstracts. It says nothing about live-search recall, full papers or whether users find the plans useful.
+- Retrieval runs in memory and is sized for about a hundred candidates per search.
+- Plans are written from abstracts and summaries, not full PDFs. A citation shows that a paper was selected, not that it supports the claim.
+- Without a Semantic Scholar key, search covers arXiv only.
+- Generation speed depends on your hardware and model.

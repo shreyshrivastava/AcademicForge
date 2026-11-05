@@ -14,7 +14,7 @@ the corresponding component remains opt-in. SciFact has no development qrels,
 so the official train qrels choose the configuration and the test qrels are used
 once for this decision.
 
-### Amendment — 23 October 2026
+### Amendment, 23 October 2026
 
 The original rule was **not met**: on SciFact, frozen score fusion was +0.0106
 nDCG@10 versus dense-only, with a paired 95% CI of −0.0037 to 0.0268. The

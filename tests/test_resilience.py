@@ -204,6 +204,7 @@ def test_malformed_jev_preserves_ranking(monkeypatch, payload):
 
 
 def test_total_source_outage_is_not_no_results(monkeypatch):
+    monkeypatch.setenv('SEMANTIC_SCHOLAR_API_KEY', 'test-key')
     def arxiv(*args, **kwargs):
         source_status("arxiv", "unavailable")
         return [], False
@@ -220,6 +221,7 @@ def test_total_source_outage_is_not_no_results(monkeypatch):
 
 
 def test_partial_source_results_remain_available(monkeypatch):
+    monkeypatch.setenv('SEMANTIC_SCHOLAR_API_KEY', 'test-key')
     def arxiv(*args, **kwargs):
         source_status("arxiv", "unavailable")
         return [], False
@@ -483,7 +485,50 @@ def test_streamlit_search_generate_and_reuse_summary(monkeypatch):
     next(button for button in page.button if button.label == 'Search').click().run(timeout=10)
     assert not page.exception
     for _ in range(2):
-        next(button for button in page.button if button.label == 'Generate Research Plan').click().run(timeout=10)
+        next(button for button in page.button if button.label == 'Write plan').click().run(timeout=10)
         assert not page.exception
         assert 'Build a useful system.' in page.session_state.research_plan
     assert calls.count('/summarize') == 1
+
+
+def test_streamlit_paper_selection_toggles(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    papers = [{**PAPER, 'paper_id': f'p{i}', 'title': f'Paper {i}', 'url': f'https://example.org/{i}'} for i in range(5)]
+    monkeypatch.setattr(APIClient, 'get_config', lambda self: {
+        'llm_models': {}, 'generation_modes': {'fast': {'model': 'test/local'}, 'deep': {'model': 'test/local'}}})
+    monkeypatch.setattr(APIClient, 'post_json', lambda self, path, payload: {'papers': papers, 'warnings': []})
+    page = AppTest.from_file(str(Path(__file__).resolve().parents[1] / 'frontend/streamlit_app.py')).run(timeout=10)
+    page.text_input[0].input('test research')
+    next(button for button in page.button if button.label == 'Search').click().run(timeout=10)
+    assert [box.value for box in page.checkbox] == [True, True, True, False, False]
+    page.checkbox[3].check().run(timeout=10)
+    page.checkbox[0].uncheck().run(timeout=10)
+    assert not page.exception
+    assert [box.value for box in page.checkbox] == [False, True, True, True, False]
+    assert len(page.session_state.selected_labels) == 3
+
+
+def test_semantic_scholar_is_skipped_without_a_key(monkeypatch):
+    monkeypatch.delenv('SEMANTIC_SCHOLAR_API_KEY', raising=False)
+    def arxiv(*args, **kwargs):
+        source_status("arxiv", "ok")
+        return [PAPER], False
+    def never(*args, **kwargs):
+        raise AssertionError("Semantic Scholar must not be called without a key")
+    monkeypatch.setattr(paper_search, "search_arxiv_candidates", arxiv)
+    monkeypatch.setattr(paper_search, "search_semantic_scholar_candidates", never)
+    result, direct = paper_search.search_live_candidates("test")
+    assert result == [PAPER]
+    assert diagnostics()["warnings"] == []
+
+
+def test_semantic_scholar_sends_configured_api_key(monkeypatch):
+    monkeypatch.setenv('SEMANTIC_SCHOLAR_API_KEY', 'test-key')
+    sent = {}
+    def ok(url, **kwargs):
+        sent.update(kwargs)
+        return Mock(json=lambda: {'data': []}, close=lambda: None)
+    monkeypatch.setattr(paper_search, 'get_source', ok)
+    paper_search.search_semantic_scholar_candidates('rag')
+    assert sent['headers'] == {'x-api-key': 'test-key'}
+    assert diagnostics()['sources']['semantic_scholar'] == 'ok'
