@@ -6,9 +6,9 @@ import hashlib
 import json
 from collections import Counter
 from pathlib import Path
+from benchmarks.common import ROOT, file_sha256
 
 
-ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RATINGS = ROOT / "docs" / "benchmarks" / "plan_entailment_ratings.csv"
 DEFAULT_OUTPUT = ROOT / "docs" / "benchmarks" / "plan_entailment_pilot.json"
 LABELS = {"entailed", "partially_supported", "insufficient", "contradicted", "unclear"}
@@ -36,10 +36,6 @@ def summarize_rows(rows: list[dict]) -> dict:
     }
 
 
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ratings", type=Path, default=DEFAULT_RATINGS)
@@ -52,7 +48,7 @@ def main() -> None:
     artifact = {
         "evaluation": "AcademicForge Research Plan claim-entailment pilot",
         "classification": "exploratory single-reviewer pilot; not an expert or independent factuality evaluation",
-        "ratings_sha256": sha256(args.ratings),
+        "ratings_sha256": file_sha256(args.ratings),
         "reviewer_context": "project-owner, non-domain-expert; citation reading was assisted with source summaries",
         "rubric": {
             "entailed": "The cited evidence directly supports the claim as written.",

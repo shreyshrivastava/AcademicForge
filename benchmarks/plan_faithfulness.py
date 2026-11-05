@@ -5,6 +5,7 @@ that snapshot, so live-search changes cannot alter the evaluation set.
 """
 
 import argparse
+from benchmarks.common import ROOT, write_json_atomically, file_sha256
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -18,25 +19,11 @@ from backend.research_plan_generator import CITATION_PATTERN, generate_research_
 from benchmarks.faithfulness import DEFAULT_QUERIES, load_queries
 
 
-ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT_CACHE = ROOT / ".academicforge_cache" / "plan_faithfulness" / "inputs.json"
 DEFAULT_OUTPUT = ROOT / "docs" / "benchmarks" / "plan_faithfulness.json"
 DEFAULT_PLAN_CACHE_DIR = ROOT / ".academicforge_cache" / "plan_faithfulness" / "plans"
 DEFAULT_QUERY_LIMIT = 10
 DEFAULT_PAPER_LIMIT = 3
-
-
-def write_json_atomically(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as file:
-        json.dump(payload, file, indent=2, ensure_ascii=False)
-        file.write("\n")
-        temporary_path = Path(file.name)
-    temporary_path.replace(path)
-
-
-def file_sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _key_finding_bullets(plan: str) -> list[str]:

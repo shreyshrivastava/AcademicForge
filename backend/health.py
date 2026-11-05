@@ -11,7 +11,7 @@ _components = {name: "pending" for name in ("generation", "dense", "reranker")}
 
 
 def warmup():
-    from backend.llm import _load_mlx_model, _load_transformers_model
+    from backend.llm_local import _load_mlx_model, _load_transformers_model
     from backend.retrieval.dense import _load_sentence_transformer
     from backend.retrieval.reranker import get_reranker_model
 

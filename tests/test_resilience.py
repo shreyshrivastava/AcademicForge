@@ -22,8 +22,10 @@ from backend.errors import CapacityError, SourceUnavailable, StreamInterrupted
 from backend.execution import Capacity, execute
 import backend.health as health
 import backend.llm as llm
+import backend.llm_local as llm_local
 import backend.jev as jev
 import backend.data_pipeline as pipeline
+import backend.paper_search as paper_search
 from backend.sources import begin_search, diagnostics, source_status
 from frontend.api_client import APIClient, StreamError
 from frontend.workflow import paper_output_key
@@ -165,7 +167,7 @@ def test_capacity_recovers_after_exception():
 
 
 def test_readiness_reports_degraded_retrieval(monkeypatch):
-    monkeypatch.setattr(llm, "_load_transformers_model", lambda *args: True)
+    monkeypatch.setattr(llm_local, "_load_transformers_model", lambda *args: True)
     health.warmup()
     state = health.readiness()
     assert state["models_ready"] is True
@@ -174,7 +176,7 @@ def test_readiness_reports_degraded_retrieval(monkeypatch):
 
 
 def test_readiness_fails_when_generation_unavailable(monkeypatch):
-    monkeypatch.setattr(llm, "_load_transformers_model", Mock(side_effect=RuntimeError("no model")))
+    monkeypatch.setattr(llm_local, "_load_transformers_model", Mock(side_effect=RuntimeError("no model")))
     health.warmup()
     assert health.readiness()["models_ready"] is False
     assert TestClient(api.app).get("/health").status_code == 503
@@ -208,10 +210,10 @@ def test_total_source_outage_is_not_no_results(monkeypatch):
     def semantic(*args, **kwargs):
         source_status("semantic_scholar", "unavailable")
         return []
-    monkeypatch.setattr(pipeline, "search_arxiv_candidates", arxiv)
-    monkeypatch.setattr(pipeline, "search_semantic_scholar_candidates", semantic)
+    monkeypatch.setattr(paper_search, "search_arxiv_candidates", arxiv)
+    monkeypatch.setattr(paper_search, "search_semantic_scholar_candidates", semantic)
     with pytest.raises(SourceUnavailable):
-        pipeline.search_live_candidates("test")
+        paper_search.search_live_candidates("test")
     response = TestClient(api.app).post("/search", json={"query": "test"})
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "sources_unavailable"
@@ -224,9 +226,9 @@ def test_partial_source_results_remain_available(monkeypatch):
     def semantic(*args, **kwargs):
         source_status("semantic_scholar", "ok")
         return [PAPER]
-    monkeypatch.setattr(pipeline, "search_arxiv_candidates", arxiv)
-    monkeypatch.setattr(pipeline, "search_semantic_scholar_candidates", semantic)
-    result, direct = pipeline.search_live_candidates("test")
+    monkeypatch.setattr(paper_search, "search_arxiv_candidates", arxiv)
+    monkeypatch.setattr(paper_search, "search_semantic_scholar_candidates", semantic)
+    result, direct = paper_search.search_live_candidates("test")
     assert result == [PAPER]
     assert diagnostics()["sources"] == {"arxiv": "unavailable", "semantic_scholar": "ok"}
 
@@ -429,8 +431,8 @@ def test_arxiv_atom_response_is_normalized(monkeypatch):
       <author><name>Ada</name></author><published>2026-01-01T00:00:00Z</published>
       <link title="pdf" href="https://arxiv.org/pdf/2601.12345"/><category term="cs.AI"/>
       </entry></feed>''')
-    monkeypatch.setattr(pipeline, 'get_source', lambda *args, **kwargs: response)
-    papers, direct = pipeline.search_arxiv_candidates('2601.12345')
+    monkeypatch.setattr(paper_search, 'get_source', lambda *args, **kwargs: response)
+    papers, direct = paper_search.search_arxiv_candidates('2601.12345')
     assert direct is True
     assert papers[0]['authors'] == ['Ada']
     assert papers[0]['date'] == '2026-01-01'

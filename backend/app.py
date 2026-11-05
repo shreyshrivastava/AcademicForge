@@ -17,7 +17,8 @@ from starlette.concurrency import run_in_threadpool
 load_dotenv(os.getenv("ACADEMICFORGE_ENV_FILE", ".env"))
 
 from backend.config import get_config as get_app_config
-from backend.data_pipeline import not_enough_relevant_message, retrieve_and_rank_papers, extract_arxiv_id, rewrite_search_query
+from backend.data_pipeline import not_enough_relevant_message, retrieve_and_rank_papers, rewrite_search_query
+from backend.paper_search import extract_arxiv_id
 from backend.errors import ServiceError
 from backend.execution import GENERATION_CAPACITY, SEARCH_CAPACITY, execute
 from backend.health import readiness, warmup

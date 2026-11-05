@@ -6,8 +6,8 @@ from pathlib import Path
 import random
 
 from benchmarks.faithfulness import corrupt_summary
+from benchmarks.common import ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "docs" / "benchmarks" / "faithfulness.json"
 OUT = ROOT / "docs" / "benchmarks" / "human_eval_blind.csv"
 KEY = ROOT / "docs" / "benchmarks" / "human_eval_key.csv"

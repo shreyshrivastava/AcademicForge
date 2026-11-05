@@ -9,7 +9,10 @@ from backend.retrieval.dense import dense_search
 from backend.retrieval.hybrid import hybrid_search
 from backend.retrieval.rrf import reciprocal_rank_fusion
 import backend.data_pipeline as data_pipeline
-from backend.data_pipeline import categorize_paper, filter_relevant_papers, infer_query_domain, retrieve_and_rank_papers, select_evidence_set
+from backend.data_pipeline import retrieve_and_rank_papers
+from backend.evidence import categorize_paper, select_evidence_set
+from backend.paper_search import INITIAL_CANDIDATE_COUNT
+from backend.relevance import RELEVANCE_THRESHOLD, filter_relevant_papers, infer_query_domain
 
 
 PAPERS = [
@@ -307,7 +310,7 @@ def test_filter_relevant_papers_removes_domain_mismatch_for_fat_loss():
 def test_retrieve_and_rank_papers_uses_live_relevant_candidates_across_domains():
     original_search = data_pipeline.search_live_candidates
 
-    def fake_search(query, max_results=data_pipeline.INITIAL_CANDIDATE_COUNT):
+    def fake_search(query, max_results=INITIAL_CANDIDATE_COUNT):
         return list(DOMAIN_PAPERS), False
 
     data_pipeline.search_live_candidates = fake_search
@@ -328,7 +331,7 @@ def test_retrieve_and_rank_papers_uses_live_relevant_candidates_across_domains()
             assert infer_query_domain(query) == expected_domain
             assert any(term.lower() in selected_text for term in required_terms), query
             assert not any(term.lower() in selected_text for term in banned_terms), query
-            assert all(paper["metadata"]["relevance_score"] >= data_pipeline.RELEVANCE_THRESHOLD for paper in selected)
+            assert all(paper["metadata"]["relevance_score"] >= RELEVANCE_THRESHOLD for paper in selected)
     finally:
         data_pipeline.search_live_candidates = original_search
 

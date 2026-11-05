@@ -1,6 +1,4 @@
 import html
-import os
-import re
 import time
 import requests
 
@@ -50,16 +48,6 @@ MODE_OPTIONS = {
         "purpose": "Detailed analysis, prototype guidance.",
     },
 }
-CATEGORY_OPTIONS = [
-    "Balanced",
-    "Foundational",
-    "Survey",
-    "Recent",
-    "Implementation Focused",
-    "Evaluation Focused",
-    "Alternative Approach",
-    "Contrarian View",
-]
 RESEARCH_LENS_OPTIONS = [
     "Balanced",
     "Foundational",
@@ -294,41 +282,6 @@ def render_results_table(papers):
     )
 
 
-def render_technical_dashboard(papers, config=None):
-    with st.expander("Technical dashboard", expanded=False):
-        st.caption("Retrieval diagnostics and model details.")
-        if config:
-            llm_models = config.get("llm_models", {})
-            metric_cols = st.columns(3)
-            metric_cols[0].metric("Summary model", display_model_name(llm_models.get("summary")))
-            metric_cols[1].metric("Guidance model", display_model_name(llm_models.get("guidance")))
-            metric_cols[2].metric(
-                "Research Plan model",
-                display_model_name(llm_models.get("research_plan")),
-            )
-
-        category_counts = {}
-        for paper in papers:
-            category_counts[paper_category(paper)] = category_counts.get(paper_category(paper), 0) + 1
-        st.write("**Paper category mix**")
-        st.dataframe(
-            [
-                {"Category": category, "Count": count}
-                for category, count in sorted(category_counts.items())
-            ],
-            hide_index=True,
-            width="stretch",
-        )
-
-        st.write("**Retrieval scores**")
-        render_results_table(papers)
-
-        with st.expander("Raw metadata", expanded=False):
-            for index, paper in enumerate(papers, start=1):
-                st.write(f"**{index}. {paper['title']}**")
-                st.json(paper.get("metadata", {}))
-
-
 def render_selected_evidence(selected_papers):
     with st.container(border=True):
         st.subheader("Selected papers")
@@ -351,7 +304,6 @@ def render_paper_cards(
     papers,
     all_labels,
     summaries=None,
-    show_guidance_controls=False,
     selectable=False,
     scope="results",
     generation_mode="fast",
@@ -373,7 +325,6 @@ def render_paper_cards(
         category_name = paper_category(paper)
         category = html.escape(category_name)
         category_accent = CATEGORY_ACCENTS.get(category_name, CATEGORY_ACCENTS["Uncategorized"])
-        abstract = html.escape(paper.get("abstract", ""))
         citation_text = citation_label(paper)
         meta_parts = [
             authors,
@@ -669,15 +620,9 @@ if papers:
         filtered_papers = papers
     st.caption(f"{len(papers)} papers retrieved. Select papers to generate a Research Plan.")
 
-    filtered_labels = [
-        paper_label(papers.index(paper) + 1, paper)
-        for paper in filtered_papers
-    ]
-
     render_paper_cards(
         filtered_papers,
         papers,
-        show_guidance_controls=True,
         selectable=True,
         scope="results",
         generation_mode=st.session_state.generation_mode,

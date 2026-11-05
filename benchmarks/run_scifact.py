@@ -28,26 +28,11 @@ from backend.retrieval.bm25 import BM25Index, stem_and_remove_stopwords
 from backend.retrieval.dense import DenseIndex, MODEL_NAME
 from backend.retrieval.reranker import rerank_results
 from backend.retrieval.rrf import reciprocal_rank_fusion
+from benchmarks.common import DATASETS, ROOT, download, read_beir
+from benchmarks.common import source_fingerprint as common_fingerprint
 from benchmarks.metrics import aggregate, paired_bootstrap_difference, query_metrics
 
 
-ROOT = Path(__file__).resolve().parents[1]
-DATASETS = {
-    "scifact": {
-        "label": "BEIR SciFact",
-        "url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip",
-        "sha256": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
-        "documents": 5183,
-        "queries": 300,
-    },
-    "nfcorpus": {
-        "label": "BEIR NFCorpus",
-        "url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/nfcorpus.zip",
-        "sha256": "efe5be03f8c5b86a5870102d0599d227c8c6e2484328e68c6522560385671b0b",
-        "documents": 3633,
-        "queries": 323,
-    },
-}
 SYSTEMS = (
     "bm25",
     "bm25_stem_stop",
@@ -58,53 +43,13 @@ SYSTEMS = (
 METRICS = ("ndcg@10", "recall@10", "mrr@10")
 
 
-def download(archive: Path, dataset: dict) -> None:
-    import requests
-
-    archive.parent.mkdir(parents=True, exist_ok=True)
-    partial = archive.with_suffix(".part")
-    try:
-        with requests.get(dataset["url"], timeout=(10, 60), stream=True) as response:
-            response.raise_for_status()
-            with partial.open("wb") as file:
-                for chunk in response.iter_content(65536):
-                    file.write(chunk)
-        if hashlib.sha256(partial.read_bytes()).hexdigest() != dataset["sha256"]:
-            raise ValueError(f"{dataset['label']} archive checksum does not match the recorded version")
-        partial.replace(archive)
-    finally:
-        partial.unlink(missing_ok=True)
-
-
 def load_dataset(archive: Path, dataset_id: str):
     dataset = DATASETS[dataset_id]
-    raw = archive.read_bytes()
-    if hashlib.sha256(raw).hexdigest() != dataset["sha256"]:
-        raise ValueError(f"{dataset['label']} archive checksum does not match the recorded version")
-    with zipfile.ZipFile(io.BytesIO(raw)) as archive_file:
-        prefix = f"{dataset_id}/"
-        corpus = [json.loads(line) for line in archive_file.read(f"{prefix}corpus.jsonl").splitlines()]
-        queries = {
-            str(query["_id"]): query["text"]
-            for query in (json.loads(line) for line in archive_file.read(f"{prefix}queries.jsonl").splitlines())
-        }
-        qrels = {}
-        rows = csv.DictReader(
-            io.StringIO(archive_file.read(f"{prefix}qrels/test.tsv").decode()), delimiter="\t"
-        )
-        for row in rows:
-            if int(row["score"]) > 0:
-                qrels.setdefault(row["query-id"], set()).add(row["corpus-id"])
-
-    if len(corpus) != dataset["documents"] or len(qrels) != dataset["queries"]:
+    corpus, queries, qrels = read_beir(archive, dataset_id)
+    if len(qrels) != dataset["queries"]:
         raise ValueError(
             f"Expected {dataset['documents']} documents and {dataset['queries']} test queries for {dataset['label']}"
         )
-    ids = {str(document["_id"]) for document in corpus}
-    if len(ids) != len(corpus) or not set(qrels).issubset(queries):
-        raise ValueError("Duplicate corpus IDs or missing queries")
-    if not all(relevant.issubset(ids) for relevant in qrels.values()):
-        raise ValueError("Judgments reference documents outside the corpus")
     papers = [
         {
             "paper_id": str(document["_id"]),
@@ -126,7 +71,7 @@ def source_fingerprint():
         "benchmarks/run_scifact.py",
         "benchmarks/metrics.py",
     ]
-    return {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in paths}
+    return common_fingerprint(paths)
 
 
 def percentile_95(values: list[float]) -> float:
