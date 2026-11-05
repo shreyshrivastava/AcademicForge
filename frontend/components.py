@@ -124,7 +124,8 @@ def render_citation_spans(text):
 
 
 def strip_evidence_citations(text):
-    return re.sub(r"\s*\[(?:Evidence\s*)?\d+\]", "", text or "", flags=re.IGNORECASE)
+    # Only inline citations: a line-leading [n] is a Selected evidence entry and keeps its number.
+    return re.sub(r"(?<=\S)[ \t]*\[(?:Evidence\s*)?\d+\]", "", text or "", flags=re.IGNORECASE)
 
 
 def pulse_loading_html(label):

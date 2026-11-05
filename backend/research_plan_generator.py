@@ -45,7 +45,7 @@ def selected_evidence_references(papers):
         title = paper.get("title", "Untitled paper")
         linked_title = f"[{title}]({url})" if url else title
         lines.append(f"[{index}] {linked_title} — {authors}")
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def finalize_research_plan(text, papers):
