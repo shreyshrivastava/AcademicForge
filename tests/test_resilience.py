@@ -204,14 +204,15 @@ def test_malformed_jev_preserves_ranking(monkeypatch, payload):
 
 
 def test_total_source_outage_is_not_no_results(monkeypatch):
+    monkeypatch.setenv('SEMANTIC_SCHOLAR_API_KEY', 'test-key')
     def arxiv(*args, **kwargs):
         source_status("arxiv", "unavailable")
         return [], False
-    def openalex(*args, **kwargs):
-        source_status("openalex", "unavailable")
+    def semantic(*args, **kwargs):
+        source_status("semantic_scholar", "unavailable")
         return []
     monkeypatch.setattr(paper_search, "search_arxiv_candidates", arxiv)
-    monkeypatch.setattr(paper_search, "search_openalex_candidates", openalex)
+    monkeypatch.setattr(paper_search, "search_semantic_scholar_candidates", semantic)
     with pytest.raises(SourceUnavailable):
         paper_search.search_live_candidates("test")
     response = TestClient(api.app).post("/search", json={"query": "test"})
@@ -220,18 +221,18 @@ def test_total_source_outage_is_not_no_results(monkeypatch):
 
 
 def test_partial_source_results_remain_available(monkeypatch):
-    monkeypatch.setattr(paper_search, "OPENALEX_ENABLED", True)
+    monkeypatch.setenv('SEMANTIC_SCHOLAR_API_KEY', 'test-key')
     def arxiv(*args, **kwargs):
         source_status("arxiv", "unavailable")
         return [], False
-    def openalex(*args, **kwargs):
-        source_status("openalex", "ok")
+    def semantic(*args, **kwargs):
+        source_status("semantic_scholar", "ok")
         return [PAPER]
     monkeypatch.setattr(paper_search, "search_arxiv_candidates", arxiv)
-    monkeypatch.setattr(paper_search, "search_openalex_candidates", openalex)
+    monkeypatch.setattr(paper_search, "search_semantic_scholar_candidates", semantic)
     result, direct = paper_search.search_live_candidates("test")
     assert result == [PAPER]
-    assert diagnostics()["sources"] == {"arxiv": "unavailable", "openalex": "ok"}
+    assert diagnostics()["sources"] == {"arxiv": "unavailable", "semantic_scholar": "ok"}
 
 
 def test_errors_do_not_echo_internal_details(monkeypatch):
@@ -507,22 +508,27 @@ def test_streamlit_paper_selection_toggles(monkeypatch):
     assert len(page.session_state.selected_labels) == 3
 
 
-def test_openalex_rebuilds_abstracts_and_needs_no_key(monkeypatch):
+def test_semantic_scholar_is_skipped_without_a_key(monkeypatch):
+    monkeypatch.delenv('SEMANTIC_SCHOLAR_API_KEY', raising=False)
+    def arxiv(*args, **kwargs):
+        source_status("arxiv", "ok")
+        return [PAPER], False
+    def never(*args, **kwargs):
+        raise AssertionError("Semantic Scholar must not be called without a key")
+    monkeypatch.setattr(paper_search, "search_arxiv_candidates", arxiv)
+    monkeypatch.setattr(paper_search, "search_semantic_scholar_candidates", never)
+    result, direct = paper_search.search_live_candidates("test")
+    assert result == [PAPER]
+    assert diagnostics()["warnings"] == []
+
+
+def test_semantic_scholar_sends_configured_api_key(monkeypatch):
+    monkeypatch.setenv('SEMANTIC_SCHOLAR_API_KEY', 'test-key')
     sent = {}
-    work = {'id': 'https://openalex.org/W1', 'doi': 'https://doi.org/10.1/x', 'display_name': 'Test paper',
-            'publication_date': '2024-05-01', 'cited_by_count': 7,
-            'authorships': [{'author': {'display_name': 'Ada'}}],
-            'abstract_inverted_index': {'Retrieval': [0], 'helps': [1], 'generation': [2]},
-            'primary_location': {'landing_page_url': 'https://example.org/x'},
-            'topics': [{'field': {'display_name': 'Computer Science'}, 'subfield': {'display_name': 'Artificial Intelligence'}}]}
     def ok(url, **kwargs):
         sent.update(kwargs)
-        return Mock(json=lambda: {'results': [work, {'display_name': 'No abstract'}]}, close=lambda: None)
+        return Mock(json=lambda: {'data': []}, close=lambda: None)
     monkeypatch.setattr(paper_search, 'get_source', ok)
-    papers = paper_search.search_openalex_candidates('rag')
-    assert 'headers' not in sent
-    assert len(papers) == 1
-    assert papers[0]['abstract'] == 'Retrieval helps generation'
-    assert papers[0]['authors'] == ['Ada'] and papers[0]['metadata']['citation_count'] == 7
-    assert papers[0]['metadata']['fields_of_study'] == ['Computer Science', 'Artificial Intelligence']
-    assert diagnostics()['sources']['openalex'] == 'ok'
+    paper_search.search_semantic_scholar_candidates('rag')
+    assert sent['headers'] == {'x-api-key': 'test-key'}
+    assert diagnostics()['sources']['semantic_scholar'] == 'ok'

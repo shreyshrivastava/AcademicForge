@@ -61,7 +61,7 @@
     <path d="M1155 260 L1155 390 L1400 515 L1400 385 Z" fill="#711923"/>
     <path d="M1400 385 L1645 260 L1645 390 L1400 515 Z" fill="#a51e2a"/>
     <text x="1220" y="260" class="label">Paper Sources</text>
-    <text x="1220" y="297" class="small">arXiv live search</text>
+    <text x="1220" y="297" class="small">arXiv + Semantic Scholar</text>
     <text x="1220" y="326" class="small">live candidate collection</text>
   </g>
 

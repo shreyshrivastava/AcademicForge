@@ -15,9 +15,9 @@ cp .env.example .env
 ./start.sh
 ```
 
-Alternatively, with uv installed, `uv sync --locked --extra local` creates the locked development environment. Activate `.venv/bin/activate` before launching.
+With uv installed, `uv sync --locked --extra local` builds the same locked environment in `.venv`. Activate it before launching.
 
-The example configuration leaves the model unset. `auto` selects MLX with `mlx-community/gemma-2-2b-it-4bit` on Apple Silicon and Transformers with `google/gemma-2-2b-it` elsewhere. For gated models, accept access terms on Hugging Face and set `HF_TOKEN` in `.env`.
+The example configuration leaves the model unset. `auto` selects MLX with `mlx-community/gemma-2-2b-it-4bit` on Apple Silicon and Transformers with `google/gemma-2-2b-it` elsewhere. For gated models, accept the terms on Hugging Face and set `HF_TOKEN` in `.env`. To add Semantic Scholar as a second paper source, set `SEMANTIC_SCHOLAR_API_KEY` (a free key from semanticscholar.org/product/api). Without it, search uses arXiv only.
 
 The app opens at [localhost:8501](http://127.0.0.1:8501). First startup downloads weights. It has a configurable 600-second readiness deadline and cleans up its child processes if startup or either service fails. Increase the deadline for a slow initial download, or cache weights explicitly with `python -m scripts.download_weights`.
 
@@ -55,7 +55,7 @@ On the Radeon notebook VM used for earlier demos, the app proxy path is `/instan
 - `/live` responds without model checks.
 - `/health` reports `generation`, `dense`, and `reranker` readiness. It returns HTTP 503 until generation is ready, or if generation cannot load.
 - If generation loads but optional ranking models fail, readiness is `degraded`; search can use lexical scoring and preserve the previous ranking.
-- Search reports per-source status and partial-result warnings. Both sources failing produces HTTP 503 rather than “no evidence.”
+- Search reports each source's status and warns about partial results. If every active source fails, search returns HTTP 503 instead of an empty result.
 - Generation is limited to one concurrent request by default; excess work gets HTTP 429. Cancelling a client does not free a slot until the underlying model operation stops.
 - Cloud generation has explicit opt-in and a bounded SDK timeout. A pre-output cloud failure can fall back locally. Failure after partial stream output ends the attempt instead of appending a different answer.
 - The frontend never automatically replays generation POSTs. Restart explicitly after an interrupted attempt.

@@ -23,7 +23,7 @@ def diagnostics():
     return deepcopy(search_diagnostics.get() or {"sources": {}, "warnings": []})
 
 
-SOURCE_LABELS = {"arxiv": "arXiv", "openalex": "OpenAlex"}
+SOURCE_LABELS = {"arxiv": "arXiv", "semantic_scholar": "Semantic Scholar"}
 
 
 def source_status(name, status):

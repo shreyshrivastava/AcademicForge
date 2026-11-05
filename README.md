@@ -1,76 +1,37 @@
 # AcademicForge
 
-AcademicForge is for a graduate student who has found several papers and needs to decide what to implement next. Unlike a paper finder that stops at retrieval, it lets the student select evidence and produces one implementation-oriented Research Plan from that chosen set.
+[![CI](https://github.com/shreyshrivastava/AcademicForge/actions/workflows/ci.yml/badge.svg)](https://github.com/shreyshrivastava/AcademicForge/actions/workflows/ci.yml)
+![Python 3.12–3.14](https://img.shields.io/badge/python-3.12%E2%80%933.14-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![Runs on MLX, CUDA, ROCm](https://img.shields.io/badge/runs%20on-MLX%20%7C%20CUDA%20%7C%20ROCm-informational)
 
-Run it locally on Apple Silicon, NVIDIA CUDA, or AMD ROCm. Summaries, paper guidance, and research plans use a local model by default, with optional cloud providers for generation.
+AcademicForge helps you go from a research question to a build plan. You ask a question, it finds and ranks papers, you tick the ones that fit, and it writes one research plan from that set with each finding cited back to a paper.
+
+It runs on your own machine (Apple Silicon, NVIDIA CUDA or AMD ROCm) with a local Gemma model. Cloud models are optional.
 
 ![AcademicForge search results with a paper summary open](docs/assets/academicforge-search-results.png)
 
 ![A research plan written from three selected papers](docs/assets/academicforge-research-plan.png)
 
-[Getting started](#getting-started) · [How it works](#how-it-works) · [Evidence](#evidence) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](CONTRIBUTING.md)
+[Getting started](#getting-started) · [Try it](#try-it) · [How it works](#how-it-works) · [Evidence](#evidence) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](CONTRIBUTING.md)
 
-## Evidence
+## What it does
 
-### Retrieval evidence
+You type a question and AcademicForge searches arXiv, then ranks the papers by both keywords and meaning. You tick the papers you want to use. Any paper can get a short summary or practical guidance on how to use it. Then it writes a research plan from your selection and streams it in as it goes. You can download the plan as Markdown.
 
-| SciFact test system | nDCG@10 | 95% query-bootstrap CI | Difference vs dense-only (95% CI) |
-| :--- | ---: | :--- | :--- |
-| BGE dense-only | 0.7200 | 0.6776–0.7635 | — |
-| Stemmed BM25 | 0.6514 | 0.6058–0.6951 | −0.0686 (−0.1063–−0.0309) |
-| Equal-weight RRF | 0.7076 | 0.6656–0.7513 | −0.0124 (−0.0392–0.0169) |
-| Best weighted RRF | 0.7233 | 0.6800–0.7628 | +0.0033 (−0.0109–0.0189) |
-| Best score fusion **(default)** | **0.7306** | 0.6877–0.7728 | +0.0106 (−0.0037–0.0268) |
-| Best score fusion + reranker@20 | 0.7278 | 0.6836–0.7697 | +0.0078 (−0.0198–0.0351) |
-
-This is one full, frozen BEIR SciFact abstract-retrieval test on MPS, with 1,000 paired bootstrap resamples (seed 42). Score fusion was selected using the official SciFact training judgments (there is no SciFact development split), but it did not significantly beat dense-only on that test; reranking did not significantly improve its selected fusion either. The later frozen NFCorpus replication was significant in the same direction, so the amended decision rule selects score fusion as the default. The result does not establish performance on other datasets, full text, live search, generated answers, or human usefulness. MPS latency is not comparable to CUDA or ROCm, and no human evaluation has been run.
-
-Set `ACADEMICFORGE_RETRIEVAL_MODE=score_fusion|dense|hybrid|hybrid_rerank` to select a mode. The default score fusion uses stemmed BM25 and BGE dense scores with dense alpha 0.9; cross-encoder reranking is opt-in. The complete sweep and frozen evaluation are [auditable JSON artifacts](docs/benchmarks/retrieval-fusion-evaluation.json); see the [benchmark guide](docs/benchmarks/README.md) for method and limits.
-
-### Frozen NFCorpus replication
-
-| NFCorpus test system | nDCG@10 (95% CI) | Recall@10 (95% CI) | MRR@10 (95% CI) | Difference vs dense-only (95% CI) |
-| :--- | :--- | :--- | :--- | :--- |
-| Dense-only | 0.3374 (0.3014–0.3752) | 0.1580 (0.1342–0.1849) | 0.5299 (0.4789–0.5786) | — |
-| Stemmed BM25 | 0.3053 (0.2737–0.3390) | 0.1422 (0.1196–0.1677) | 0.5105 (0.4637–0.5584) | −0.0322 (−0.0530–−0.0100), worse |
-| Equal RRF | 0.3422 (0.3082–0.3790) | 0.1630 (0.1386–0.1898) | 0.5546 (0.5047–0.6031) | +0.0048 (−0.0100–0.0212), not significant |
-| Frozen weighted RRF | 0.3505 (0.3152–0.3866) | 0.1695 (0.1458–0.1969) | 0.5538 (0.5074–0.6028) | +0.0130 (0.0047–0.0205), significant |
-| Frozen score fusion | 0.3551 (0.3192–0.3930) | 0.1675 (0.1439–0.1952) | 0.5564 (0.5083–0.6077) | +0.0177 (0.0108–0.0253), significant |
-
-This frozen replication uses the SciFact-selected settings, not NFCorpus tuning, and applies the existing binary metric harness to NFCorpus’s graded judgments: every positive grade is relevant, while grade magnitude is not used. It supports the dated amendment that makes score fusion the default: SciFact was inconclusive, while NFCorpus was significant in the same direction. These MPS cache-replay timings are not CUDA/ROCm latency, and no human evaluation has been run. The complete artifact is [nfcorpus-frozen-evaluation.json](docs/benchmarks/nfcorpus-frozen-evaluation.json).
-
-### Generated-output faithfulness screen
-
-The local `mlx-community/gemma-2-2b-it-4bit` model completed 20 fixed-query summaries. Its 63 sentence-level BGE similarity decisions are a screening heuristic, not proof of factual correctness. The local control run selected a 0.80 similarity threshold: it marked 65.1% of real sentences supported, 0% of mismatched sentences supported, 100% of injected unsupported claims flagged, and 85% of reversed conclusions flagged. The unflagged reversals mean similarity alone cannot establish factuality. The [artifact](docs/benchmarks/faithfulness.json), [control results](docs/benchmarks/faithfulness_controls.json), [control method](benchmarks/faithfulness.py), and [blind human-evaluation builder](scripts/build_human_eval.py) retain auditable inputs and limitations.
-
-For Research Plans, a separate local Gemma run froze 10 queries with three selected papers each. All 10 plans used only selected-paper citation indices; 48 of 50 Key Findings bullets carried a citation (96%), and 9 of 10 plans cited every Key Findings bullet. This deterministic run used greedy local decoding (`temperature=0`). It is citation-membership and coverage checking, not entailment, factuality, or source-retrieval coverage verification. The [plan artifact](docs/benchmarks/plan_faithfulness.json) contains generated plans and paper IDs/titles, but no source abstracts.
-
-### Real example
-
-The [RAG hallucination Research Plan](docs/examples/rag-hallucination-research-plan.md) was generated from a live search using three retrieved papers, local Gemma summaries, and the same Research Plan generator served by FastAPI. Recreate it with:
-
-```bash
-python -m benchmarks.generate_example --device mps
-```
-
-## What you can do
-
-You type a question and AcademicForge searches arXiv, ranking papers by both keywords and meaning. You tick the papers you want to use, and can ask for a short summary or practical guidance on any one of them. Then it writes a research plan from your selection, streaming it as it goes, with each finding cited back to a paper. You can download the plan as Markdown.
-
-Generation runs on a local Gemma model by default. You can turn on a cloud provider for Deep mode if you need one.
+Semantic Scholar is a second, optional source. It turns on when you add a free `SEMANTIC_SCHOLAR_API_KEY` to `.env`. Without a key it stays off, because its public API refuses almost every anonymous request.
 
 ## Getting started
 
-For a lightweight demo without API keys or a backend, use the [standalone Streamlit profile](docs/streamlit_cloud.md). It shares this interface and live search, uses BM25 ranking and a small open-source CPU model, and falls back to extractive evidence analysis when the model is unavailable.
+For a lightweight demo with no API keys and no backend, use the [standalone Streamlit profile](docs/streamlit_cloud.md). It has the same interface and live search, ranks with BM25, and uses a small CPU model with extracted evidence as a fallback.
 
-You need Python 3.12–3.14 with `venv` support, Git, and an internet connection for paper searches and initial model downloads. Choose the dependency file for your hardware below. GPU setups also need a working CUDA or ROCm environment.
+For the full app you need Python 3.12 to 3.14 with `venv`, Git, and an internet connection for paper searches and the first model download. GPU machines also need a working CUDA or ROCm setup.
 
 ### 1. Download the project
 
 ```bash
 git clone https://github.com/shreyshrivastava/AcademicForge.git
 cd AcademicForge
-
 python3 -m venv venv
 source venv/bin/activate
 python -m pip install --upgrade pip setuptools wheel
@@ -78,17 +39,12 @@ python -m pip install --upgrade pip setuptools wheel
 
 ### 2. Install dependencies
 
-Run the command for your machine:
-
 ```bash
 # Apple Silicon or a standard Python setup
 python -m pip install --ignore-installed blinker -r requirements-local.txt
 ```
 
-The explicit Blinker reinstall remains for compatibility with preinstalled
-macOS Python environments. A fresh offline verification could not test that
-case because its package cache lacked `accelerate==1.15.0` before installation
-reached Blinker.
+The Blinker reinstall works around a preinstalled copy in some macOS Python setups.
 
 ```bash
 # NVIDIA VM with a verified CUDA PyTorch 2.12.x stack already installed
@@ -100,22 +56,22 @@ python -m scripts.install_gpu cuda
 python -m scripts.install_gpu rocm
 ```
 
-### 3. Configure your model
+The GPU installer keeps your VM's PyTorch, checks the accelerator, and then installs the app's locked packages. See [GPU setup](docs/setup.md#gpu-vms).
+
+### 3. Configure
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set the model for your machine:
+The example file uses `LOCAL_LLM_PROVIDER=auto`, which picks the right model for your machine:
 
 | Machine | `LOCAL_LLM_PROVIDER` | `LOCAL_LLM_MODEL` |
 | :--- | :--- | :--- |
 | Apple Silicon | `mlx` | `mlx-community/gemma-2-2b-it-4bit` |
 | NVIDIA CUDA or AMD ROCm | `transformers` | `google/gemma-2-2b-it` |
 
-The example file uses `LOCAL_LLM_PROVIDER=auto` and leaves the model unset, so the app chooses the correct platform model. Use the table above if you want to set it explicitly. GPU installation preserves your VM's existing PyTorch stack and checks it before installing application packages. See [GPU setup](docs/setup.md#gpu-vms) for the supported profile and verification steps.
-
-For gated Hugging Face models such as Gemma, accept the model's access terms and add `HF_TOKEN` to `.env`. Cloud API keys are optional.
+Gemma is a gated model on Hugging Face, so accept its terms and add `HF_TOKEN` to `.env`. Everything else is optional.
 
 ### 4. Start the app
 
@@ -123,9 +79,9 @@ For gated Hugging Face models such as Gemma, accept the model's access terms and
 ./start.sh
 ```
 
-Open [AcademicForge at localhost:8501](http://127.0.0.1:8501). The script starts the backend and frontend together, waits up to ten minutes for readiness, and stops both processes if either exits. The first start can take longer while model weights download and load. Local access uses loopback by default; [VM access](docs/setup.md#network-access) requires explicit configuration.
+Open [localhost:8501](http://127.0.0.1:8501). The script starts the backend and the interface together, waits up to ten minutes for the models to load, and stops both if either exits. The first start is slower while model weights download. The app listens on loopback only unless you [configure network access](docs/setup.md#network-access).
 
-To check the backend runtime:
+To check the backend:
 
 ```bash
 curl http://127.0.0.1:8000/version
@@ -133,83 +89,73 @@ curl http://127.0.0.1:8000/version
 
 ## Try it
 
-1. Enter a question, such as **“Reducing hallucinations in retrieval augmented generation.”**
-2. Pick a **Field**, **Lens** and **Model** under the question box, then press **Search**. For RAG or RAGAS, choose **Computer science & AI**. Use **Other field…** to type a subject such as quantum physics.
+1. Type a question, for example "Reducing hallucinations in retrieval augmented generation".
+2. Pick a **Field**, **Lens** and **Model** under the question box and press **Search**. For RAG or RAGAS, choose **Computer science & AI**. **Other field…** lets you type a subject such as quantum physics.
 3. Tick **Use in plan** on the papers you want. The top three are ticked for you.
 4. Press **Summary** or **Guidance** on any paper to read about it on its own.
 5. Press **Write plan**, then **Download Markdown** to keep it.
 
-### Search in a specific field
+You can also open a search straight from a link: `http://127.0.0.1:8501/?query=your+question&run=1`.
 
-Use **Field** to separate terms that mean different things in different subjects:
+### Fields
 
-- **Computer science & AI:** expands RAG to retrieval augmented generation and recognizes RAGAS, including “rag as” and “rag and as.”
-- **Music & arts:** keeps the music meaning of ragas.
-- **Medicine & health** and **Energy & environment:** narrow results to those fields.
-- **Other field…:** enter your own subject. Custom fields match their words in paper titles, abstracts, and available categories.
-- **All fields:** keeps the existing broad search behavior.
+The **Field** setting separates terms that mean different things in different subjects:
 
-The app previews the interpreted query, labels the field used for the displayed results, and asks you to search again after changing fields. It keeps separate cached results for each field and carries the original question and chosen field into research plans. See [search field behavior](docs/search-fields.md) for details.
+- **Computer science & AI** expands RAG to retrieval augmented generation and recognizes RAGAS, including "rag as" and "rag and as".
+- **Music & arts** keeps the music meaning of ragas.
+- **Medicine & health** and **Energy & environment** narrow results to those fields.
+- **Other field…** matches your own words in titles, abstracts and categories.
+- **All fields** searches broadly.
+
+The app shows how it read your query and asks you to search again after you change the field. Each field keeps its own cached results. See [search fields](docs/search-fields.md).
 
 ## How it works
 
-AcademicForge uses Streamlit for the interface and FastAPI for the backend. Search finds and ranks papers; the generation model turns your selected evidence into summaries, guidance, and a research plan.
+Streamlit draws the interface and FastAPI runs the backend. Search finds and ranks papers, and the generation model turns the papers you pick into summaries, guidance and a plan.
 
-### 3D architecture
-
-![AcademicForge isometric architecture](docs/assets/academicforge-architecture.svg)
-
-### Research workflow
+![AcademicForge architecture](docs/assets/academicforge-architecture.svg)
 
 ```text
-Your research question
-  -> Search arXiv
-  -> Score fusion: stemmed BM25 + BGE dense (default, alpha 0.9)
-  -> Optionally use dense-only or RRF hybrid retrieval
-  -> Optionally refine an RRF hybrid order with a BGE cross-encoder
-  -> Optionally rerank top papers with OpenJev in Quality search mode
-  -> Choose the papers to use as evidence
-  -> Generate summaries and paper guidance
-  -> Build and stream a research plan
+Your question
+  -> search arXiv (and Semantic Scholar when a key is set)
+  -> rank with score fusion: stemmed BM25 + BGE dense, alpha 0.9
+     (dense-only, RRF hybrid and a BGE cross-encoder are opt-in)
+  -> optional OpenJev pass on the top papers in Quality search mode
+  -> you pick the papers
+  -> summaries and guidance per paper
+  -> one research plan, streamed
 ```
 
-Completed searches are cached in memory for five minutes by default, making repeated queries with the same filters and search mode faster.
-
-### Technology
+Finished searches stay cached in memory for five minutes, so repeating a query with the same settings is instant.
 
 | Part | Tools |
 | :--- | :--- |
-| Interface | Streamlit |
+| Interface | Streamlit (design notes in [DESIGN.md](DESIGN.md)) |
 | Backend | FastAPI and Uvicorn |
-| Paper sources | arXiv. OpenAlex support is built in but off while its anonymous search is rate-limited. |
-| Search and ranking | Score fusion by default: stemmed BM25 + BGE dense, alpha 0.9; opt-in RRF and `BAAI/bge-reranker-base` |
-| Optional final ranking | OpenJev |
-| OpenJev | Optional HTTP ranking service that scores a small top-paper set and preserves the existing order on failure. |
-| Local generation | Gemma through MLX or Transformers/PyTorch |
+| Paper sources | arXiv; Semantic Scholar with an API key |
+| Ranking | Score fusion of stemmed BM25 and `BAAI/bge-small-en-v1.5`; opt-in RRF and `BAAI/bge-reranker-base` |
+| Optional final ranking | OpenJev, an HTTP service that rescores the top few papers and keeps the original order if it fails |
+| Local generation | Gemma through MLX or Transformers |
 | Optional cloud generation | Groq for Deep mode; Fireworks DeepSeek when enabled |
 
-See [the architecture guide](docs/architecture.md) for more detail.
+More detail is in [the architecture guide](docs/architecture.md).
 
-## Search and generation modes
+### Search mode and model
 
-The search mode (`ACADEMICFORGE_SEARCH_MODE`) sets the order of papers. The **Model** choice in the app (Fast or Deep) sets which model writes summaries, guidance and plans. The two are configured separately.
+`ACADEMICFORGE_SEARCH_MODE` sets how papers are ordered. The **Model** choice in the app (Fast or Deep) sets which model writes the text. They are independent.
 
-| Search mode | What it does | When to use it |
-| :--- | :--- | :--- |
-| **Fast** (default) | Uses score fusion: stemmed BM25 plus BGE dense at alpha 0.9. BGE reranking requires `ACADEMICFORGE_RETRIEVAL_MODE=hybrid_rerank`. | Everyday searches with lower latency. |
-| **Quality** | Adds an OpenJev ranking pass when OpenJev is enabled and available. | Searches where you want an extra relevance check on the top papers. |
+| Search mode | What it does |
+| :--- | :--- |
+| `fast` (default) | Score fusion only. Set `ACADEMICFORGE_RETRIEVAL_MODE=hybrid_rerank` to add the cross-encoder. |
+| `quality` | Adds an OpenJev pass on the top papers when OpenJev is running. |
 
-Both search modes use the same generation settings. Changing search mode changes paper ordering; it does not change the writing model or prompts.
-
-### Optional: local OpenJev ranking
-
-On Apple Silicon, start the MLX OpenJev server in a separate terminal with your virtual environment activated:
+To run OpenJev locally on Apple Silicon, start it in a second terminal:
 
 ```bash
 python -m scripts.start_openjev_mlx
 ```
 
-Then set these values in `.env` and start or restart AcademicForge:
+Then add to `.env` and restart:
 
 ```dotenv
 ACADEMICFORGE_SEARCH_MODE=quality
@@ -219,11 +165,11 @@ JEV_MODEL=openjev
 JEV_MAX_PAPERS=10
 ```
 
-The helper downloads the OpenJev MLX model on first use, so allow additional disk space and memory. `JEV_MAX_PAPERS` sets the number of results to rerank; the code default is `3`, and the example above uses `10`. If OpenJev is unavailable or times out, the app keeps the original ranking.
+The helper downloads the OpenJev model on first use. `JEV_MAX_PAPERS` is how many top results it rescores (default 3).
 
-### Optional: cloud generation
+### Cloud generation
 
-To use Groq for Deep summaries, guidance, and research plans, set these values in `.env`:
+To use Groq for Deep mode, add:
 
 ```dotenv
 REMOTE_LLM_USE_FOR_DEEP=true
@@ -232,108 +178,138 @@ GROQ_API_KEY=your-groq-key
 REMOTE_LLM_MODEL=openai/gpt-oss-120b
 ```
 
-To enable Fireworks DeepSeek generation, add `FIREWORKS_API_KEY` and set `LOCAL_LLM_USE_FIREWORKS=true`. Configure one cloud path at a time. Fast analysis continues to use the local model.
+For Fireworks DeepSeek, add `FIREWORKS_API_KEY` and `LOCAL_LLM_USE_FIREWORKS=true`. Use one cloud provider at a time. Fast mode always uses the local model.
+
+## Evidence
+
+### Retrieval
+
+| SciFact test system | nDCG@10 | 95% bootstrap CI | Difference vs dense-only (95% CI) |
+| :--- | ---: | :--- | :--- |
+| BGE dense-only | 0.7200 | 0.6776–0.7635 | |
+| Stemmed BM25 | 0.6514 | 0.6058–0.6951 | −0.0686 (−0.1063 to −0.0309) |
+| Equal-weight RRF | 0.7076 | 0.6656–0.7513 | −0.0124 (−0.0392 to 0.0169) |
+| Best weighted RRF | 0.7233 | 0.6800–0.7628 | +0.0033 (−0.0109 to 0.0189) |
+| Best score fusion **(default)** | **0.7306** | 0.6877–0.7728 | +0.0106 (−0.0037 to 0.0268) |
+| Best score fusion + reranker@20 | 0.7278 | 0.6836–0.7697 | +0.0078 (−0.0198 to 0.0351) |
+
+This is one frozen run on the full BEIR SciFact test set on Apple Silicon (MPS), with 1,000 paired bootstrap resamples (seed 42). Settings were picked on the official training judgments, since SciFact has no development split. On SciFact, score fusion did not significantly beat dense-only, and the reranker did not improve on fusion.
+
+| NFCorpus test system | nDCG@10 (95% CI) | Recall@10 (95% CI) | MRR@10 (95% CI) | Difference vs dense-only (95% CI) |
+| :--- | :--- | :--- | :--- | :--- |
+| Dense-only | 0.3374 (0.3014–0.3752) | 0.1580 (0.1342–0.1849) | 0.5299 (0.4789–0.5786) | |
+| Stemmed BM25 | 0.3053 (0.2737–0.3390) | 0.1422 (0.1196–0.1677) | 0.5105 (0.4637–0.5584) | −0.0322 (−0.0530 to −0.0100), worse |
+| Equal RRF | 0.3422 (0.3082–0.3790) | 0.1630 (0.1386–0.1898) | 0.5546 (0.5047–0.6031) | +0.0048 (−0.0100 to 0.0212), not significant |
+| Frozen weighted RRF | 0.3505 (0.3152–0.3866) | 0.1695 (0.1458–0.1969) | 0.5538 (0.5074–0.6028) | +0.0130 (0.0047 to 0.0205), significant |
+| Frozen score fusion | 0.3551 (0.3192–0.3930) | 0.1675 (0.1439–0.1952) | 0.5564 (0.5083–0.6077) | +0.0177 (0.0108 to 0.0253), significant |
+
+NFCorpus was run once with the settings frozen on SciFact, with no tuning. Its graded judgments are treated as binary (any positive grade counts as relevant). Fusion beat dense-only significantly here, in the same direction as SciFact, so a dated amendment in the [benchmark guide](docs/benchmarks/README.md) makes score fusion the default. Neither test covers full text, live search, generated answers or human judgment, and MPS timings don't carry over to CUDA or ROCm. Pick a mode with `ACADEMICFORGE_RETRIEVAL_MODE=score_fusion|dense|hybrid|hybrid_rerank`. The full results are in [retrieval-fusion-evaluation.json](docs/benchmarks/retrieval-fusion-evaluation.json) and [nfcorpus-frozen-evaluation.json](docs/benchmarks/nfcorpus-frozen-evaluation.json).
+
+### Generated text
+
+These checks ran with the earlier prompts. The prompts now include a plain-writing rule, so both need a re-run before the numbers describe the current version.
+
+- **Summaries.** Local Gemma (`mlx-community/gemma-2-2b-it-4bit`) wrote 20 summaries for fixed queries, and each sentence was compared to the source abstracts with BGE similarity. At the chosen 0.80 threshold, 65.1% of real sentences counted as supported, 0% of sentences from the wrong paper did, 100% of injected false claims were flagged, and 85% of reversed conclusions were flagged. Similarity misses some reversals, so this is a screen for problems and does not prove the text is correct. See [faithfulness.json](docs/benchmarks/faithfulness.json) and [the controls](docs/benchmarks/faithfulness_controls.json).
+- **Plan citations.** 10 fixed queries with three papers each, greedy decoding. All 10 plans cited only the selected papers, 48 of 50 Key Findings bullets had a citation (96%), and 9 of 10 plans cited every bullet. This checks that citations point at the right papers, not that each paper supports its claim. See [plan_faithfulness.json](docs/benchmarks/plan_faithfulness.json).
+
+### Example plan
+
+[This RAG hallucination plan](docs/examples/rag-hallucination-research-plan.md) came from a live search, local Gemma summaries and the same plan generator the app uses. Recreate it with:
+
+```bash
+python -m benchmarks.generate_example --device mps
+```
 
 ## Configuration
 
-Copy [.env.example](.env.example) to `.env` and set only what you need. Restart the app after changing settings.
+Copy [.env.example](.env.example) to `.env` and set only what you need. Restart after changes.
 
 | Variable | Default | Purpose |
 | :--- | :--- | :--- |
-| `HF_TOKEN` | Unset | Access gated Hugging Face model downloads. |
-| `LOCAL_LLM_PROVIDER` | `auto` | Choose MLX on Apple Silicon or Transformers elsewhere. |
-| `LOCAL_LLM_MODEL` | Depends on runtime | Choose the local generation model. |
-| `LOCAL_LLM_DEEP_MODEL` | Local model, or enabled cloud model | Choose the Deep generation model. |
-| `LOCAL_LLM_RESEARCH_PLAN_MODEL` | Deep model | Choose the research plan model. |
-| `LOCAL_LLM_MAX_TOKENS` | `2500` | Set the output token limit. |
-| `LOCAL_LLM_TEMPERATURE` | `0.2` | Control how varied generated text is. |
-| `ACADEMICFORGE_SEARCH_MODE` | `fast` | Choose `fast` or `quality` paper ranking. |
-| `ACADEMICFORGE_SEARCH_CACHE_TTL_SECONDS` | `300` | Set how long completed searches stay in memory. |
-| `ACADEMICFORGE_RETRIEVAL_DEVICE` | `auto` | Choose the ranking device; use `cpu` to reduce GPU memory use. |
-| `ACADEMICFORGE_BACKEND_URL` | `http://127.0.0.1:8000` | Set the backend address for Streamlit when started separately. |
-| `JEV_ENABLED` | `false` | Enable OpenJev in Quality search mode. |
-| `REMOTE_LLM_USE_FOR_DEEP` | `false` | Enable a configured cloud provider for Deep generation. |
-| `GROQ_API_KEY` | Unset | Authenticate with Groq for optional Deep generation. |
-| `FIREWORKS_API_KEY` | Unset | Authenticate with Fireworks. |
-| `LOCAL_LLM_USE_FIREWORKS` | `false` | Enable Fireworks generation explicitly. |
-| `ACADEMICFORGE_BIND_HOST` | `127.0.0.1` | Set the interface used by the launcher. |
-| `ACADEMICFORGE_API_KEY` | Unset | Protect the backend; required by the launcher for network exposure. |
-| `ACADEMICFORGE_STARTUP_TIMEOUT_SECONDS` | `600` | Limit startup waiting. |
-| `ACADEMICFORGE_GENERATION_CONCURRENCY` | `1` | Limit simultaneous generation; excess work gets HTTP 429. |
-| `ACADEMICFORGE_SEARCH_CONCURRENCY` | `2` | Limit simultaneous searches. |
-| `ACADEMICFORGE_CLOUD_TIMEOUT_SECONDS` | `45` | Set each cloud request's SDK timeout. |
-| `ACADEMICFORGE_MAX_REQUEST_BYTES` | `1048576` | Limit request bodies, including chunked bodies. |
-| `ACADEMICFORGE_REQUESTS_PER_MINUTE` | `60` | Limit requests per client IP per process. |
+| `HF_TOKEN` | Unset | Download gated Hugging Face models. |
+| `SEMANTIC_SCHOLAR_API_KEY` | Unset | Turn on Semantic Scholar as a second source. Get a free key at semanticscholar.org/product/api. |
+| `LOCAL_LLM_PROVIDER` | `auto` | MLX on Apple Silicon, Transformers elsewhere. |
+| `LOCAL_LLM_MODEL` | Depends on machine | The local generation model. |
+| `LOCAL_LLM_DEEP_MODEL` | Local model, or the enabled cloud model | The Deep mode model. |
+| `LOCAL_LLM_RESEARCH_PLAN_MODEL` | Deep model | The research plan model. |
+| `LOCAL_LLM_MAX_TOKENS` | `2500` | Output token limit. |
+| `LOCAL_LLM_TEMPERATURE` | `0.2` | How varied the generated text is. |
+| `ACADEMICFORGE_SEARCH_MODE` | `fast` | `fast` or `quality` ranking. |
+| `ACADEMICFORGE_RETRIEVAL_MODE` | `score_fusion` | `score_fusion`, `dense`, `hybrid` or `hybrid_rerank`. |
+| `ACADEMICFORGE_SEARCH_CACHE_TTL_SECONDS` | `300` | How long finished searches stay cached. |
+| `ACADEMICFORGE_RETRIEVAL_DEVICE` | `auto` | Ranking device; `cpu` saves GPU memory. |
+| `ACADEMICFORGE_BACKEND_URL` | `http://127.0.0.1:8000` | Backend address when Streamlit runs on its own. |
+| `JEV_ENABLED` | `false` | Turn on OpenJev in Quality mode. |
+| `REMOTE_LLM_USE_FOR_DEEP` | `false` | Use a cloud provider for Deep mode. |
+| `GROQ_API_KEY` | Unset | Groq key for Deep mode. |
+| `FIREWORKS_API_KEY` | Unset | Fireworks key. |
+| `LOCAL_LLM_USE_FIREWORKS` | `false` | Turn on Fireworks generation. |
+| `ACADEMICFORGE_BIND_HOST` | `127.0.0.1` | Interface the launcher listens on. |
+| `ACADEMICFORGE_API_KEY` | Unset | Protects the backend; the launcher requires it for network access. |
+| `ACADEMICFORGE_STARTUP_TIMEOUT_SECONDS` | `600` | How long startup waits for models. |
+| `ACADEMICFORGE_GENERATION_CONCURRENCY` | `1` | Simultaneous generations; extra requests get HTTP 429. |
+| `ACADEMICFORGE_SEARCH_CONCURRENCY` | `2` | Simultaneous searches. |
+| `ACADEMICFORGE_CLOUD_TIMEOUT_SECONDS` | `45` | Timeout for each cloud request. |
+| `ACADEMICFORGE_MAX_REQUEST_BYTES` | `1048576` | Largest request body accepted. |
+| `ACADEMICFORGE_REQUESTS_PER_MINUTE` | `60` | Requests per client IP per process. |
 
-The startup script uses backend port `8000` and frontend port `8501`. Both processes read `.env` as configuration. Dependencies are recorded in `pyproject.toml` and `uv.lock`; pip requirement files are generated from that lock.
+The launcher uses port `8000` for the backend and `8501` for the interface. Dependencies are locked in `pyproject.toml` and `uv.lock`, and the pip requirement files are generated from the lock. The Streamlit theme is pinned in `.streamlit/config.toml`.
 
 ## API
 
 | Endpoint | Purpose |
 | :--- | :--- |
-| `GET /live` | Check that the API process responds. |
-| `GET /health` | Check per-component readiness; HTTP 503 until generation is ready. |
-| `GET /version` | View runtime, accelerator, model, and retrieval device details. |
-| `GET /config` | View public model and mode settings. |
+| `GET /live` | The API process is up. |
+| `GET /health` | Per-component readiness; HTTP 503 until generation is ready. |
+| `GET /version` | Runtime, accelerator, model and retrieval device. |
+| `GET /config` | Public model and mode settings. |
 | `POST /search` | Find and rank papers. |
-| `POST /summarize` | Generate a paper summary. |
-| `POST /paper-guidance` | Generate practical guidance for a paper. |
-| `POST /research-plan` | Generate a complete research plan. |
-| `POST /research-plan/stream` | Stream NDJSON `start`, `delta`, `done`, or `error` events. |
+| `POST /summarize` | Summarize one paper. |
+| `POST /paper-guidance` | Practical guidance for one paper. |
+| `POST /research-plan` | A complete research plan. |
+| `POST /research-plan/stream` | The plan as NDJSON `start`, `delta`, `done` or `error` events. |
 
-Search responses include source status and warnings when results are incomplete. Total source failure returns HTTP 503. Generation responses report the actual provider and any local fallback. Interrupted streams stop with an explicit error; they are never silently replayed after partial output.
+Search responses list each source's status and a warning when a source fails. If every source fails, search returns HTTP 503. Generation responses name the provider that answered and say when the local model stood in for a cloud one. A stream that breaks ends with an error event and is never replayed after partial output.
 
 ## Troubleshooting
 
-**Why is the first start slow?**
+**The first start is slow.** The app downloads and loads the generation and ranking models. Later starts reuse them. `GET /health` shows readiness.
 
-The app downloads and loads local generation and ranking models. Later starts reuse the downloaded weights. Check `GET /health` for model readiness.
+**A model download fails.** Check that your Hugging Face account has access to Gemma and that `HF_TOKEN` is in `.env`. On Apple Silicon, `LOCAL_LLM_MODEL` should be the MLX model from the setup table.
 
-**Why does a model download fail?**
+**I don't see Semantic Scholar papers.** It only runs with `SEMANTIC_SCHOLAR_API_KEY` set. Without a key, search uses arXiv alone.
 
-For gated models, check that your Hugging Face account has access and that `HF_TOKEN` is set in `.env`. On Apple Silicon, also check that `LOCAL_LLM_MODEL` points to the MLX model shown in the setup table.
+**Is it using the GPU?** Call `GET /version`. NVIDIA reports `"accelerator":"cuda"` and AMD reports `"accelerator":"rocm"`. On ROCm, `"retrieval_device":"cuda"` is expected, because PyTorch uses the same device name for both.
 
-**How do I check GPU use?**
+**GPU memory is tight.** Set `ACADEMICFORGE_RETRIEVAL_DEVICE=cpu` to move the ranking models to the CPU.
 
-Call `GET /version`. NVIDIA should report `"accelerator":"cuda"`; AMD should report `"accelerator":"rocm"`. On ROCm, `"retrieval_device":"cuda"` is expected because PyTorch uses the same device API for AMD and NVIDIA GPUs.
+**How do I open it on a remote VM?** Forward ports `8501` and `8000`, or use your provider's proxy. On the Radeon notebook VM used for testing, the app is at `/instances/<instance-id>/proxy/8501/` and diagnostics at `/instances/<instance-id>/proxy/8000/version`.
 
-**What if GPU memory is limited?**
-
-Set `ACADEMICFORGE_RETRIEVAL_DEVICE=cpu` in `.env` to move search ranking models to the CPU.
-
-**How do I open the app on a remote VM?**
-
-Forward ports `8501` and `8000`, or use your VM provider's proxy. On the Radeon notebook VM used for testing, the app path is `/instances/<instance-id>/proxy/8501/` and diagnostics are at `/instances/<instance-id>/proxy/8000/version`.
-
-**Where can I report a problem?**
-
-Open an [issue](https://github.com/shreyshrivastava/AcademicForge/issues) with the steps to reproduce it and any relevant error output.
-
-### AMD ROCm example
+**Where do I report a problem?** Open an [issue](https://github.com/shreyshrivastava/AcademicForge/issues) with the steps to reproduce it and any error output.
 
 ![AcademicForge AMD ROCm runtime diagnostics](docs/assets/amd-rocm-version-proof.png)
 
-This runtime response shows the backend running on Linux with Transformers and an AMD Radeon GPU through ROCm.
+The response above is the backend running on Linux with Transformers on an AMD Radeon GPU through ROCm.
 
 ## Project structure
 
 ```text
 AcademicForge/
-├── backend/                 FastAPI routes, model settings, and generation
-│   └── retrieval/           Keyword search, embeddings, ranking, and devices
-├── frontend/                Streamlit interface
-├── scripts/                 Model downloads and local OpenJev startup
-├── tests/                   API, generation, routing, and search checks
-├── docs/                    Setup guides, architecture, and screenshots
+├── backend/                 FastAPI routes, search, ranking glue and generation
+│   └── retrieval/           BM25, embeddings, fusion, reranking and devices
+├── frontend/                Streamlit interface and styles
+├── benchmarks/              SciFact, NFCorpus and faithfulness evaluations
+├── scripts/                 Model downloads, GPU install, OpenJev, review scorers
+├── tests/                   API, generation, search and interface checks
+├── docs/                    Setup, architecture, benchmarks and screenshots
+├── DESIGN.md                Colors, type, layout and copy rules for the interface
 ├── .env.example             Example configuration
-├── requirements-local.txt   Shared dependencies and Apple Silicon support
-├── requirements-gpu.txt     Locked CUDA/ROCm packages (install with scripts/install_gpu.py)
-└── start.sh                 Start the backend and frontend
+├── requirements-local.txt   Locked dependencies for Apple Silicon and standard Python
+├── requirements-gpu.txt     Locked CUDA/ROCm packages for scripts/install_gpu.py
+└── start.sh                 Starts the backend and interface
 ```
 
 ## Development
-
-After installing dependencies, run the checks:
 
 ```bash
 python -m pip install -r requirements-dev.txt
@@ -343,9 +319,8 @@ python -m compileall -q backend frontend scripts tests benchmarks
 bash -n start.sh
 ```
 
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and [docs/setup.md](docs/setup.md) for additional setup notes.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/setup.md](docs/setup.md) for more.
 
 ## License
 
-AcademicForge is available under the [MIT License](LICENSE).
+MIT. See [LICENSE](LICENSE).

@@ -1,6 +1,6 @@
 # Reliability changes
 
-This document records the work following the [21 October engineering diagnostic](2026-10-21_engineering-AcademicForge-report.md). That report describes commit `73832e7`; its findings are historical, and the current acceptance suite is `tests/test_resilience.py`.
+This records the fixes made after the [21 October engineering diagnostic](2026-10-21_engineering-AcademicForge-report.md). That report describes commit `73832e7` and is kept as history. The current acceptance suite is `tests/test_resilience.py`, and the full suite has 147 tests as of 5 November 2026.
 
 ## Changes implemented
 
@@ -13,7 +13,7 @@ This document records the work following the [21 October engineering diagnostic]
 | Readiness | Lifespan warmup records generation, dense retrieval, and reranker states independently. `/live` is independent of model readiness. |
 | Launcher lifecycle | Readiness has a deadline, curl calls have timeouts, the launcher's instance is checked, backend exits are detected, and both child processes are cleaned up with a bounded grace period. |
 | Input and errors | Query, paper, summary, mode, category, and body limits apply before expensive work. Public errors contain stable codes and request IDs instead of raw exceptions. |
-| Source failure | Individual source statuses and warnings distinguish partial results from total outages. HTTP source calls use bounded attempts and timeouts; expansion does not repeatedly hammer a failed source. |
+| Source failure | Each source reports its own status, so partial results and total outages look different. HTTP calls have bounded attempts and timeouts, and expansion doesn't retry a failed source over and over. Semantic Scholar only runs with an API key, since anonymous requests are almost always refused with HTTP 429. |
 | OpenJev | Typed response validation rejects malformed shapes and out-of-range scores while preserving existing results. |
 | Generation fallback | Both Groq and Fireworks can recover to an authorized local backend before output begins. Responses expose the actual provider/model and fallback use; the UI displays a fallback notice. |
 | Dependency/release checks | A universal `uv.lock`, generated hash-pinned pip exports, a Python version policy, and a Linux/macOS CI matrix replace unbounded dependency selection. |

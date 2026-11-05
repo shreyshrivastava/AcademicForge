@@ -1,6 +1,7 @@
-"""Live candidate search across arXiv and OpenAlex."""
+"""Live candidate search across arXiv and, with an API key, Semantic Scholar."""
 from urllib.parse import quote_plus, urlparse
 import logging
+import os
 import re
 
 import xml.etree.ElementTree as ET
@@ -12,7 +13,6 @@ from backend.sources import diagnostics, get_source, source_status
 logger = logging.getLogger(__name__)
 
 INITIAL_CANDIDATE_COUNT = 30
-OPENALEX_ENABLED = False
 
 
 def extract_arxiv_id(query: str) -> str | None:
@@ -73,82 +73,86 @@ def search_arxiv_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COU
         return [], bool(arxiv_id)
 
 
-def _openalex_abstract(inverted_index) -> str:
-    """OpenAlex stores abstracts as {word: [positions]}; rebuild the text."""
-    if not isinstance(inverted_index, dict):
-        return ""
-    positions = {pos: word for word, places in inverted_index.items() for pos in places}
-    return " ".join(positions[pos] for pos in sorted(positions))
+def semantic_scholar_key() -> str:
+    # Anonymous Semantic Scholar requests share one public limit and are almost always refused,
+    # so the source only runs when a free key is configured.
+    return os.getenv("SEMANTIC_SCHOLAR_API_KEY", "").strip()
 
 
-def search_openalex_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COUNT) -> list[dict]:
-    """Fetch broad-domain paper candidates from OpenAlex (free, no API key)."""
-    url = "https://api.openalex.org/works"
+def search_semantic_scholar_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COUNT) -> list[dict]:
+    """Fetch broad-domain paper candidates from Semantic Scholar."""
+    url = "https://api.semanticscholar.org/graph/v1/paper/search"
     params = {
-        "search": query,
-        "per-page": str(max_results),
-        "select": "id,doi,display_name,publication_year,publication_date,authorships,"
-                  "abstract_inverted_index,cited_by_count,primary_location,topics",
+        "query": query,
+        "limit": str(max_results),
+        "fields": (
+            "title,abstract,authors,year,url,externalIds,fieldsOfStudy,"
+            "publicationDate,citationCount,influentialCitationCount"
+        ),
     }
-    logger.info("External search source=openalex query=%r url=%s?search=%s&per-page=%d", query, url, quote_plus(query), max_results)
+    logger.info(
+        "External search source=semantic_scholar query=%r url=%s?query=%s&limit=%d&fields=%s",
+        query,
+        url,
+        quote_plus(query),
+        max_results,
+        params["fields"],
+    )
+    headers = {"x-api-key": semantic_scholar_key()}
     try:
-        response = get_source(url, params=params)
+        response = get_source(url, params=params, headers=headers)
         try:
             payload = response.json()
         finally:
             response.close()
-        if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
-            raise ValueError("Invalid OpenAlex response")
-        results = payload["results"]
-        source_status("openalex", "ok")
+        if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
+            raise ValueError("Invalid Semantic Scholar response")
+        results = payload["data"]
+        source_status("semantic_scholar", "ok")
     except (requests.RequestException, ValueError, SourceUnavailable):
-        logger.warning("OpenAlex source unavailable", exc_info=True)
-        source_status("openalex", "unavailable")
+        logger.warning("Semantic Scholar source unavailable", exc_info=True)
+        source_status("semantic_scholar", "unavailable")
         return []
 
     papers = []
     for result in results:
         try:
-            title = result.get("display_name") or ""
-            abstract = _openalex_abstract(result.get("abstract_inverted_index"))
+            title = result.get("title") or ""
+            abstract = result.get("abstract") or ""
             if not title or not abstract:
                 continue
-            location = result.get("primary_location") or {}
-            paper_url = location.get("landing_page_url") or result.get("doi") or result.get("id") or ""
+
+            paper_url = result.get("url") or ""
+            external_ids = result.get("externalIds") or {}
             authors = [
-                (authorship.get("author") or {}).get("display_name", "")
-                for authorship in result.get("authorships") or []
-                if (authorship.get("author") or {}).get("display_name")
+                author.get("name", "")
+                for author in result.get("authors", [])
+                if author.get("name")
             ]
-            fields = []
-            for topic in result.get("topics") or []:
-                for level in ("field", "subfield"):
-                    name = (topic.get(level) or {}).get("display_name")
-                    if name and name not in fields:
-                        fields.append(name)
-            date = result.get("publication_date") or str(result.get("publication_year") or "")
             papers.append(
                 {
-                    "paper_id": result.get("id") or paper_url or title,
+                    "paper_id": result.get("paperId") or paper_url or title,
                     "title": title,
                     "authors": authors,
                     "abstract": abstract,
-                    "source": "openalex",
+                    "source": "semantic_scholar",
                     "url": paper_url,
                     "link": paper_url,
-                    "published": date,
-                    "date": date,
+                    "published": result.get("publicationDate") or str(result.get("year") or ""),
+                    "date": result.get("publicationDate") or str(result.get("year") or ""),
                     "metadata": {
-                        "fields_of_study": fields,
-                        "external_ids": {"DOI": result["doi"]} if result.get("doi") else {},
-                        "citation_count": result.get("cited_by_count"),
+                        "fields_of_study": result.get("fieldsOfStudy") or [],
+                        "external_ids": external_ids,
+                        "semantic_scholar_year": result.get("year"),
+                        "citation_count": result.get("citationCount"),
+                        "influential_citation_count": result.get("influentialCitationCount"),
                     },
                 }
             )
         except Exception as exc:
-            logger.warning("Skipping malformed OpenAlex result query=%r error=%s", query, exc)
+            logger.warning("Skipping malformed Semantic Scholar result query=%r error=%s", query, exc)
 
-    logger.info("OpenAlex candidates fetched count=%d", len(papers))
+    logger.info("Semantic Scholar candidates fetched count=%d", len(papers))
     return papers
 
 
@@ -160,17 +164,17 @@ def search_live_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COUN
             raise SourceUnavailable()
         return arxiv_papers, True
 
-    # shortcut: OpenAlex is off because its anonymous search is rate-limited; re-enable once an OPENALEX_API_KEY is supported.
-    openalex_papers = search_openalex_candidates(query, max_results=max_results) if OPENALEX_ENABLED else []
-    sources = ("arxiv", "openalex") if OPENALEX_ENABLED else ("arxiv",)
+    use_semantic_scholar = bool(semantic_scholar_key())
+    semantic_papers = search_semantic_scholar_candidates(query, max_results=max_results) if use_semantic_scholar else []
+    sources = ("arxiv", "semantic_scholar") if use_semantic_scholar else ("arxiv",)
     if all(diagnostics()["sources"].get(name) == "unavailable" for name in sources):
         raise SourceUnavailable()
-    candidates = _dedupe_papers([*openalex_papers, *arxiv_papers])
+    candidates = _dedupe_papers([*semantic_papers, *arxiv_papers])
     logger.info(
-        "Live candidates merged original_query=%r total=%d openalex=%d arxiv=%d",
+        "Live candidates merged original_query=%r total=%d semantic_scholar=%d arxiv=%d",
         query,
         len(candidates),
-        len(openalex_papers),
+        len(semantic_papers),
         len(arxiv_papers),
     )
     return candidates, False
