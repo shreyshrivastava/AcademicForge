@@ -33,7 +33,7 @@ python -m scripts.install_gpu cuda
 python -m scripts.install_gpu rocm
 ```
 
-The helper checks the requested accelerator, installs the locked application packages with `--no-deps`, runs dependency validation, and checks the GPU again. It does not replace PyTorch, CUDA/ROCm libraries, or Triton. An incompatible image fails with an actionable error before application installation. The retained compatibility files `requirements-cuda.txt` and `requirements-rocm.txt` point to the shared GPU application export; prefer the installer above.
+The helper checks the requested accelerator, installs the locked application packages with `--no-deps`, runs dependency validation, and checks the GPU again. It does not replace PyTorch, CUDA/ROCm libraries, or Triton. An incompatible image fails with an actionable error before application installation.
 
 Set `LOCAL_LLM_PROVIDER=transformers` in `.env`. GPU builds are deployment-specific: the unit suite is not a certification of any VM image. Record the exact image, driver, PyTorch wheel, model revision, `/version` response, and a successful search plus generation before deploying that image.
 

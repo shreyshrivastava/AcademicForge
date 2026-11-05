@@ -1,3 +1,0 @@
-# Compatibility entrypoint. Prefer: python -m scripts.install_gpu rocm
-# Use a verified ROCm PyTorch 2.12.x image; install with --no-deps to preserve it.
--r requirements-gpu.txt

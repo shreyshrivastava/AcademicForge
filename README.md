@@ -328,8 +328,7 @@ AcademicForge/
 ├── docs/                    Setup guides, architecture, and screenshots
 ├── .env.example             Example configuration
 ├── requirements-local.txt   Shared dependencies and Apple Silicon support
-├── requirements-cuda.txt    NVIDIA CUDA dependencies
-├── requirements-rocm.txt    AMD ROCm dependencies
+├── requirements-gpu.txt     Locked CUDA/ROCm packages (install with scripts/install_gpu.py)
 └── start.sh                 Start the backend and frontend
 ```
 
