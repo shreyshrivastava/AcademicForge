@@ -1,0 +1,1234 @@
+{
+  "generated_at": "2026-10-21T18:24:40.401478+00:00",
+  "method": {
+    "type": "embedding_sentence_support",
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "threshold": 0.62,
+    "limitations": "Cosine similarity is a heuristic: it can miss paraphrased support and can mark a semantically similar but contradicted sentence as supported. It does not replace human or NLI-based review."
+  },
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.14.3",
+    "embedding_device": "mps"
+  },
+  "results": {
+    "models": [
+      {
+        "id": "local_gemma",
+        "label": "Local Gemma",
+        "provider": "mlx",
+        "model": "mlx-community/gemma-2-2b-it-4bit",
+        "mode": "fast"
+      }
+    ],
+    "summary": {
+      "local_gemma": {
+        "outputs": 20,
+        "sentences": 63,
+        "supported_sentences": 63,
+        "micro_support_rate": 1.0
+      }
+    },
+    "queries": [
+      {
+        "id": "q01",
+        "query": "retrieval augmented generation factuality",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2605.05244v1",
+            "title": "Towards Dependable Retrieval-Augmented Generation Using Factual Confidence Prediction",
+            "url": "https://arxiv.org/pdf/2605.05244v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2410.15667v1",
+            "title": "RAC: Efficient LLM Factuality Correction with Retrieval Augmentation",
+            "url": "https://arxiv.org/pdf/2410.15667v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2604.22843v1",
+            "title": "Structure Guided Retrieval-Augmented Generation for Factual Queries",
+            "url": "https://arxiv.org/pdf/2604.22843v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This research focuses on improving the accuracy of large language models (LLMs) by incorporating factual information into their responses. The authors introduce a two-step method: first, they use a technique called conformal prediction to select only the most reliable retrieved information, and second, they use an attention-based classifier to assess the consistency of the generated answer with the retrieved context. This approach helps to create more reliable and accurate LLMs that can be used in a wide range of applications.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This research focuses on improving the accuracy of large language models (LLMs) by incorporating factual information into their responses.",
+                  "supported": true,
+                  "max_similarity": 0.877392783308199,
+                  "supporting_abstract_sentence": "Large Language Models (LLMs) exhibit impressive results across a wide range of natural language processing (NLP) tasks, yet they can often produce factually incorrect outputs."
+                },
+                {
+                  "sentence": "The authors introduce a two-step method: first, they use a technique called conformal prediction to select only the most reliable retrieved information, and second, they use an attention-based classifier to assess the consistency of the generated answer with the retrieved context.",
+                  "supported": true,
+                  "max_similarity": 0.8329188814040659,
+                  "supporting_abstract_sentence": "Second, we quantify confidence in the consistency of a generated final answer with a given retrieved context, using an attention-based factuality classifier."
+                },
+                {
+                  "sentence": "This approach helps to create more reliable and accurate LLMs that can be used in a wide range of applications.",
+                  "supported": true,
+                  "max_similarity": 0.752724390698427,
+                  "supporting_abstract_sentence": "Large Language Models (LLMs) exhibit impressive results across a wide range of natural language processing (NLP) tasks, yet they can often produce factually incorrect outputs."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q02",
+        "query": "multimodal hallucination mitigation",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2402.14545v2",
+            "title": "Less is More: Mitigating Multimodal Hallucination from an EOS Decision Perspective",
+            "url": "https://arxiv.org/pdf/2402.14545v2",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2506.11712v3",
+            "title": "Mitigating Hallucination Through Theory-Consistent Symmetric Multimodal Preference Optimization",
+            "url": "https://arxiv.org/pdf/2506.11712v3",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "4f83d9c391d782d358c2bf0d7ffc6150924dae01",
+            "title": "Reefknot: A Comprehensive Benchmark for Relation Hallucination Evaluation, Analysis and Mitigation in Multimodal Large Language Models",
+            "url": "https://www.semanticscholar.org/paper/4f83d9c391d782d358c2bf0d7ffc6150924dae01",
+            "source": "semantic_scholar"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This paper investigates how over-detailed training data can lead to multimodal hallucinations in large language models (LLMs). The authors propose two methods to mitigate these hallucinations: a training objective that encourages the model to generate shorter outputs, and a data filtering strategy to remove harmful training examples. Both methods improve the model's ability to generate accurate and concise outputs, without needing additional data or knowledge.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This paper investigates how over-detailed training data can lead to multimodal hallucinations in large language models (LLMs).",
+                  "supported": true,
+                  "max_similarity": 0.8948166119283862,
+                  "supporting_abstract_sentence": "To take advantage of such potential, we explore two methods to mitigate multimodal hallucinations: a training objective that enables the model to reduce hallucinations by learning from regular instruction data, and a data filtering strategy to prevent harmful training data from exacerbating model hallucinations."
+                },
+                {
+                  "sentence": "The authors propose two methods to mitigate these hallucinations: a training objective that encourages the model to generate shorter outputs, and a data filtering strategy to remove harmful training examples.",
+                  "supported": true,
+                  "max_similarity": 0.9543326913286614,
+                  "supporting_abstract_sentence": "To take advantage of such potential, we explore two methods to mitigate multimodal hallucinations: a training objective that enables the model to reduce hallucinations by learning from regular instruction data, and a data filtering strategy to prevent harmful training data from exacerbating model hallucinations."
+                },
+                {
+                  "sentence": "Both methods improve the model's ability to generate accurate and concise outputs, without needing additional data or knowledge.",
+                  "supported": true,
+                  "max_similarity": 0.7526631492088249,
+                  "supporting_abstract_sentence": "Both methods significantly improve the hallucination performance of LMMs, without requiring any additional data or knowledge."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q03",
+        "query": "parameter efficient fine tuning language models",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2305.06212v3",
+            "title": "Privacy-Preserving Parameter-Efficient Fine-Tuning for Large Language Model Services",
+            "url": "https://arxiv.org/pdf/2305.06212v3",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2410.10075v3",
+            "title": "RoCoFT: Efficient Finetuning of Large Language Models with Row-Column Updates",
+            "url": "https://arxiv.org/pdf/2410.10075v3",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2312.12148v1",
+            "title": "Parameter-Efficient Fine-Tuning Methods for Pretrained Language Models: A Critical Review and Assessment",
+            "url": "https://arxiv.org/pdf/2312.12148v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This paper introduces a new method called RAPT to make large language models (LLMs) more private.  RAPT uses a technique called local differential privacy to protect user data while still allowing the model to learn effectively.  The result is a way to customize LLMs with user data while ensuring privacy and security.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This paper introduces a new method called RAPT to make large language models (LLMs) more private.",
+                  "supported": true,
+                  "max_similarity": 0.8249285385252224,
+                  "supporting_abstract_sentence": "Based on PEFT, we propose Privacy-Preserving Parameter-Efficient Fine-Tuning (RAPT), a framework that offers privacy protection for LLM services."
+                },
+                {
+                  "sentence": "RAPT uses a technique called local differential privacy to protect user data while still allowing the model to learn effectively.",
+                  "supported": true,
+                  "max_similarity": 0.8511091182070114,
+                  "supporting_abstract_sentence": "RAPT adopts a local privacy approach, enabling users to privatize their data locally using a text-to-text local differential privacy mechanism."
+                },
+                {
+                  "sentence": "The result is a way to customize LLMs with user data while ensuring privacy and security.",
+                  "supported": true,
+                  "max_similarity": 0.7799747825916222,
+                  "supporting_abstract_sentence": "However, the inherently sensitive nature of private data demands robust privacy preservation measures during the customization of LLM services to ensure data security, maintain user trust, and comply with stringent regulatory standards."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q04",
+        "query": "solar energy forecasting machine learning",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/1801.05744v1",
+            "title": "Forecasting Solar Flares Using Magnetogram-based Predictors and Machine Learning",
+            "url": "https://arxiv.org/pdf/1801.05744v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2604.21982v1",
+            "title": "Forecasting Solar Energy Using a Single Image",
+            "url": "https://arxiv.org/pdf/2604.21982v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2409.15261v1",
+            "title": "Identification and Localization of Cometary Activity in Solar System Objects with Machine Learning",
+            "url": "https://arxiv.org/pdf/2409.15261v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This research uses data from the Solar Dynamics Observatory to predict when solar flares will occur. They use a combination of machine learning and traditional statistical methods to identify patterns in the data that could indicate a flare. The study found that random forests performed best in predicting these flares, with a high accuracy rate. This could be a valuable tool for understanding and predicting solar activity.",
+            "support": {
+              "sentence_count": 4,
+              "supported_sentence_count": 4,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This research uses data from the Solar Dynamics Observatory to predict when solar flares will occur.",
+                  "supported": true,
+                  "max_similarity": 0.8566196324078595,
+                  "supporting_abstract_sentence": "We propose a forecasting approach for solar flares based on data from Solar Cycle 24, taken by the Helioseismic and Magnetic Imager (HMI) on board the Solar Dynamics Observatory (SDO) mission."
+                },
+                {
+                  "sentence": "They use a combination of machine learning and traditional statistical methods to identify patterns in the data that could indicate a flare.",
+                  "supported": true,
+                  "max_similarity": 0.8274046121075553,
+                  "supporting_abstract_sentence": "We exploit several Machine Learning (ML) and Conventional Statistics techniques to predict flares of peak magnitude >M1 and >C1, within a 24 h forecast window."
+                },
+                {
+                  "sentence": "The study found that random forests performed best in predicting these flares, with a high accuracy rate.",
+                  "supported": true,
+                  "max_similarity": 0.7459845298017359,
+                  "supporting_abstract_sentence": "We exploit several Machine Learning (ML) and Conventional Statistics techniques to predict flares of peak magnitude >M1 and >C1, within a 24 h forecast window."
+                },
+                {
+                  "sentence": "This could be a valuable tool for understanding and predicting solar activity.",
+                  "supported": true,
+                  "max_similarity": 0.8036765226793585,
+                  "supporting_abstract_sentence": "This approach enables assessing the solar energy potential of any surface and forecasting the temporal variation of a panel's irradiance."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q05",
+        "query": "obesity intervention diet exercise nutrition",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2503.11683v1",
+            "title": "MealMeter: Using Multimodal Sensing and Machine Learning for Automatically Estimating Nutrition Intake",
+            "url": "https://arxiv.org/pdf/2503.11683v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/1709.07916v1",
+            "title": "Characterizing Diabetes, Diet, Exercise, and Obesity Comments on Twitter",
+            "url": "https://arxiv.org/pdf/1709.07916v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/1709.07915v1",
+            "title": "Computational Content Analysis of Negative Tweets for Obesity, Diet, Diabetes, and Exercise",
+            "url": "https://arxiv.org/pdf/1709.07915v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "MealMeter uses sensors like heart rate, activity, and even the environment to estimate how much of each nutrient someone eats. This system is like a smart assistant for nutrition, helping people track their meals and get personalized advice. It's especially helpful for people with diabetes or obesity who need to manage their diets carefully.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "MealMeter uses sensors like heart rate, activity, and even the environment to estimate how much of each nutrient someone eats.",
+                  "supported": true,
+                  "max_similarity": 0.8136581850976798,
+                  "supporting_abstract_sentence": "Using lightweight machine learning models trained on a diverse dataset of labeled meal events, MealMeter predicts the composition of carbohydrates, proteins, and fats with high accuracy."
+                },
+                {
+                  "sentence": "This system is like a smart assistant for nutrition, helping people track their meals and get personalized advice.",
+                  "supported": true,
+                  "max_similarity": 0.8443629483562217,
+                  "supporting_abstract_sentence": "Therefore, our developed system has the potential to automate meal tracking, enhance dietary interventions, and support personalized nutrition strategies for individuals managing metabolic disorders such as diabetes and obesity."
+                },
+                {
+                  "sentence": "It's especially helpful for people with diabetes or obesity who need to manage their diets carefully.",
+                  "supported": true,
+                  "max_similarity": 0.757971065615254,
+                  "supporting_abstract_sentence": "Therefore, our developed system has the potential to automate meal tracking, enhance dietary interventions, and support personalized nutrition strategies for individuals managing metabolic disorders such as diabetes and obesity."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q06",
+        "query": "quantum error correction",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/1910.03672v1",
+            "title": "Quantum Error Correction",
+            "url": "https://arxiv.org/pdf/1910.03672v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/1812.08451v5",
+            "title": "Optimizing Quantum Error Correction Codes with Reinforcement Learning",
+            "url": "https://arxiv.org/pdf/1812.08451v5",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/quant-ph/0304016v2",
+            "title": "Quantum Computing and Error Correction",
+            "url": "https://arxiv.org/pdf/quant-ph/0304016v2",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "Quantum error correction is a way to protect the delicate information stored in quantum states from getting messed up by the environment. Think of it like a special code that helps keep the information safe, even when it's being sent through noisy channels or used in complex quantum computations. This is crucial for building reliable quantum computers and communication systems.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "Quantum error correction is a way to protect the delicate information stored in quantum states from getting messed up by the environment.",
+                  "supported": true,
+                  "max_similarity": 0.9432045015578323,
+                  "supporting_abstract_sentence": "Quantum error correction is a set of methods to protect quantum information--that is, quantum states--from unwanted environmental interactions (decoherence) and other forms of noise."
+                },
+                {
+                  "sentence": "Think of it like a special code that helps keep the information safe, even when it's being sent through noisy channels or used in complex quantum computations.",
+                  "supported": true,
+                  "max_similarity": 0.7543858098489217,
+                  "supporting_abstract_sentence": "Quantum error correction is widely thought to be the key to fault-tolerant quantum computation."
+                },
+                {
+                  "sentence": "This is crucial for building reliable quantum computers and communication systems.",
+                  "supported": true,
+                  "max_similarity": 0.8404395408660337,
+                  "supporting_abstract_sentence": "Quantum error correction is widely thought to be the key to fault-tolerant quantum computation."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q07",
+        "query": "gravitational wave detection machine learning",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2006.01509v2",
+            "title": "Detection of gravitational-wave signals from binary neutron star mergers using machine learning",
+            "url": "https://arxiv.org/pdf/2006.01509v2",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/1811.04468v4",
+            "title": "Bose-Einstein Condensates as Gravitational Wave Detectors",
+            "url": "https://arxiv.org/pdf/1811.04468v4",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2409.14508v2",
+            "title": "Evaluating Machine Learning Models for Supernova Gravitational Wave Signal Classification",
+            "url": "https://arxiv.org/pdf/2409.14508v2",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This research explores a new way to detect gravitational waves from merging neutron stars using machine learning. The study proposes a neural network algorithm that can analyze time-series strain data to identify these signals, potentially improving detection sensitivity. While promising, the algorithm is not yet as effective as traditional methods, and introduces a noticeable delay in alert generation.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This research explores a new way to detect gravitational waves from merging neutron stars using machine learning.",
+                  "supported": true,
+                  "max_similarity": 0.9005236898412704,
+                  "supporting_abstract_sentence": "We introduce a novel neural-network based machine learning algorithm that uses time series strain data from gravitational-wave detectors to detect signals from non-spinning binary neutron star mergers."
+                },
+                {
+                  "sentence": "The study proposes a neural network algorithm that can analyze time-series strain data to identify these signals, potentially improving detection sensitivity.",
+                  "supported": true,
+                  "max_similarity": 0.833324595714363,
+                  "supporting_abstract_sentence": "We introduce a novel neural-network based machine learning algorithm that uses time series strain data from gravitational-wave detectors to detect signals from non-spinning binary neutron star mergers."
+                },
+                {
+                  "sentence": "While promising, the algorithm is not yet as effective as traditional methods, and introduces a noticeable delay in alert generation.",
+                  "supported": true,
+                  "max_similarity": 0.7476474643664408,
+                  "supporting_abstract_sentence": "However, this approach is not yet competitive with traditional matched-filtering based methods."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q08",
+        "query": "CRISPR off target prediction",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2305.06769v1",
+            "title": "Comparative Analysis of Machine Learning Algorithms for Predicting On-Target and Off-Target Effects of CRISPR-Cas13d for gene editing",
+            "url": "https://arxiv.org/pdf/2305.06769v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2602.16327v1",
+            "title": "Guide-Guard: Off-Target Predicting in CRISPR Applications",
+            "url": "https://arxiv.org/pdf/2602.16327v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2409.05938v1",
+            "title": "DeepFM-Crispr: Prediction of CRISPR On-Target Effects via Deep Learning",
+            "url": "https://arxiv.org/pdf/2409.05938v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This study used machine learning to predict the effects of CRISPR-Cas13d gene editing on RNA sequences.  The researchers found that a Catboost model performed best, suggesting a new way to design gene therapies that are more accurate and effective.  This could lead to safer and more precise gene editing techniques in the future.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This study used machine learning to predict the effects of CRISPR-Cas13d gene editing on RNA sequences.",
+                  "supported": true,
+                  "max_similarity": 0.8685446172298102,
+                  "supporting_abstract_sentence": "We introduce DeepFM-Crispr, a novel deep learning model developed to predict the on-target efficiency and evaluate the off-target effects of Cas13d."
+                },
+                {
+                  "sentence": "The researchers found that a Catboost model performed best, suggesting a new way to design gene therapies that are more accurate and effective.",
+                  "supported": true,
+                  "max_similarity": 0.7843092422891105,
+                  "supporting_abstract_sentence": "Our results show that Catboost is the most accurate model with high sensitivity."
+                },
+                {
+                  "sentence": "This could lead to safer and more precise gene editing techniques in the future.",
+                  "supported": true,
+                  "max_similarity": 0.827906064747641,
+                  "supporting_abstract_sentence": "Overall, this work has important implications for developing safer and more effective gene therapies and biotechnological applications."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q09",
+        "query": "antibiotic resistance surveillance",
+        "papers": [
+          {
+            "paper_id": "277116802fac286efefdc211dcf4db917616905b",
+            "title": "A conceptual framework for the environmental surveillance of antibiotics and antibiotic resistance.",
+            "url": "https://www.semanticscholar.org/paper/277116802fac286efefdc211dcf4db917616905b",
+            "source": "semantic_scholar"
+          },
+          {
+            "paper_id": "c38afbbf92c8be52913a52e7706b9263f0aee6ad",
+            "title": "Antibiotic resistance among ocular pathogens: current trends from the ARMOR surveillance study (2009\u20132016)",
+            "url": "https://www.semanticscholar.org/paper/c38afbbf92c8be52913a52e7706b9263f0aee6ad",
+            "source": "semantic_scholar"
+          },
+          {
+            "paper_id": "bb6ee7945bf93df6eba1c5a235f31eccd08bd874",
+            "title": "Genomic and metagenomic approaches for predictive surveillance of emerging pathogens and antibiotic resistance",
+            "url": "https://www.semanticscholar.org/paper/bb6ee7945bf93df6eba1c5a235f31eccd08bd874",
+            "source": "semantic_scholar"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This research proposes a framework for monitoring antibiotics and antibiotic resistance in the environment. The framework identifies five key objectives: preventing human exposure to resistant bacteria, slowing down the evolution of resistance in pathogens, protecting ecosystems from antibiotic pollution, and tracking population-level resistance and antibiotic use. The framework emphasizes the importance of understanding the specific types of markers and sampling sites needed to achieve each objective.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This research proposes a framework for monitoring antibiotics and antibiotic resistance in the environment.",
+                  "supported": true,
+                  "max_similarity": 0.9069557337476903,
+                  "supporting_abstract_sentence": "Environmental surveillance of antibiotics and antibiotic resistance could contribute toward the protection of human, animal and ecosystem health."
+                },
+                {
+                  "sentence": "The framework identifies five key objectives: preventing human exposure to resistant bacteria, slowing down the evolution of resistance in pathogens, protecting ecosystems from antibiotic pollution, and tracking population-level resistance and antibiotic use.",
+                  "supported": true,
+                  "max_similarity": 0.8487076111826716,
+                  "supporting_abstract_sentence": "Here, we define five fundamentally different objectives for surveillance of antibiotics and antibiotic resistance in the environment."
+                },
+                {
+                  "sentence": "The framework emphasizes the importance of understanding the specific types of markers and sampling sites needed to achieve each objective.",
+                  "supported": true,
+                  "max_similarity": 0.7346258790161728,
+                  "supporting_abstract_sentence": "However, justification for the choice of markers and sampling sites that informs about different risk scenarios is often lacking."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q10",
+        "query": "battery degradation prediction",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2603.10527v1",
+            "title": "World Model for Battery Degradation Prediction Under Non-Stationary Aging",
+            "url": "https://arxiv.org/pdf/2603.10527v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2504.03701v1",
+            "title": "Chemistry-aware battery degradation prediction under simulated real-world cyclic protocols",
+            "url": "https://arxiv.org/pdf/2504.03701v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2410.14347v1",
+            "title": "A Scientific Machine Learning Approach for Predicting and Forecasting Battery Degradation in Electric Vehicles",
+            "url": "https://arxiv.org/pdf/2410.14347v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This paper proposes a new approach to predict battery degradation over time. Instead of relying on simple regression, it uses a \"world model\" to understand the complex degradation process. This model incorporates learned dynamics and a constraint from a Single Particle Model (SPM) to improve accuracy, especially at the critical point where resistance to degradation changes.  The method shows significant improvement in forecasting battery degradation over time, especially when compared to simple regression.",
+            "support": {
+              "sentence_count": 4,
+              "supported_sentence_count": 4,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This paper proposes a new approach to predict battery degradation over time.",
+                  "supported": true,
+                  "max_similarity": 0.8864692468307023,
+                  "supporting_abstract_sentence": "This paper formulates battery degradation prognosis as a world model problem, encoding raw voltage, current, and temperature time-series from each cycle into a latent state and propagating it forward via a learned dynamics transition to produce a future trajectory spanning 80 cycles."
+                },
+                {
+                  "sentence": "Instead of relying on simple regression, it uses a \"world model\" to understand the complex degradation process.",
+                  "supported": true,
+                  "max_similarity": 0.7002989878680907,
+                  "supporting_abstract_sentence": "This hybrid approach captures both known and unknown degradation dynamics, improving predictive accuracy while reducing data requirements."
+                },
+                {
+                  "sentence": "This model incorporates learned dynamics and a constraint from a Single Particle Model (SPM) to improve accuracy, especially at the critical point where resistance to degradation changes.",
+                  "supported": true,
+                  "max_similarity": 0.8485702451915301,
+                  "supporting_abstract_sentence": "To investigate whether electrochemical knowledge improves the learned dynamics, a Single Particle Model (SPM) constraint is incorporated into the training loss."
+                },
+                {
+                  "sentence": "The method shows significant improvement in forecasting battery degradation over time, especially when compared to simple regression.",
+                  "supported": true,
+                  "max_similarity": 0.8168160562886816,
+                  "supporting_abstract_sentence": "Accurate prediction and forecasting of battery degradation over both short and long time spans are essential for optimizing performance, extending battery life, and ensuring effective long-term energy management."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q11",
+        "query": "carbon capture materials discovery",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2303.14223v1",
+            "title": "Machine Guided Discovery of Novel Carbon Capture Solvents",
+            "url": "https://arxiv.org/pdf/2303.14223v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2310.07671v2",
+            "title": "Discovery of Novel Reticular Materials for Carbon Dioxide Capture using GFlowNets",
+            "url": "https://arxiv.org/pdf/2310.07671v2",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2009.12289v2",
+            "title": "Performance-based screening of porous materials for carbon capture",
+            "url": "https://arxiv.org/pdf/2009.12289v2",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This research uses machine learning to help develop new, more efficient carbon capture solvents.  The researchers created a system that combines a simple lab test to measure CO2 absorption with a machine learning model.  This system has already identified promising new solvents that haven't been used in carbon capture before, potentially speeding up the development of more effective carbon capture technologies.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This research uses machine learning to help develop new, more efficient carbon capture solvents.",
+                  "supported": true,
+                  "max_similarity": 0.7968315074850775,
+                  "supporting_abstract_sentence": "Machine learning offers a promising method for reducing the time and resource burdens of materials development through efficient correlation of structure-property relationships to allow down-selection and focusing on promising candidates."
+                },
+                {
+                  "sentence": "The researchers created a system that combines a simple lab test to measure CO2 absorption with a machine learning model.",
+                  "supported": true,
+                  "max_similarity": 0.7953385718578482,
+                  "supporting_abstract_sentence": "We combine a simple, rapid laboratory assay for CO2 absorption with a machine learning based molecular fingerprinting model approach."
+                },
+                {
+                  "sentence": "This system has already identified promising new solvents that haven't been used in carbon capture before, potentially speeding up the development of more effective carbon capture technologies.",
+                  "supported": true,
+                  "max_similarity": 0.7693860862484263,
+                  "supporting_abstract_sentence": "The discovery cycle determined several promising amines that were verified experimentally, and which had not been applied to carbon capture previously."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q12",
+        "query": "climate precipitation forecasting",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2510.24254v1",
+            "title": "Forecasting precipitation in the Arctic using probabilistic machine learning informed by causal climate drivers",
+            "url": "https://arxiv.org/pdf/2510.24254v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2210.12504v1",
+            "title": "Generative Modeling of High-resolution Global Precipitation Forecasts",
+            "url": "https://arxiv.org/pdf/2210.12504v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2309.15400v2",
+            "title": "Interpretable AI-Driven Discovery of Terrain-Precipitation Relationships for Enhanced Climate Insights",
+            "url": "https://arxiv.org/pdf/2309.15400v2",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This research uses machine learning to predict precipitation in the Arctic.  The study analyzes how different atmospheric factors like temperature and humidity influence precipitation, and then uses this information to build more accurate predictions.  This approach helps improve our understanding of how precipitation works in the Arctic and allows for better early warning systems in vulnerable areas.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This research uses machine learning to predict precipitation in the Arctic.",
+                  "supported": true,
+                  "max_similarity": 0.8759869575430593,
+                  "supporting_abstract_sentence": "This study proposes a probabilistic machine learning framework for modeling and predicting the dynamics and severity of precipitation."
+                },
+                {
+                  "sentence": "The study analyzes how different atmospheric factors like temperature and humidity influence precipitation, and then uses this information to build more accurate predictions.",
+                  "supported": true,
+                  "max_similarity": 0.7792856977539714,
+                  "supporting_abstract_sentence": "These insights inform the development of data-driven forecasting models that incorporate both historical precipitation and causal climate drivers."
+                },
+                {
+                  "sentence": "This approach helps improve our understanding of how precipitation works in the Arctic and allows for better early warning systems in vulnerable areas.",
+                  "supported": true,
+                  "max_similarity": 0.8139319220742431,
+                  "supporting_abstract_sentence": "Understanding and forecasting precipitation events in the Arctic maritime environments, such as Bear Island and Ny-\u00c5lesund, is crucial for assessing climate risk and developing early warning systems in vulnerable marine regions."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q13",
+        "query": "software vulnerability detection machine learning",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/1803.04497v2",
+            "title": "Automated software vulnerability detection with machine learning",
+            "url": "https://arxiv.org/pdf/1803.04497v2",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2103.11316v1",
+            "title": "Automated Software Vulnerability Assessment with Concept Drift",
+            "url": "https://arxiv.org/pdf/2103.11316v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/1902.02595v3",
+            "title": "A Manually-Curated Dataset of Fixes to Vulnerabilities of Open-Source Software",
+            "url": "https://arxiv.org/pdf/1902.02595v3",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This paper explores a new way to find software vulnerabilities using machine learning. Researchers compiled a large dataset of open-source code and used machine learning models to identify potential vulnerabilities. The best results came from combining deep learning models with traditional machine learning models, achieving an impressive area under the precision-recall curve and ROC curve. This method could help developers find and fix vulnerabilities before they are exploited by attackers.",
+            "support": {
+              "sentence_count": 4,
+              "supported_sentence_count": 4,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This paper explores a new way to find software vulnerabilities using machine learning.",
+                  "supported": true,
+                  "max_similarity": 0.9081579996063359,
+                  "supporting_abstract_sentence": "In this paper, we present a data-driven approach to vulnerability detection using machine learning, specifically applied to C and C++ programs."
+                },
+                {
+                  "sentence": "Researchers compiled a large dataset of open-source code and used machine learning models to identify potential vulnerabilities.",
+                  "supported": true,
+                  "max_similarity": 0.8505082604954649,
+                  "supporting_abstract_sentence": "With the wealth of open source code available for analysis, there is an opportunity to learn the patterns of bugs that can lead to security vulnerabilities directly from data."
+                },
+                {
+                  "sentence": "The best results came from combining deep learning models with traditional machine learning models, achieving an impressive area under the precision-recall curve and ROC curve.",
+                  "supported": true,
+                  "max_similarity": 0.8190382429861558,
+                  "supporting_abstract_sentence": "Ultimately, our highest performing model achieves an area under the precision-recall curve of 0.49 and an area under the ROC curve of 0.87."
+                },
+                {
+                  "sentence": "This method could help developers find and fix vulnerabilities before they are exploited by attackers.",
+                  "supported": true,
+                  "max_similarity": 0.7691574409331685,
+                  "supporting_abstract_sentence": "With the wealth of open source code available for analysis, there is an opportunity to learn the patterns of bugs that can lead to security vulnerabilities directly from data."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q14",
+        "query": "formal verification of neural networks",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2407.01295v6",
+            "title": "Towards Formal Verification of Deep Neural Networks for Object Detection",
+            "url": "https://arxiv.org/pdf/2407.01295v6",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/1711.00455v3",
+            "title": "A Unified View of Piecewise Linear Neural Network Verification",
+            "url": "https://arxiv.org/pdf/1711.00455v3",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/1910.05018v1",
+            "title": "Verification of Neural Networks: Specifying Global Robustness using Generative Models",
+            "url": "https://arxiv.org/pdf/1910.05018v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This paper explores how to make deep neural networks, which are commonly used in computer vision, more reliable and secure.  The researchers propose a way to use existing verification tools, originally designed for image classification, to check for vulnerabilities in object detection models.  This could help make computer vision systems more robust and secure against errors and attacks.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This paper explores how to make deep neural networks, which are commonly used in computer vision, more reliable and secure.",
+                  "supported": true,
+                  "max_similarity": 0.9024178232892037,
+                  "supporting_abstract_sentence": "Deep neural networks (DNNs) are widely used in real-world computer vision applications, yet they remain vulnerable to errors and adversarial attacks."
+                },
+                {
+                  "sentence": "The researchers propose a way to use existing verification tools, originally designed for image classification, to check for vulnerabilities in object detection models.",
+                  "supported": true,
+                  "max_similarity": 0.8299717749991167,
+                  "supporting_abstract_sentence": "While most existing verification methods focus on image classification models, this work extends formal verification to the more complex domain of object detection models."
+                },
+                {
+                  "sentence": "This could help make computer vision systems more robust and secure against errors and attacks.",
+                  "supported": true,
+                  "max_similarity": 0.7483953695095696,
+                  "supporting_abstract_sentence": "Deep neural networks (DNNs) are widely used in real-world computer vision applications, yet they remain vulnerable to errors and adversarial attacks."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q15",
+        "query": "federated learning privacy preservation",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2605.02372v1",
+            "title": "Privacy Preserving Machine Learning Workflow: from Anonymization to Personalized Differential Privacy Budgets in Federated Learning",
+            "url": "https://arxiv.org/pdf/2605.02372v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2004.11794v2",
+            "title": "A Review of Privacy-preserving Federated Learning for the Internet-of-Things",
+            "url": "https://arxiv.org/pdf/2004.11794v2",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2507.00230v3",
+            "title": "PPFL-RDSN: Privacy-Preserving Federated Learning-based Residual Dense Spatial Networks for Encrypted Lossy Image Reconstruction",
+            "url": "https://arxiv.org/pdf/2507.00230v3",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This paper explores a new way to train machine learning models using data that's sensitive and private. It combines anonymization techniques with a system that adjusts privacy budgets based on each client's risk of re-identification. This approach leads to better model performance than traditional methods that use a fixed privacy budget for all clients.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This paper explores a new way to train machine learning models using data that's sensitive and private.",
+                  "supported": true,
+                  "max_similarity": 0.7982375343496684,
+                  "supporting_abstract_sentence": "This work reviews federated learning as an approach for performing machine learning on distributed data with the goal of protecting the privacy of user-generated data as well as reducing communication costs associated with data transfer."
+                },
+                {
+                  "sentence": "It combines anonymization techniques with a system that adjusts privacy budgets based on each client's risk of re-identification.",
+                  "supported": true,
+                  "max_similarity": 0.8089463999050667,
+                  "supporting_abstract_sentence": "Then, we detail a complete methodology for assigning personalized privacy budgets for global differential privacy to the different clients participating in the network, based on a re-identification risk metric."
+                },
+                {
+                  "sentence": "This approach leads to better model performance than traditional methods that use a fixed privacy budget for all clients.",
+                  "supported": true,
+                  "max_similarity": 0.7542502730798001,
+                  "supporting_abstract_sentence": "Within the experimental setup we show that the approach based on personalized budgets, compared to the architecture including global differential privacy with fixed privacy budget, achieves a better model performance in terms of two error metrics."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q16",
+        "query": "robot navigation sim to real transfer",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2011.03807v1",
+            "title": "Sim-to-Real Transfer for Vision-and-Language Navigation",
+            "url": "https://arxiv.org/pdf/2011.03807v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2605.15559v1",
+            "title": "NavRL++: A System-Level Framework for Improving Sim-to-Real Transfer in Reinforcement Learning-Based Robot Navigation",
+            "url": "https://arxiv.org/pdf/2605.15559v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2610.07192v1",
+            "title": "Sim-to-Real Transfer of Vision-Language Navigation in Continuous Environments Using an Ackermann-Steered Mobile Robot",
+            "url": "https://arxiv.org/pdf/2610.07192v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This research focuses on training robots to follow natural language instructions in real-world environments. They use simulation to train robots, but then need to transfer that knowledge to a physical robot in a new, unseen environment.  The study explores how to bridge the gap between the robot's low-level actions and the high-level language instructions, and how to ensure accurate comparisons between simulation and real-world environments.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This research focuses on training robots to follow natural language instructions in real-world environments.",
+                  "supported": true,
+                  "max_similarity": 0.8587194249664568,
+                  "supporting_abstract_sentence": "We study the challenging problem of releasing a robot in a previously unseen environment, and having it follow unconstrained natural language navigation instructions."
+                },
+                {
+                  "sentence": "They use simulation to train robots, but then need to transfer that knowledge to a physical robot in a new, unseen environment.",
+                  "supported": true,
+                  "max_similarity": 0.7981335566291529,
+                  "supporting_abstract_sentence": "To assess the implications of this work for robotics, we transfer a VLN agent trained in simulation to a physical robot."
+                },
+                {
+                  "sentence": "The study explores how to bridge the gap between the robot's low-level actions and the high-level language instructions, and how to ensure accurate comparisons between simulation and real-world environments.",
+                  "supported": true,
+                  "max_similarity": 0.8088752455403492,
+                  "supporting_abstract_sentence": "We study the challenging problem of releasing a robot in a previously unseen environment, and having it follow unconstrained natural language navigation instructions."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q17",
+        "query": "protein structure prediction",
+        "papers": [
+          {
+            "paper_id": "7573c2f2637d7a23a3312d9f6b3669d3ae15074e",
+            "title": "Improved protein structure prediction using predicted interresidue orientations",
+            "url": "https://www.semanticscholar.org/paper/7573c2f2637d7a23a3312d9f6b3669d3ae15074e",
+            "source": "semantic_scholar"
+          },
+          {
+            "paper_id": "11c0c566140dd607c1c4c8f86f14e3dd6c238c1f",
+            "title": "Critical Assessment of Methods of Protein Structure Prediction (CASP) \u2013 Round XIV",
+            "url": "https://www.semanticscholar.org/paper/11c0c566140dd607c1c4c8f86f14e3dd6c238c1f",
+            "source": "semantic_scholar"
+          },
+          {
+            "paper_id": "968c770bc84420a5faed239e6c04bf1c6331c0bb",
+            "title": "EigenFold: Generative Protein Structure Prediction with Diffusion Models",
+            "url": "https://www.semanticscholar.org/paper/968c770bc84420a5faed239e6c04bf1c6331c0bb",
+            "source": "semantic_scholar"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This research combines deep learning with Rosetta, a protein structure prediction software, to create a more accurate way to predict protein structures.  The new method predicts not only distances between amino acids but also the orientation of these amino acids, leading to better predictions of protein structure.  This could be a game-changer for protein design and understanding.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This research combines deep learning with Rosetta, a protein structure prediction software, to create a more accurate way to predict protein structures.",
+                  "supported": true,
+                  "max_similarity": 0.8742118775873823,
+                  "supporting_abstract_sentence": "The prediction of interresidue contacts and distances from coevolutionary data using deep learning has considerably advanced protein structure prediction."
+                },
+                {
+                  "sentence": "The new method predicts not only distances between amino acids but also the orientation of these amino acids, leading to better predictions of protein structure.",
+                  "supported": true,
+                  "max_similarity": 0.8405570347837401,
+                  "supporting_abstract_sentence": "The method promises to be useful for a broad range of protein structure prediction and design problems."
+                },
+                {
+                  "sentence": "This could be a game-changer for protein design and understanding.",
+                  "supported": true,
+                  "max_similarity": 0.8193757681997991,
+                  "supporting_abstract_sentence": "The method promises to be useful for a broad range of protein structure prediction and design problems."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q18",
+        "query": "medical image segmentation",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2505.04652v1",
+            "title": "Rethinking Boundary Detection in Deep Learning-Based Medical Image Segmentation",
+            "url": "https://arxiv.org/pdf/2505.04652v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2304.10517v3",
+            "title": "Segment Anything Model for Medical Image Analysis: an Experimental Study",
+            "url": "https://arxiv.org/pdf/2304.10517v3",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2302.02125v1",
+            "title": "Weakly-Supervised 3D Medical Image Segmentation using Geometric Prior and Contrastive Similarity",
+            "url": "https://arxiv.org/pdf/2302.02125v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This paper introduces a new method called CTO that combines convolutional neural networks, vision transformers, and edge detection operators to improve medical image segmentation accuracy. CTO learns to identify boundaries by using dedicated edge detection operators and then uses this information to guide the decoding process, resulting in better segmentation results than previous methods. The code for CTO is publicly available.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This paper introduces a new method called CTO that combines convolutional neural networks, vision transformers, and edge detection operators to improve medical image segmentation accuracy.",
+                  "supported": true,
+                  "max_similarity": 0.9047433190558242,
+                  "supporting_abstract_sentence": "In this study, we propose a novel network architecture named CTO, which combines Convolutional Neural Networks (CNNs), Vision Transformer (ViT) models, and explicit edge detection operators to tackle this challenge."
+                },
+                {
+                  "sentence": "CTO learns to identify boundaries by using dedicated edge detection operators and then uses this information to guide the decoding process, resulting in better segmentation results than previous methods.",
+                  "supported": true,
+                  "max_similarity": 0.8056552535416666,
+                  "supporting_abstract_sentence": "In this study, we propose a novel network architecture named CTO, which combines Convolutional Neural Networks (CNNs), Vision Transformer (ViT) models, and explicit edge detection operators to tackle this challenge."
+                },
+                {
+                  "sentence": "The code for CTO is publicly available.",
+                  "supported": true,
+                  "max_similarity": 0.7937568761930257,
+                  "supporting_abstract_sentence": "The codes have been released at: https://github.com/xiaofang007/CTO."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q19",
+        "query": "reinforcement learning safety",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2506.08266v1",
+            "title": "Reinforcement Learning from Human Feedback with High-Confidence Safety Constraints",
+            "url": "https://arxiv.org/pdf/2506.08266v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/1808.04096v1",
+            "title": "Directed Policy Gradient for Safe Reinforcement Learning with Human Advice",
+            "url": "https://arxiv.org/pdf/1808.04096v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2607.24057v1",
+            "title": "Constrained Reinforcement Learning Using Successor Representations",
+            "url": "https://arxiv.org/pdf/2607.24057v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This research introduces a new method called HC-RLHF to train language models in a way that ensures safety while still maximizing helpfulness.  It does this by training a separate reward model and a cost model, then using a two-step process to find safe solutions.  The results show that HC-RLHF produces safe and helpful language models with high probability.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This research introduces a new method called HC-RLHF to train language models in a way that ensures safety while still maximizing helpfulness.",
+                  "supported": true,
+                  "max_similarity": 0.8341730266582289,
+                  "supporting_abstract_sentence": "Our results demonstrate that HC-RLHF produces safe models with high probability and can improve harmlessness and helpfulness compared to previous methods."
+                },
+                {
+                  "sentence": "It does this by training a separate reward model and a cost model, then using a two-step process to find safe solutions.",
+                  "supported": true,
+                  "max_similarity": 0.8298304951681584,
+                  "supporting_abstract_sentence": "It then employs a two-step process to find safe solutions."
+                },
+                {
+                  "sentence": "The results show that HC-RLHF produces safe and helpful language models with high probability.",
+                  "supported": true,
+                  "max_similarity": 0.921066402386697,
+                  "supporting_abstract_sentence": "Our results demonstrate that HC-RLHF produces safe models with high probability and can improve harmlessness and helpfulness compared to previous methods."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "q20",
+        "query": "privacy preserving synthetic data",
+        "papers": [
+          {
+            "paper_id": "http://arxiv.org/abs/2307.01875v1",
+            "title": "Approximate, Adapt, Anonymize (3A): a Framework for Privacy Preserving Training Data Release for Machine Learning",
+            "url": "https://arxiv.org/pdf/2307.01875v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2507.10489v1",
+            "title": "SynthGuard: Redefining Synthetic Data Generation with a Scalable and Privacy-Preserving Workflow Framework",
+            "url": "https://arxiv.org/pdf/2507.10489v1",
+            "source": "arxiv"
+          },
+          {
+            "paper_id": "http://arxiv.org/abs/2409.16382v1",
+            "title": "Towards Synthetic Data Generation for Improved Pain Recognition in Videos under Patient Constraints",
+            "url": "https://arxiv.org/pdf/2409.16382v1",
+            "source": "arxiv"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "local_gemma",
+            "label": "Local Gemma",
+            "provider": "mlx",
+            "model": "mlx-community/gemma-2-2b-it-4bit",
+            "mode": "fast",
+            "summary": "This paper proposes a new method called 3A to help machine learning models train on data that protects user privacy. The 3A method combines three techniques: approximation, adaptation, and anonymization.  This allows the model to learn from real data while ensuring privacy by minimizing the risk of data leaks and maintaining model performance.",
+            "support": {
+              "sentence_count": 3,
+              "supported_sentence_count": 3,
+              "support_rate": 1.0,
+              "sentences": [
+                {
+                  "sentence": "This paper proposes a new method called 3A to help machine learning models train on data that protects user privacy.",
+                  "supported": true,
+                  "max_similarity": 0.8543756393210615,
+                  "supporting_abstract_sentence": "In this paper, we introduce a data release framework, 3A (Approximate, Adapt, Anonymize), to maximize data utility for machine learning, while preserving differential privacy."
+                },
+                {
+                  "sentence": "The 3A method combines three techniques: approximation, adaptation, and anonymization.",
+                  "supported": true,
+                  "max_similarity": 0.7516923635984724,
+                  "supporting_abstract_sentence": "We also describe a specific implementation of this framework that leverages mixture models to approximate, kernel-inducing points to adapt, and Gaussian differential privacy to anonymize a dataset, in order to ensure that the resulting data is both privacy-preserving and high utility."
+                },
+                {
+                  "sentence": "This allows the model to learn from real data while ensuring privacy by minimizing the risk of data leaks and maintaining model performance.",
+                  "supported": true,
+                  "max_similarity": 0.759899305714711,
+                  "supporting_abstract_sentence": "Despite progress in differential privacy and generative modeling for privacy-preserving data release in the literature, only a few approaches optimize for machine learning utility: most approaches only take into account statistical metrics on the data itself and fail to explicitly preserve the loss metrics of machine learning models that are to be subsequently trained on the generated data."
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "historical_results_label": "Historical local Gemma-2B results; corpus abstracts were removed from this artifact."
+}

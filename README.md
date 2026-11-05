@@ -1,12 +1,55 @@
 # AcademicForge
 
-Turn a research question into a practical research plan. AcademicForge finds papers from arXiv and Semantic Scholar, helps you understand them, and builds a plan from the papers you choose.
+AcademicForge is for a graduate student who has found several papers and needs to decide what to implement next. Unlike a paper finder that stops at retrieval, it lets the student select evidence and produces one implementation-oriented Research Plan from that chosen set.
 
 Run it locally on Apple Silicon, NVIDIA CUDA, or AMD ROCm. Summaries, paper guidance, and research plans use a local model by default, with optional cloud providers for generation.
 
 ![AcademicForge search results](docs/assets/academicforge-search-results.png)
 
-[Getting started](#getting-started) · [How it works](#how-it-works) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](CONTRIBUTING.md)
+[Getting started](#getting-started) · [How it works](#how-it-works) · [Evidence](#evidence) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](CONTRIBUTING.md)
+
+## Evidence
+
+### Retrieval evidence
+
+| SciFact test system | nDCG@10 | 95% query-bootstrap CI | Difference vs dense-only (95% CI) |
+| :--- | ---: | :--- | :--- |
+| BGE dense-only | 0.7200 | 0.6776–0.7635 | — |
+| Stemmed BM25 | 0.6514 | 0.6058–0.6951 | −0.0686 (−0.1063–−0.0309) |
+| Equal-weight RRF | 0.7076 | 0.6656–0.7513 | −0.0124 (−0.0392–0.0169) |
+| Best weighted RRF | 0.7233 | 0.6800–0.7628 | +0.0033 (−0.0109–0.0189) |
+| Best score fusion **(default)** | **0.7306** | 0.6877–0.7728 | +0.0106 (−0.0037–0.0268) |
+| Best score fusion + reranker@20 | 0.7278 | 0.6836–0.7697 | +0.0078 (−0.0198–0.0351) |
+
+This is one full, frozen BEIR SciFact abstract-retrieval test on MPS, with 1,000 paired bootstrap resamples (seed 42). Score fusion was selected using the official SciFact training judgments (there is no SciFact development split), but it did not significantly beat dense-only on that test; reranking did not significantly improve its selected fusion either. The later frozen NFCorpus replication was significant in the same direction, so the amended decision rule selects score fusion as the default. The result does not establish performance on other datasets, full text, live search, generated answers, or human usefulness. MPS latency is not comparable to CUDA or ROCm, and no human evaluation has been run.
+
+Set `ACADEMICFORGE_RETRIEVAL_MODE=score_fusion|dense|hybrid|hybrid_rerank` to select a mode. The default score fusion uses stemmed BM25 and BGE dense scores with dense alpha 0.9; cross-encoder reranking is opt-in. The complete sweep and frozen evaluation are [auditable JSON artifacts](docs/benchmarks/retrieval-fusion-evaluation.json); see the [benchmark guide](docs/benchmarks/README.md) for method and limits.
+
+### Frozen NFCorpus replication
+
+| NFCorpus test system | nDCG@10 (95% CI) | Recall@10 (95% CI) | MRR@10 (95% CI) | Difference vs dense-only (95% CI) |
+| :--- | :--- | :--- | :--- | :--- |
+| Dense-only | 0.3374 (0.3014–0.3752) | 0.1580 (0.1342–0.1849) | 0.5299 (0.4789–0.5786) | — |
+| Stemmed BM25 | 0.3053 (0.2737–0.3390) | 0.1422 (0.1196–0.1677) | 0.5105 (0.4637–0.5584) | −0.0322 (−0.0530–−0.0100), worse |
+| Equal RRF | 0.3422 (0.3082–0.3790) | 0.1630 (0.1386–0.1898) | 0.5546 (0.5047–0.6031) | +0.0048 (−0.0100–0.0212), not significant |
+| Frozen weighted RRF | 0.3505 (0.3152–0.3866) | 0.1695 (0.1458–0.1969) | 0.5538 (0.5074–0.6028) | +0.0130 (0.0047–0.0205), significant |
+| Frozen score fusion | 0.3551 (0.3192–0.3930) | 0.1675 (0.1439–0.1952) | 0.5564 (0.5083–0.6077) | +0.0177 (0.0108–0.0253), significant |
+
+This frozen replication uses the SciFact-selected settings, not NFCorpus tuning, and applies the existing binary metric harness to NFCorpus’s graded judgments: every positive grade is relevant, while grade magnitude is not used. It supports the dated amendment that makes score fusion the default: SciFact was inconclusive, while NFCorpus was significant in the same direction. These MPS cache-replay timings are not CUDA/ROCm latency, and no human evaluation has been run. The complete artifact is [nfcorpus-frozen-evaluation.json](docs/benchmarks/nfcorpus-frozen-evaluation.json).
+
+### Generated-output faithfulness screen
+
+The local `mlx-community/gemma-2-2b-it-4bit` model completed 20 fixed-query summaries. Its 63 sentence-level BGE similarity decisions are a screening heuristic, not proof of factual correctness. The local control run selected a 0.80 similarity threshold: it marked 65.1% of real sentences supported, 0% of mismatched sentences supported, 100% of injected unsupported claims flagged, and 85% of reversed conclusions flagged. The unflagged reversals mean similarity alone cannot establish factuality. The [artifact](docs/benchmarks/faithfulness.json), [control results](docs/benchmarks/faithfulness_controls.json), [control method](benchmarks/faithfulness.py), and [blind human-evaluation builder](scripts/build_human_eval.py) retain auditable inputs and limitations.
+
+For Research Plans, a separate local Gemma run froze 10 queries with three selected papers each. All 10 plans used only selected-paper citation indices; 48 of 50 Key Findings bullets carried a citation (96%), and 9 of 10 plans cited every Key Findings bullet. This deterministic run used greedy local decoding (`temperature=0`). It is citation-membership and coverage checking, not entailment, factuality, or source-retrieval coverage verification. The [plan artifact](docs/benchmarks/plan_faithfulness.json) contains generated plans and paper IDs/titles, but no source abstracts.
+
+### Real example
+
+The [RAG hallucination Research Plan](docs/examples/rag-hallucination-research-plan.md) was generated from a live search using three retrieved papers, local Gemma summaries, and the same Research Plan generator served by FastAPI. Recreate it with:
+
+```bash
+python -m benchmarks.generate_example --device mps
+```
 
 ## What you can do
 
@@ -42,6 +85,11 @@ Run the command for your machine:
 # Apple Silicon or a standard Python setup
 python -m pip install --ignore-installed blinker -r requirements-local.txt
 ```
+
+The explicit Blinker reinstall remains for compatibility with preinstalled
+macOS Python environments. A fresh offline verification could not test that
+case because its package cache lacked `accelerate==1.15.0` before installation
+reached Blinker.
 
 ```bash
 # NVIDIA VM with a verified CUDA PyTorch 2.12.x stack already installed
@@ -117,9 +165,9 @@ AcademicForge uses Streamlit for the interface and FastAPI for the backend. Sear
 ```text
 Your research question
   -> Search arXiv and Semantic Scholar
-  -> Rank papers by keywords (BM25) and meaning (BGE embeddings)
-  -> Combine rankings with Reciprocal Rank Fusion (RRF)
-  -> Refine the order with a BGE cross-encoder
+  -> Score fusion: stemmed BM25 + BGE dense (default, alpha 0.9)
+  -> Optionally use dense-only or RRF hybrid retrieval
+  -> Optionally refine an RRF hybrid order with a BGE cross-encoder
   -> Optionally rerank top papers with OpenJev in Quality search mode
   -> Choose the papers to use as evidence
   -> Generate summaries and paper guidance
@@ -135,30 +183,13 @@ Completed searches are cached in memory for five minutes by default, making repe
 | Interface | Streamlit |
 | Backend | FastAPI and Uvicorn |
 | Paper sources | arXiv and Semantic Scholar |
-| Search and ranking | BM25, BGE embeddings, RRF, and `BAAI/bge-reranker-base` |
+| Search and ranking | Score fusion by default: stemmed BM25 + BGE dense, alpha 0.9; opt-in RRF and `BAAI/bge-reranker-base` |
 | Optional final ranking | OpenJev |
+| OpenJev | Optional HTTP ranking service that scores a small top-paper set and preserves the existing order on failure. |
 | Local generation | Gemma through MLX or Transformers/PyTorch |
 | Optional cloud generation | Groq for Deep mode; Fireworks DeepSeek when enabled |
 
 See [the architecture guide](docs/architecture.md) for more detail.
-
-## Measured retrieval benchmark
-
-The BM25 lexical component was evaluated on the complete [BEIR SciFact](https://github.com/beir-cellar/beir#available-datasets) test split: **300 queries against 5,183 abstracts**.
-
-| Metric | Measured result |
-| :--- | ---: |
-| nDCG@10 | **0.6427** |
-| Recall@10 | **0.7645** |
-| MRR@10 | **0.6078** |
-
-These measure the **BM25 component**, not full-system accuracy, generated-text quality, or the complete hybrid pipeline. Metric calculations were independently checked against the TREC evaluator for every query.
-
-See [benchmark results and methodology](docs/benchmarks/README.md) for confidence intervals, per-query results, limitations, and reproduction commands:
-
-```bash
-python -m benchmarks.run_scifact --download
-```
 
 ## Search and generation modes
 
@@ -166,7 +197,7 @@ Search mode controls the order of papers. Analysis mode controls the model used 
 
 | Search mode | What it does | When to use it |
 | :--- | :--- | :--- |
-| **Fast** (default) | Combines keyword and meaning-based ranking with the BGE reranker. | Everyday searches with lower latency. |
+| **Fast** (default) | Uses score fusion: stemmed BM25 plus BGE dense at alpha 0.9. BGE reranking requires `ACADEMICFORGE_RETRIEVAL_MODE=hybrid_rerank`. | Everyday searches with lower latency. |
 | **Quality** | Adds an OpenJev ranking pass when OpenJev is enabled and available. | Searches where you want an extra relevance check on the top papers. |
 
 Both search modes use the same generation settings. Changing search mode changes paper ordering; it does not change the writing model or prompts.

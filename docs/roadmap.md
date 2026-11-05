@@ -4,15 +4,16 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 
 ## Completed
 
-- arXiv search by topic or direct URL
-- BM25 keyword retrieval
-- dense semantic retrieval
-- reciprocal rank fusion
-- optional reranker placeholder
+- arXiv and Semantic Scholar live search by topic or direct URL
+- score-fusion retrieval: stemmed BM25 plus BGE dense retrieval
+- optional RRF and cross-encoder retrieval modes
 - paper selection UI
 - local MLX summarization
 - streamed local MLX Research Plan generation
 - persistent summary and Research Plan cache
+- numbered Research Plan citations tied to selected papers
+- reproducible SciFact and frozen NFCorpus retrieval evaluations
+- deterministic local Research Plan citation-membership and Key Findings citation-coverage screen
 
 - lightweight tests for retrieval, generation, cache, and API contracts
 
@@ -28,24 +29,22 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 
 - Add project and implementation discovery from GitHub.
 - Add Papers with Code integration for code, datasets, and benchmarks.
-- Add cross-encoder reranking.
 - Add saved research sessions.
 - Add comparison views for selected papers.
 - Add richer export formats.
 
 ## Long-Term
 
-- Add hosted demo deployment.
 - Add user workspaces.
 - Add collaborative research boards.
 - Add code-generation mode using a task-specific coder model.
-- Add evaluation harness for search relevance and Research Plan quality.
+- Compare local Gemma-2B with a larger model on the citation-faithfulness set.
 - Evaluate future CUDA and ROCm inference backends when the MLX path is stable.
 
 ## Known Limitations
 
-- arXiv is the only paper source today.
+- Search quality evidence covers two abstract-only BEIR datasets; it does not measure live-source recall, full texts, or user outcomes.
 - Retrieval is in-memory and optimized for MVP candidate sets.
-- Reranker is not active yet.
+- Score fusion is the default; cross-encoder reranking remains opt-in because its SciFact gain was not significant.
 - Local generation speed depends on hardware and selected model.
-- Research Plans are generated from abstracts and summaries, not full PDFs.
+- Research Plans are generated from abstracts and summaries, not full PDFs. Citation IDs prove only that a cited paper was selected, not that each claim is entailed.

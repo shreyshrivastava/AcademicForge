@@ -1,0 +1,24 @@
+{
+  "evaluation": "AcademicForge generated-summary AI-assisted human-adjudication pilot",
+  "classification": "not a blinded or independent human evaluation",
+  "review_sha256": "e0ec859dc35329467b76553fce2343ecf93cc8dd06e1a1e8d8afdc91631e26db",
+  "summary": {
+    "items": 10,
+    "better_output_counts": {
+      "A": 3,
+      "B": 7
+    },
+    "numeric_rating_items": 6,
+    "adjudication_counts": {
+      "adopts_better_output_only": 3,
+      "agrees_with_ai_provisional": 6,
+      "disagrees_with_ai_provisional": 1
+    }
+  },
+  "limits": [
+    "The AI supplied evidence analysis before the user selected outputs.",
+    "The user reported parallel web research, but source URLs were not logged.",
+    "Numeric ratings are incomplete and must not be compared to the blinded human-evaluation score.",
+    "The ten items are an exploratory sample, not a general performance estimate."
+  ]
+}

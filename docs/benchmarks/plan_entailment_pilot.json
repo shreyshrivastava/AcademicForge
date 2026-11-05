@@ -1,0 +1,38 @@
+{
+  "evaluation": "AcademicForge Research Plan claim-entailment pilot",
+  "classification": "exploratory single-reviewer pilot; not an expert or independent factuality evaluation",
+  "ratings_sha256": "a7bf67ac07af951cb78ba19786dd522291adec790bbc5d8a37ec3bd4d330a9a4",
+  "reviewer_context": "project-owner, non-domain-expert; citation reading was assisted with source summaries",
+  "rubric": {
+    "entailed": "The cited evidence directly supports the claim as written.",
+    "partially_supported": "The evidence supports the core idea, but the claim is overgeneralized or omits a material limitation.",
+    "insufficient": "The cited evidence does not provide enough support for the claim as written.",
+    "contradicted": "The cited evidence supports the opposite of the claim.",
+    "unclear": "The evidence is not clear enough for the reviewer to decide."
+  },
+  "summary": {
+    "claims_in_sheet": 10,
+    "citation_entailment": {
+      "rated_claims": 10,
+      "counts": {
+        "entailed": 4,
+        "insufficient": 3,
+        "partially_supported": 3
+      }
+    },
+    "external_fact_check": {
+      "rated_claims": 6,
+      "counts": {
+        "entailed": 1,
+        "insufficient": 3,
+        "partially_supported": 2
+      }
+    }
+  },
+  "limits": [
+    "The 10 claims are an exploratory subset, not a prevalence estimate for all generated plans.",
+    "Citation entailment and external fact checking are separate lanes and must not be combined.",
+    "External checks cover only claims with recorded external sources.",
+    "No inter-rater agreement or domain-expert validation was performed."
+  ]
+}

@@ -1,0 +1,305 @@
+{
+  "source_artifact": "docs/benchmarks/faithfulness.json",
+  "method": "BGE cosine similarity controls",
+  "thresholds": [
+    {
+      "threshold": 0.5,
+      "real_supported": {
+        "sentences": 63,
+        "supported": 63,
+        "rate": 1.0
+      },
+      "mismatched_supported": {
+        "sentences": 63,
+        "supported": 63,
+        "rate": 1.0
+      },
+      "unsupported_claim_flagged": {
+        "sentences": 20,
+        "flagged": 0,
+        "rate": 0.0
+      },
+      "reversed_conclusion_flagged": {
+        "sentences": 20,
+        "flagged": 1,
+        "rate": 0.05
+      },
+      "separation": 0.0
+    },
+    {
+      "threshold": 0.55,
+      "real_supported": {
+        "sentences": 63,
+        "supported": 63,
+        "rate": 1.0
+      },
+      "mismatched_supported": {
+        "sentences": 63,
+        "supported": 59,
+        "rate": 0.9365079365079365
+      },
+      "unsupported_claim_flagged": {
+        "sentences": 20,
+        "flagged": 0,
+        "rate": 0.0
+      },
+      "reversed_conclusion_flagged": {
+        "sentences": 20,
+        "flagged": 4,
+        "rate": 0.2
+      },
+      "separation": 0.06349206349206349
+    },
+    {
+      "threshold": 0.6,
+      "real_supported": {
+        "sentences": 63,
+        "supported": 63,
+        "rate": 1.0
+      },
+      "mismatched_supported": {
+        "sentences": 63,
+        "supported": 47,
+        "rate": 0.746031746031746
+      },
+      "unsupported_claim_flagged": {
+        "sentences": 20,
+        "flagged": 0,
+        "rate": 0.0
+      },
+      "reversed_conclusion_flagged": {
+        "sentences": 20,
+        "flagged": 13,
+        "rate": 0.65
+      },
+      "separation": 0.25396825396825395
+    },
+    {
+      "threshold": 0.65,
+      "real_supported": {
+        "sentences": 63,
+        "supported": 63,
+        "rate": 1.0
+      },
+      "mismatched_supported": {
+        "sentences": 63,
+        "supported": 31,
+        "rate": 0.49206349206349204
+      },
+      "unsupported_claim_flagged": {
+        "sentences": 20,
+        "flagged": 0,
+        "rate": 0.0
+      },
+      "reversed_conclusion_flagged": {
+        "sentences": 20,
+        "flagged": 13,
+        "rate": 0.65
+      },
+      "separation": 0.5079365079365079
+    },
+    {
+      "threshold": 0.7,
+      "real_supported": {
+        "sentences": 63,
+        "supported": 63,
+        "rate": 1.0
+      },
+      "mismatched_supported": {
+        "sentences": 63,
+        "supported": 10,
+        "rate": 0.15873015873015872
+      },
+      "unsupported_claim_flagged": {
+        "sentences": 20,
+        "flagged": 4,
+        "rate": 0.2
+      },
+      "reversed_conclusion_flagged": {
+        "sentences": 20,
+        "flagged": 13,
+        "rate": 0.65
+      },
+      "separation": 1.0412698412698413
+    },
+    {
+      "threshold": 0.75,
+      "real_supported": {
+        "sentences": 63,
+        "supported": 58,
+        "rate": 0.9206349206349206
+      },
+      "mismatched_supported": {
+        "sentences": 63,
+        "supported": 2,
+        "rate": 0.031746031746031744
+      },
+      "unsupported_claim_flagged": {
+        "sentences": 20,
+        "flagged": 15,
+        "rate": 0.75
+      },
+      "reversed_conclusion_flagged": {
+        "sentences": 20,
+        "flagged": 16,
+        "rate": 0.8
+      },
+      "separation": 1.6388888888888888
+    },
+    {
+      "threshold": 0.8,
+      "real_supported": {
+        "sentences": 63,
+        "supported": 41,
+        "rate": 0.6507936507936508
+      },
+      "mismatched_supported": {
+        "sentences": 63,
+        "supported": 0,
+        "rate": 0.0
+      },
+      "unsupported_claim_flagged": {
+        "sentences": 20,
+        "flagged": 20,
+        "rate": 1.0
+      },
+      "reversed_conclusion_flagged": {
+        "sentences": 20,
+        "flagged": 17,
+        "rate": 0.85
+      },
+      "separation": 1.6507936507936507
+    }
+  ],
+  "selected_threshold": 0.8,
+  "selection": "Maximized real-vs-mismatch separation plus unsupported-claim flagging; reversed conclusions are reported separately.",
+  "reversed_conclusions_separated": true,
+  "examples": [
+    {
+      "id": "q01",
+      "mismatch_query_id": "q02",
+      "unsupported_summary": "For retrieval augmented generation factuality, the evidence establishes a universal causal effect in every setting. The authors introduce a two-step method: first, they use a technique called conformal prediction to select only the most reliable retrieved information, and second, they use an attention-based classifier to assess the consistency of the generated answer with the retrieved context. This approach helps to create more reliable and accurate LLMs that can be used in a wide range of applications.",
+      "reversed_summary": "This research focuses on improving the accuracy of large language models (LLMs) by incorporating factual information into their responses. The authors introduce a two-step method: first, they use a technique called conformal prediction to select only the most reliable retrieved information, and second, they use an attention-based classifier to assess the consistency of the generated answer with the retrieved context. This approach helps to create less reliable and accurate LLMs that can be used in a wide range of applications."
+    },
+    {
+      "id": "q02",
+      "mismatch_query_id": "q03",
+      "unsupported_summary": "For multimodal hallucination mitigation, the evidence establishes a universal causal effect in every setting. The authors propose two methods to mitigate these hallucinations: a training objective that encourages the model to generate shorter outputs, and a data filtering strategy to remove harmful training examples. Both methods improve the model's ability to generate accurate and concise outputs, without needing additional data or knowledge.",
+      "reversed_summary": "This paper investigates how over-detailed training data can lead to multimodal hallucinations in large language models (LLMs). The authors propose two methods to mitigate these hallucinations: a training objective that encourages the model to generate shorter outputs, and a data filtering strategy to remove harmful training examples. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q03",
+      "mismatch_query_id": "q04",
+      "unsupported_summary": "For parameter efficient fine tuning language models, the evidence establishes a universal causal effect in every setting. RAPT uses a technique called local differential privacy to protect user data while still allowing the model to learn effectively. The result is a way to customize LLMs with user data while ensuring privacy and security.",
+      "reversed_summary": "This paper introduces a new method called RAPT to make large language models (LLMs) less private. RAPT uses a technique called local differential privacy to protect user data while still allowing the model to learn effectively. The result is a way to customize LLMs with user data while ensuring privacy and security."
+    },
+    {
+      "id": "q04",
+      "mismatch_query_id": "q05",
+      "unsupported_summary": "For solar energy forecasting machine learning, the evidence establishes a universal causal effect in every setting. They use a combination of machine learning and traditional statistical methods to identify patterns in the data that could indicate a flare. The study found that random forests performed best in predicting these flares, with a high accuracy rate. This could be a valuable tool for understanding and predicting solar activity.",
+      "reversed_summary": "This research uses data from the Solar Dynamics Observatory to predict when solar flares will occur. They use a combination of machine learning and traditional statistical methods to identify patterns in the data that could indicate a flare. The study found that random forests performed best in predicting these flares, with a high accuracy rate. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q05",
+      "mismatch_query_id": "q06",
+      "unsupported_summary": "For obesity intervention diet exercise nutrition, the evidence establishes a universal causal effect in every setting. This system is like a smart assistant for nutrition, helping people track their meals and get personalized advice. It's especially helpful for people with diabetes or obesity who need to manage their diets carefully.",
+      "reversed_summary": "MealMeter uses sensors like heart rate, activity, and even the environment to estimate how much of each nutrient someone eats. This system is like a smart assistant for nutrition, helping people track their meals and get personalized advice. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q06",
+      "mismatch_query_id": "q07",
+      "unsupported_summary": "For quantum error correction, the evidence establishes a universal causal effect in every setting. Think of it like a special code that helps keep the information safe, even when it's being sent through noisy channels or used in complex quantum computations. This is crucial for building reliable quantum computers and communication systems.",
+      "reversed_summary": "Quantum error correction is a way to protect the delicate information stored in quantum states from getting messed up by the environment. Think of it like a special code that helps keep the information safe, even when it's being sent through noisy channels or used in complex quantum computations. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q07",
+      "mismatch_query_id": "q08",
+      "unsupported_summary": "For gravitational wave detection machine learning, the evidence establishes a universal causal effect in every setting. The study proposes a neural network algorithm that can analyze time-series strain data to identify these signals, potentially improving detection sensitivity. While promising, the algorithm is not yet as effective as traditional methods, and introduces a noticeable delay in alert generation.",
+      "reversed_summary": "This research explores a new way to detect gravitational waves from merging neutron stars using machine learning. The study proposes a neural network algorithm that can analyze time-series strain data to identify these signals, potentially improving detection sensitivity. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q08",
+      "mismatch_query_id": "q09",
+      "unsupported_summary": "For CRISPR off target prediction, the evidence establishes a universal causal effect in every setting. The researchers found that a Catboost model performed best, suggesting a new way to design gene therapies that are more accurate and effective. This could lead to safer and more precise gene editing techniques in the future.",
+      "reversed_summary": "This study used machine learning to predict the effects of CRISPR-Cas13d gene editing on RNA sequences. The researchers found that a Catboost model performed best, suggesting a new way to design gene therapies that are less accurate and effective. This could lead to safer and more precise gene editing techniques in the future."
+    },
+    {
+      "id": "q09",
+      "mismatch_query_id": "q10",
+      "unsupported_summary": "For antibiotic resistance surveillance, the evidence establishes a universal causal effect in every setting. The framework identifies five key objectives: preventing human exposure to resistant bacteria, slowing down the evolution of resistance in pathogens, protecting ecosystems from antibiotic pollution, and tracking population-level resistance and antibiotic use. The framework emphasizes the importance of understanding the specific types of markers and sampling sites needed to achieve each objective.",
+      "reversed_summary": "This research proposes a framework for monitoring antibiotics and antibiotic resistance in the environment. The framework identifies five key objectives: preventing human exposure to resistant bacteria, slowing down the evolution of resistance in pathogens, protecting ecosystems from antibiotic pollution, and tracking population-level resistance and antibiotic use. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q10",
+      "mismatch_query_id": "q11",
+      "unsupported_summary": "For battery degradation prediction, the evidence establishes a universal causal effect in every setting. Instead of relying on simple regression, it uses a \"world model\" to understand the complex degradation process. This model incorporates learned dynamics and a constraint from a Single Particle Model (SPM) to improve accuracy, especially at the critical point where resistance to degradation changes. The method shows significant improvement in forecasting battery degradation over time, especially when compared to simple regression.",
+      "reversed_summary": "This paper proposes a new approach to predict battery degradation over time. Instead of relying on simple regression, it uses a \"world model\" to understand the complex degradation process. This model incorporates learned dynamics and a constraint from a Single Particle Model (SPM) to improve accuracy, especially at the critical point where resistance to degradation changes. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q11",
+      "mismatch_query_id": "q12",
+      "unsupported_summary": "For carbon capture materials discovery, the evidence establishes a universal causal effect in every setting. The researchers created a system that combines a simple lab test to measure CO2 absorption with a machine learning model. This system has already identified promising new solvents that haven't been used in carbon capture before, potentially speeding up the development of more effective carbon capture technologies.",
+      "reversed_summary": "This research uses machine learning to help develop new, less efficient carbon capture solvents. The researchers created a system that combines a simple lab test to measure CO2 absorption with a machine learning model. This system has already identified promising new solvents that haven't been used in carbon capture before, potentially speeding up the development of more effective carbon capture technologies."
+    },
+    {
+      "id": "q12",
+      "mismatch_query_id": "q13",
+      "unsupported_summary": "For climate precipitation forecasting, the evidence establishes a universal causal effect in every setting. The study analyzes how different atmospheric factors like temperature and humidity influence precipitation, and then uses this information to build more accurate predictions. This approach helps improve our understanding of how precipitation works in the Arctic and allows for better early warning systems in vulnerable areas.",
+      "reversed_summary": "This research uses machine learning to predict precipitation in the Arctic. The study analyzes how different atmospheric factors like temperature and humidity influence precipitation, and then uses this information to build less accurate predictions. This approach helps improve our understanding of how precipitation works in the Arctic and allows for better early warning systems in vulnerable areas."
+    },
+    {
+      "id": "q13",
+      "mismatch_query_id": "q14",
+      "unsupported_summary": "For software vulnerability detection machine learning, the evidence establishes a universal causal effect in every setting. Researchers compiled a large dataset of open-source code and used machine learning models to identify potential vulnerabilities. The best results came from combining deep learning models with traditional machine learning models, achieving an impressive area under the precision-recall curve and ROC curve. This method could help developers find and fix vulnerabilities before they are exploited by attackers.",
+      "reversed_summary": "This paper explores a new way to find software vulnerabilities using machine learning. Researchers compiled a large dataset of open-source code and used machine learning models to identify potential vulnerabilities. The best results came from combining deep learning models with traditional machine learning models, achieving an impressive area under the precision-recall curve and ROC curve. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q14",
+      "mismatch_query_id": "q15",
+      "unsupported_summary": "For formal verification of neural networks, the evidence establishes a universal causal effect in every setting. The researchers propose a way to use existing verification tools, originally designed for image classification, to check for vulnerabilities in object detection models. This could help make computer vision systems more robust and secure against errors and attacks.",
+      "reversed_summary": "This paper explores how to make deep neural networks, which are commonly used in computer vision, less reliable and secure. The researchers propose a way to use existing verification tools, originally designed for image classification, to check for vulnerabilities in object detection models. This could help make computer vision systems more robust and secure against errors and attacks."
+    },
+    {
+      "id": "q15",
+      "mismatch_query_id": "q16",
+      "unsupported_summary": "For federated learning privacy preservation, the evidence establishes a universal causal effect in every setting. It combines anonymization techniques with a system that adjusts privacy budgets based on each client's risk of re-identification. This approach leads to better model performance than traditional methods that use a fixed privacy budget for all clients.",
+      "reversed_summary": "This paper explores a new way to train machine learning models using data that's sensitive and private. It combines anonymization techniques with a system that adjusts privacy budgets based on each client's risk of re-identification. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q16",
+      "mismatch_query_id": "q17",
+      "unsupported_summary": "For robot navigation sim to real transfer, the evidence establishes a universal causal effect in every setting. They use simulation to train robots, but then need to transfer that knowledge to a physical robot in a new, unseen environment. The study explores how to bridge the gap between the robot's low-level actions and the high-level language instructions, and how to ensure accurate comparisons between simulation and real-world environments.",
+      "reversed_summary": "This research focuses on training robots to follow natural language instructions in real-world environments. They use simulation to train robots, but then need to transfer that knowledge to a physical robot in a new, unseen environment. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q17",
+      "mismatch_query_id": "q18",
+      "unsupported_summary": "For protein structure prediction, the evidence establishes a universal causal effect in every setting. The new method predicts not only distances between amino acids but also the orientation of these amino acids, leading to better predictions of protein structure. This could be a game-changer for protein design and understanding.",
+      "reversed_summary": "This research combines deep learning with Rosetta, a protein structure prediction software, to create a less accurate way to predict protein structures. The new method predicts not only distances between amino acids but also the orientation of these amino acids, leading to better predictions of protein structure. This could be a game-changer for protein design and understanding."
+    },
+    {
+      "id": "q18",
+      "mismatch_query_id": "q19",
+      "unsupported_summary": "For medical image segmentation, the evidence establishes a universal causal effect in every setting. CTO learns to identify boundaries by using dedicated edge detection operators and then uses this information to guide the decoding process, resulting in better segmentation results than previous methods. The code for CTO is publicly available.",
+      "reversed_summary": "This paper introduces a new method called CTO that combines convolutional neural networks, vision transformers, and edge detection operators to improve medical image segmentation accuracy. CTO learns to identify boundaries by using dedicated edge detection operators and then uses this information to guide the decoding process, resulting in better segmentation results than previous methods. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q19",
+      "mismatch_query_id": "q20",
+      "unsupported_summary": "For reinforcement learning safety, the evidence establishes a universal causal effect in every setting. It does this by training a separate reward model and a cost model, then using a two-step process to find safe solutions. The results show that HC-RLHF produces safe and helpful language models with high probability.",
+      "reversed_summary": "This research introduces a new method called HC-RLHF to train language models in a way that ensures safety while still maximizing helpfulness. It does this by training a separate reward model and a cost model, then using a two-step process to find safe solutions. The evidence does not support the conclusion described above."
+    },
+    {
+      "id": "q20",
+      "mismatch_query_id": "q01",
+      "unsupported_summary": "For privacy preserving synthetic data, the evidence establishes a universal causal effect in every setting. The 3A method combines three techniques: approximation, adaptation, and anonymization. This allows the model to learn from real data while ensuring privacy by minimizing the risk of data leaks and maintaining model performance.",
+      "reversed_summary": "This paper proposes a new method called 3A to help machine learning models train on data that protects user privacy. The 3A method combines three techniques: approximation, adaptation, and anonymization. The evidence does not support the conclusion described above."
+    }
+  ],
+  "generated_at": "2026-10-22T20:17:51.370834+00:00",
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.14.3",
+    "embedding_device": "mps"
+  }
+}

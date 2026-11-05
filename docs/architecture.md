@@ -12,10 +12,9 @@ Streamlit UI
   -> FastAPI backend
   -> arXiv + Semantic Scholar live search
   -> relevance filtering
-  -> BM25 lexical retrieval
-  -> BGE dense retrieval
-  -> Reciprocal Rank Fusion
-  -> BGE cross-encoder reranking
+  -> stemmed BM25 + BGE score fusion (default, dense alpha 0.9)
+  -> optional dense-only or RRF retrieval
+  -> optional BGE cross-encoder reranking
   -> selected evidence papers
   -> local Gemma summaries and guidance
   -> compact Research Plan context
@@ -27,6 +26,12 @@ Streamlit UI
 - `GET /health`
 - `GET /version`
 - `GET /config`
+
+Retrieval defaults to stemmed-BM25/BGE score fusion with dense alpha 0.9.
+`ACADEMICFORGE_RETRIEVAL_MODE=dense`, `hybrid`, and `hybrid_rerank` select the
+alternatives; `hybrid_rerank` additionally enables the BGE cross-encoder. The
+amended decision is documented with SciFact and frozen NFCorpus evidence in
+`docs/benchmarks/README.md`.
 - `POST /search`
 - `POST /summarize`
 - `POST /paper-guidance`
@@ -53,6 +58,12 @@ The retrieval layer lives in `backend/retrieval/`.
 - `rrf.py` fuses BM25 and dense ranks.
 - `reranker.py` applies a BGE cross-encoder.
 - `device.py` selects GPU by default when PyTorch exposes one.
+
+OpenJev is an optional Quality-mode decision service. It asks typed relevance,
+paper-type, and implementation-difficulty questions for a small top-paper set,
+caches the result, and preserves the existing ranking if it is unavailable or
+returns an invalid response. It is not part of the measured retrieval default
+and should not be presented as a proven quality improvement.
 
 On ROCm, PyTorch exposes AMD GPUs through the `cuda` API, so `retrieval_device: cuda` in `/version` is expected. On NVIDIA, the same field indicates CUDA-backed retrieval.
 

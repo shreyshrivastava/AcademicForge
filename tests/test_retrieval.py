@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -197,6 +198,22 @@ def test_hybrid_includes_rrf_score():
     assert all(result.rrf_score > 0 for result in results)
 
 
+def test_rank_papers_honors_each_retrieval_mode(monkeypatch):
+    calls = []
+    dense = bm25_search("multilingual retrieval", PAPERS, top_k=3)
+    hybrid = bm25_search("multilingual retrieval", PAPERS, top_k=3)
+    monkeypatch.setattr(data_pipeline, "dense_search", lambda *args, **kwargs: calls.append("dense") or dense)
+    monkeypatch.setattr(data_pipeline, "score_fusion_search", lambda *args, **kwargs: calls.append("score_fusion") or dense)
+    monkeypatch.setattr(data_pipeline, "hybrid_search", lambda *args, **kwargs: calls.append("hybrid") or hybrid)
+    monkeypatch.setattr(data_pipeline, "rerank_results", lambda *args, **kwargs: calls.append("rerank") or hybrid)
+    monkeypatch.setattr(data_pipeline, "rerank_papers_with_jev", lambda _q, papers: papers)
+    for mode, expected in (("dense", ["dense"]), ("score_fusion", ["score_fusion"]), ("hybrid", ["hybrid"]), ("hybrid_rerank", ["hybrid", "rerank"])):
+        calls.clear()
+        monkeypatch.setattr(data_pipeline, "get_config", lambda mode=mode: SimpleNamespace(retrieval_mode=mode))
+        assert data_pipeline.rank_papers("multilingual retrieval", PAPERS, top_k=2)
+        assert calls == expected
+
+
 def test_categorize_paper_uses_builder_facing_labels():
     assert categorize_paper({"title": "A Survey of RAG", "abstract": "", "date": "2024-01-01"}) == "Survey"
     assert categorize_paper({"title": "Open Benchmark for Hallucination Evaluation", "abstract": "", "date": "2024-01-01"}) == "Evaluation Focused"
@@ -342,7 +359,7 @@ def test_rerank_results_cross_encoder(monkeypatch):
     ]
 
     class Reranker:
-        def predict(self, pairs):
+        def predict(self, pairs, batch_size):
             return [0.1, 0.9]  # Deliberately reverse the original ordering.
 
     monkeypatch.setattr("backend.retrieval.reranker.get_reranker_model", lambda: Reranker())
@@ -354,6 +371,19 @@ def test_rerank_results_cross_encoder(monkeypatch):
 
     # Test empty list
     assert rerank_results("test", []) == []
+
+
+def test_length_sorted_cross_encoder_batches_restore_original_scores():
+    from backend.retrieval.reranker import score_pairs_length_sorted
+
+    pairs = [("query", "very long document text"), ("query", "short")]
+
+    class Reranker:
+        def predict(self, batch, batch_size):
+            assert batch_size == 2
+            return [len(document) for _, document in batch]
+
+    assert score_pairs_length_sorted(Reranker(), pairs, batch_size=2) == [23, 5]
 
 
 if __name__ == "__main__":

@@ -1,0 +1,24 @@
+{
+  "queries": [
+    {"id": "q01", "query": "retrieval augmented generation factuality"},
+    {"id": "q02", "query": "multimodal hallucination mitigation"},
+    {"id": "q03", "query": "parameter efficient fine tuning language models"},
+    {"id": "q04", "query": "solar energy forecasting machine learning"},
+    {"id": "q05", "query": "obesity intervention diet exercise nutrition"},
+    {"id": "q06", "query": "quantum error correction"},
+    {"id": "q07", "query": "gravitational wave detection machine learning"},
+    {"id": "q08", "query": "CRISPR off target prediction"},
+    {"id": "q09", "query": "antibiotic resistance surveillance"},
+    {"id": "q10", "query": "battery degradation prediction"},
+    {"id": "q11", "query": "carbon capture materials discovery"},
+    {"id": "q12", "query": "climate precipitation forecasting"},
+    {"id": "q13", "query": "software vulnerability detection machine learning"},
+    {"id": "q14", "query": "formal verification of neural networks"},
+    {"id": "q15", "query": "federated learning privacy preservation"},
+    {"id": "q16", "query": "robot navigation sim to real transfer"},
+    {"id": "q17", "query": "protein structure prediction"},
+    {"id": "q18", "query": "medical image segmentation"},
+    {"id": "q19", "query": "reinforcement learning safety"},
+    {"id": "q20", "query": "privacy preserving synthetic data"}
+  ]
+}
