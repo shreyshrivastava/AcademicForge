@@ -489,7 +489,7 @@ if manual_search or auto_run_search:
         st.warning("Enter a field, or switch back to All fields.")
     else:
         search_placeholder = st.empty()
-        search_placeholder.markdown(pulse_loading_html("Searching arXiv and Semantic Scholar"), unsafe_allow_html=True)
+        search_placeholder.markdown(pulse_loading_html("Searching arXiv"), unsafe_allow_html=True)
         try:
             search_payload = search_papers(research_question, focus_categories, search_domain)
             search_placeholder.empty()

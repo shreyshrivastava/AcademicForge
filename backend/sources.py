@@ -23,21 +23,14 @@ def diagnostics():
     return deepcopy(search_diagnostics.get() or {"sources": {}, "warnings": []})
 
 
-SOURCE_LABELS = {"arxiv": "arXiv", "semantic_scholar": "Semantic Scholar"}
+SOURCE_LABELS = {"arxiv": "arXiv", "openalex": "OpenAlex"}
 
 
 def source_status(name, status):
     state = diagnostics()
     state["sources"][name] = status
-    label = SOURCE_LABELS.get(name, name)
-    if status == "rate_limited":
-        warning = (f"{label} limits requests without an API key, so these results may be missing its papers. "
-                   "Set SEMANTIC_SCHOLAR_API_KEY in .env to include it.")
-    elif status == "unavailable":
-        warning = f"{label} didn't respond, so some papers may be missing."
-    else:
-        warning = ""
-    if warning:
+    if status == "unavailable":
+        warning = f"{SOURCE_LABELS.get(name, name)} didn't respond, so some papers may be missing."
         if warning not in state["warnings"]:
             state["warnings"].append(warning)
     search_diagnostics.set(state)

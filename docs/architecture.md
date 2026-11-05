@@ -10,7 +10,7 @@ AcademicForge has two processes:
 ```text
 Streamlit UI
   -> FastAPI backend
-  -> arXiv + Semantic Scholar live search
+  -> arXiv live search (OpenAlex built in, currently off)
   -> relevance filtering
   -> stemmed BM25 + BGE score fusion (default, dense alpha 0.9)
   -> optional dense-only or RRF retrieval

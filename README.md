@@ -4,7 +4,9 @@ AcademicForge is for a graduate student who has found several papers and needs t
 
 Run it locally on Apple Silicon, NVIDIA CUDA, or AMD ROCm. Summaries, paper guidance, and research plans use a local model by default, with optional cloud providers for generation.
 
-![AcademicForge search results](docs/assets/academicforge-search-results.png)
+![AcademicForge search results with a paper summary open](docs/assets/academicforge-search-results.png)
+
+![A research plan written from three selected papers](docs/assets/academicforge-research-plan.png)
 
 [Getting started](#getting-started) · [How it works](#how-it-works) · [Evidence](#evidence) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](CONTRIBUTING.md)
 
@@ -53,7 +55,7 @@ python -m benchmarks.generate_example --device mps
 
 ## What you can do
 
-You type a question and AcademicForge searches arXiv and Semantic Scholar, ranking papers by both keywords and meaning. You tick the papers you want to use, and can ask for a short summary or practical guidance on any one of them. Then it writes a research plan from your selection, streaming it as it goes, with each finding cited back to a paper. You can download the plan as Markdown.
+You type a question and AcademicForge searches arXiv, ranking papers by both keywords and meaning. You tick the papers you want to use, and can ask for a short summary or practical guidance on any one of them. Then it writes a research plan from your selection, streaming it as it goes, with each finding cited back to a paper. You can download the plan as Markdown.
 
 Generation runs on a local Gemma model by default. You can turn on a cloud provider for Deep mode if you need one.
 
@@ -161,7 +163,7 @@ AcademicForge uses Streamlit for the interface and FastAPI for the backend. Sear
 
 ```text
 Your research question
-  -> Search arXiv and Semantic Scholar
+  -> Search arXiv
   -> Score fusion: stemmed BM25 + BGE dense (default, alpha 0.9)
   -> Optionally use dense-only or RRF hybrid retrieval
   -> Optionally refine an RRF hybrid order with a BGE cross-encoder
@@ -179,7 +181,7 @@ Completed searches are cached in memory for five minutes by default, making repe
 | :--- | :--- |
 | Interface | Streamlit |
 | Backend | FastAPI and Uvicorn |
-| Paper sources | arXiv and Semantic Scholar |
+| Paper sources | arXiv. OpenAlex support is built in but off while its anonymous search is rate-limited. |
 | Search and ranking | Score fusion by default: stemmed BM25 + BGE dense, alpha 0.9; opt-in RRF and `BAAI/bge-reranker-base` |
 | Optional final ranking | OpenJev |
 | OpenJev | Optional HTTP ranking service that scores a small top-paper set and preserves the existing order on failure. |
@@ -252,7 +254,6 @@ Copy [.env.example](.env.example) to `.env` and set only what you need. Restart 
 | `JEV_ENABLED` | `false` | Enable OpenJev in Quality search mode. |
 | `REMOTE_LLM_USE_FOR_DEEP` | `false` | Enable a configured cloud provider for Deep generation. |
 | `GROQ_API_KEY` | Unset | Authenticate with Groq for optional Deep generation. |
-| `SEMANTIC_SCHOLAR_API_KEY` | Unset | Include Semantic Scholar results. Without a key its shared public limit usually refuses requests and search uses arXiv only. Get a free key at semanticscholar.org/product/api. |
 | `FIREWORKS_API_KEY` | Unset | Authenticate with Fireworks. |
 | `LOCAL_LLM_USE_FIREWORKS` | `false` | Enable Fireworks generation explicitly. |
 | `ACADEMICFORGE_BIND_HOST` | `127.0.0.1` | Set the interface used by the launcher. |

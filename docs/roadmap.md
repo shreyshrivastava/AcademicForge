@@ -4,7 +4,7 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 
 ## Completed
 
-- arXiv and Semantic Scholar live search by topic or direct URL
+- arXiv live search by topic or direct URL (OpenAlex is built in and off until it has an API key)
 - score-fusion retrieval: stemmed BM25 plus BGE dense retrieval
 - optional RRF and cross-encoder retrieval modes
 - paper selection UI

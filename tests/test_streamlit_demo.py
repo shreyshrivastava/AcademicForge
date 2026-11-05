@@ -46,7 +46,7 @@ def test_demo_shared_search_is_field_aware_and_never_loads_models(monkeypatch):
 
 def test_outage_preserves_one_real_paper_with_warning(monkeypatch):
     def partial(query, **kwargs):
-        source_status("semantic_scholar", "unavailable")
+        source_status("openalex", "unavailable")
         return [AI], False
     monkeypatch.setattr(pipeline, "search_live_candidates", partial)
     result = demo.search({"query": "retrieval augmented generation"})
@@ -57,7 +57,7 @@ def test_outage_preserves_one_real_paper_with_warning(monkeypatch):
 def test_all_sources_unavailable_never_invents_evidence(monkeypatch):
     def unavailable(query, **kwargs):
         source_status("arxiv", "unavailable")
-        source_status("semantic_scholar", "unavailable")
+        source_status("openalex", "unavailable")
         return [], False
     monkeypatch.setattr(pipeline, "search_live_candidates", unavailable)
     result = demo.search({"query": "retrieval"})
