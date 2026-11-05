@@ -25,7 +25,8 @@ from backend.retrieval.dense import MODEL_NAME
 from backend.retrieval.device import select_retrieval_device
 from backend.retrieval.reranker import get_reranker_model, score_pairs_length_sorted
 from benchmarks.metrics import aggregate, paired_bootstrap_difference, query_metrics
-from benchmarks.run_scifact import DATASETS, ROOT, download, source_fingerprint
+from benchmarks.common import DATASETS, ROOT, download, file_sha256, read_beir
+from benchmarks.run_scifact import source_fingerprint
 
 CACHE = ROOT / ".academicforge_cache" / "fusion"
 OUT = ROOT / "docs" / "benchmarks"
@@ -35,34 +36,16 @@ K = 10
 def _fingerprint():
     """Include this cache-format and evaluation implementation in provenance."""
     values = source_fingerprint()
-    values["benchmarks/fusion_experiments.py"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    values["benchmarks/fusion_experiments.py"] = file_sha256(Path(__file__))
     return values
 
 
 def _load(split, dataset_id="scifact"):
     """Read a checksum-verified official BEIR split without retaining abstracts."""
-    dataset = DATASETS[dataset_id]
     archive = ROOT / ".academicforge_cache" / "benchmarks" / f"{dataset_id}.zip"
     if not archive.exists():
-        download(archive, dataset)
-    raw = archive.read_bytes()
-    if hashlib.sha256(raw).hexdigest() != dataset["sha256"]:
-        raise ValueError(f"{dataset['label']} archive checksum does not match the recorded version")
-    with zipfile.ZipFile(io.BytesIO(raw)) as z:
-        corpus = [json.loads(line) for line in z.read(f"{dataset_id}/corpus.jsonl").splitlines()]
-        all_queries = {str(row["_id"]): row["text"] for row in
-                       (json.loads(line) for line in z.read(f"{dataset_id}/queries.jsonl").splitlines())}
-        rows = csv.DictReader(io.StringIO(z.read(f"{dataset_id}/qrels/{split}.tsv").decode()), delimiter="\t")
-        qrels = {}
-        for row in rows:
-            if int(row["score"]) > 0:
-                qrels.setdefault(str(row["query-id"]), set()).add(str(row["corpus-id"]))
-    if len(corpus) != dataset["documents"] or not qrels:
-        raise ValueError(f"Unexpected {dataset['label']} corpus or empty qrels")
-    ids = [str(row["_id"]) for row in corpus]
-    if len(ids) != len(set(ids)) or not set(qrels).issubset(all_queries):
-        raise ValueError(f"{dataset['label']} identifiers failed validation")
-    return corpus, all_queries, qrels
+        download(archive, DATASETS[dataset_id])
+    return read_beir(archive, dataset_id, split)
 
 
 def _ids(qrels, limit=None):

@@ -6,9 +6,9 @@ import hashlib
 import json
 from collections import Counter
 from pathlib import Path
+from benchmarks.common import ROOT, file_sha256
 
 
-ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REVIEW = ROOT / "docs" / "benchmarks" / "assisted_summary_review.csv"
 DEFAULT_OUTPUT = ROOT / "docs" / "benchmarks" / "assisted_summary_review_pilot.json"
 RATING_FIELDS = (
@@ -45,7 +45,7 @@ def main() -> None:
     artifact = {
         "evaluation": "AcademicForge generated-summary AI-assisted human-adjudication pilot",
         "classification": "not a blinded or independent human evaluation",
-        "review_sha256": hashlib.sha256(args.review.read_bytes()).hexdigest(),
+        "review_sha256": file_sha256(args.review),
         "summary": summary,
         "limits": [
             "The AI supplied evidence analysis before the user selected outputs.",

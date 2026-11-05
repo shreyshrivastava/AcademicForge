@@ -15,6 +15,7 @@ Fireworks DeepSeek model. Set FIREWORKS_MODEL to select a supported endpoint.
 """
 
 import argparse
+from benchmarks.common import ROOT, write_json_atomically
 from datetime import datetime, timezone
 import json
 import os
@@ -29,7 +30,6 @@ from backend.retrieval.device import select_retrieval_device
 from backend.summarizer import summarize_paper
 
 
-ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_QUERIES = ROOT / "benchmarks" / "queries.json"
 DEFAULT_OUTPUT = ROOT / "docs" / "benchmarks" / "faithfulness.json"
 DEFAULT_EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
@@ -277,15 +277,6 @@ def evaluate(queries: list[dict], checker: AbstractSupportChecker, paper_limit: 
             "micro_support_rate": supported_count / sentence_count if sentence_count else 0.0,
         }
     return {"models": models, "summary": by_model, "queries": results}
-
-
-def write_json_atomically(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as file:
-        json.dump(payload, file, indent=2, ensure_ascii=False)
-        file.write("\n")
-        temporary_path = Path(file.name)
-    temporary_path.replace(path)
 
 
 def parse_args():
