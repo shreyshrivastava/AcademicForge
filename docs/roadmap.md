@@ -1,4 +1,4 @@
-# Product Roadmap
+# Product roadmap
 
 AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local execution, and a strong research-to-build workflow.
 
@@ -41,7 +41,7 @@ AcademicForge is currently a hackathon-ready MVP. The focus is clarity, local ex
 - Compare local Gemma-2B with a larger model on the citation-faithfulness set.
 - Evaluate future CUDA and ROCm inference backends when the MLX path is stable.
 
-## Known Limitations
+## Known limitations
 
 - Search quality evidence covers two abstract-only BEIR datasets; it does not measure live-source recall, full texts, or user outcomes.
 - Retrieval is in-memory and optimized for MVP candidate sets.

@@ -4,7 +4,7 @@ The standalone profile runs the current AcademicForge interface entirely inside 
 
 | Capability | Local profile | Standalone profile |
 |---|---|---|
-| Search fields and Research Lens | Shared | Shared |
+| Field and Lens | Shared | Shared |
 | Academic sources | arXiv and Semantic Scholar | Same sources |
 | Ranking | Hybrid retrieval and optional neural reranking | BM25 |
 | Summary, guidance, plan | Configured models | Small CPU model plus structured evidence analysis |

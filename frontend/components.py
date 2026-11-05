@@ -12,6 +12,7 @@ RESEARCH_PLAN_SECTION_ORDER = [
     "Research Gaps",
     "Recommended Build",
     "Builder Guidance",
+    "Selected Evidence",
 ]
 
 RECOMMENDED_BUILD_FIELDS = [
@@ -34,6 +35,7 @@ RESEARCH_PLAN_SECTION_LABELS = {
     "Research Gaps": "Research gaps",
     "Recommended Build": "Recommended build",
     "Builder Guidance": "Builder guidance",
+    "Selected Evidence": "Sources",
 }
 
 SECTION_ALIASES = {
@@ -86,6 +88,8 @@ def split_recommended_build(body):
 
 
 def extract_bullets(text):
+    # Small models often run bullets together on one line ("* a * b"); split them first.
+    text = re.sub(r"(?<=\S)\s+\*\s+(?=\S)", "\n* ", text)
     items = []
     for line in text.splitlines():
         stripped = line.strip()
@@ -129,38 +133,15 @@ def strip_evidence_citations(text):
 
 
 def pulse_loading_html(label):
-    return f"""
-    <div class="af-pulse-wrap">
-        <div class="af-pulse-dots">
-            <div class="af-pulse-dot"></div>
-            <div class="af-pulse-dot"></div>
-            <div class="af-pulse-dot"></div>
-        </div>
-        <div class="af-pulse-label">{html.escape(label)}</div>
-    </div>
-    """
+    return (
+        '<div class="af-pulse" role="status"><span class="af-pulse-dots">'
+        '<span class="af-pulse-dot"></span><span class="af-pulse-dot"></span><span class="af-pulse-dot"></span>'
+        f'</span><span>{html.escape(label)}</span></div>'
+    )
 
 
-def render_research_plan_heading(label, top=False):
-    if top:
-        st.markdown(
-            f"""
-            <div style="font-family: var(--af-font); font-size: 1.35rem; font-weight: 800; color: var(--af-text-hi); margin-bottom: 1.2rem; border-bottom: 2px solid var(--af-border); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
-                {html.escape(label)}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f"""
-            <div class="syn-heading" style="margin-top: 1.6rem;">
-                <span class="syn-marker"></span>
-                <span class="syn-heading-label">{html.escape(label)}</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+def render_research_plan_heading(label):
+    st.markdown(f'<div class="syn-heading">{html.escape(label)}</div>', unsafe_allow_html=True)
 
 
 def render_research_plan(research_plan_text):
@@ -168,8 +149,6 @@ def render_research_plan(research_plan_text):
     if not sections:
         st.markdown(research_plan_text)
         return
-
-    render_research_plan_heading("Research Plan", top=True)
 
     for section in RESEARCH_PLAN_SECTION_ORDER:
         body = sections.get(section)
@@ -207,12 +186,15 @@ def render_research_plan(research_plan_text):
         elif section == "Builder Guidance":
             render_list_or_body(body, ordered=True)
 
+        elif section == "Selected Evidence":
+            st.markdown(body)
+
         else:
-            st.markdown(f"<div class='syn-body'>{render_citation_spans(body)}</div>", unsafe_allow_html=True)
+            render_list_or_body(body)
 
 
 def render_research_plan_panel(research_plan_text):
-    with st.container(border=True):
+    with st.container(key="plan_panel"):
         if isinstance(research_plan_text, str):
             render_research_plan(research_plan_text)
         else:
@@ -220,37 +202,23 @@ def render_research_plan_panel(research_plan_text):
 
 
 def paper_insight_panel_html(label, text):
-    return f"""
-    <div class="af-insight-block">
-        <div class="af-insight-label">{html.escape(label)}</div>
-        <div class="af-insight-text">{html.escape(text)}</div>
-    </div>
-    """
+    return (
+        f'<div class="af-insight"><div class="af-insight-label">{html.escape(label)}</div>'
+        f'<div class="af-insight-text">{html.escape(text)}</div></div>'
+    )
 
 
 def paper_insight_loading_html(label, loading_text):
-    return f"""
-    <div class="af-insight-block">
-        <div class="af-insight-label">{html.escape(label)}</div>
-        {pulse_loading_html(loading_text)}
-    </div>
-    """
+    return f'<div class="af-insight"><div class="af-insight-label">{html.escape(label)}</div>{pulse_loading_html(loading_text)}</div>'
 
 
 def render_research_plan_empty_state():
     st.markdown(
-        """
-        <div class="research-plan-stage-empty">
-            <div class="research-plan-stage-title">Research Plan will appear here</div>
-            <div class="research-plan-stage-copy">
-                Select 2-4 papers and generate one combined research-to-prototype plan.
-            </div>
-        </div>
-        """,
+        '<div class="af-empty">Pick two to four papers above and write a plan. '
+        "It combines them into one build direction with citations back to each paper.</div>",
         unsafe_allow_html=True,
     )
 
 
-def render_research_plan_loading_state(label="Generating Research Plan..."):
-    with st.container(border=True):
-        st.markdown(pulse_loading_html(label), unsafe_allow_html=True)
+def render_research_plan_loading_state(label="Writing the plan"):
+    st.markdown(pulse_loading_html(label), unsafe_allow_html=True)

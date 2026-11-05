@@ -483,7 +483,24 @@ def test_streamlit_search_generate_and_reuse_summary(monkeypatch):
     next(button for button in page.button if button.label == 'Search').click().run(timeout=10)
     assert not page.exception
     for _ in range(2):
-        next(button for button in page.button if button.label == 'Generate Research Plan').click().run(timeout=10)
+        next(button for button in page.button if button.label == 'Write plan').click().run(timeout=10)
         assert not page.exception
         assert 'Build a useful system.' in page.session_state.research_plan
     assert calls.count('/summarize') == 1
+
+
+def test_streamlit_paper_selection_toggles(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    papers = [{**PAPER, 'paper_id': f'p{i}', 'title': f'Paper {i}', 'url': f'https://example.org/{i}'} for i in range(5)]
+    monkeypatch.setattr(APIClient, 'get_config', lambda self: {
+        'llm_models': {}, 'generation_modes': {'fast': {'model': 'test/local'}, 'deep': {'model': 'test/local'}}})
+    monkeypatch.setattr(APIClient, 'post_json', lambda self, path, payload: {'papers': papers, 'warnings': []})
+    page = AppTest.from_file(str(Path(__file__).resolve().parents[1] / 'frontend/streamlit_app.py')).run(timeout=10)
+    page.text_input[0].input('test research')
+    next(button for button in page.button if button.label == 'Search').click().run(timeout=10)
+    assert [box.value for box in page.checkbox] == [True, True, True, False, False]
+    page.checkbox[3].check().run(timeout=10)
+    page.checkbox[0].uncheck().run(timeout=10)
+    assert not page.exception
+    assert [box.value for box in page.checkbox] == [False, True, True, True, False]
+    assert len(page.session_state.selected_labels) == 3

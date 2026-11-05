@@ -5,7 +5,7 @@ AcademicForge has two processes:
 - FastAPI backend in `backend/app.py`
 - Streamlit frontend in `frontend/streamlit_app.py`
 
-## Runtime Flow
+## Runtime flow
 
 ```text
 Streamlit UI
@@ -21,7 +21,7 @@ Streamlit UI
   -> local Gemma Research Plan, or opt-in Fireworks DeepSeek
 ```
 
-## Backend Routes
+## Backend routes
 
 - `GET /health`
 - `GET /version`
@@ -38,7 +38,7 @@ amended decision is documented with SciFact and frozen NFCorpus evidence in
 - `POST /research-plan`
 - `POST /research-plan/stream`
 
-## Model Routing
+## Model routing
 
 - `LOCAL_LLM_PROVIDER=auto` selects MLX on Apple Silicon and Transformers/PyTorch elsewhere.
 - The Transformers/PyTorch backend supports both NVIDIA CUDA and AMD ROCm. The
@@ -69,16 +69,7 @@ On ROCm, PyTorch exposes AMD GPUs through the `cuda` API, so `retrieval_device: 
 
 ## Frontend
 
-The Streamlit UI provides:
-
-- research question input
-- Fast/Deep mode selector
-- Research Lens selector
-- ranked paper cards
-- paper selection
-- inline Summary and Guidance generation
-- streamed Research Plan generation
-- Markdown export
+The Streamlit UI is one column: the question box with Field, Lens and Model selects, then the ranked paper cards (each with Use in plan, Summary and Guidance), then the research plan, which streams in and can be downloaded as Markdown. The papers and plan section is a Streamlit fragment, so ticking a paper or asking for a summary reruns only that section. The look is described in [DESIGN.md](../DESIGN.md).
 
 The UI talks to FastAPI through `ACADEMICFORGE_BACKEND_URL`.
 

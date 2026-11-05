@@ -53,12 +53,9 @@ python -m benchmarks.generate_example --device mps
 
 ## What you can do
 
-- **Find relevant papers.** Search arXiv and Semantic Scholar using keywords and meaning, then view ranked results.
-- **Choose your evidence.** Select the papers you want to use for your research.
-- **Understand each paper.** Generate a short summary and practical guidance.
-- **Build a research plan.** Combine selected papers into a structured plan and watch it appear as it is generated.
-- **Save your work.** Download the output as Markdown.
-- **Choose how to run.** Use local Gemma models or enable a cloud provider when you need one.
+You type a question and AcademicForge searches arXiv and Semantic Scholar, ranking papers by both keywords and meaning. You tick the papers you want to use, and can ask for a short summary or practical guidance on any one of them. Then it writes a research plan from your selection, streaming it as it goes, with each finding cited back to a paper. You can download the plan as Markdown.
+
+Generation runs on a local Gemma model by default. You can turn on a cloud provider for Deep mode if you need one.
 
 ## Getting started
 
@@ -135,14 +132,14 @@ curl http://127.0.0.1:8000/version
 ## Try it
 
 1. Enter a question, such as **“Reducing hallucinations in retrieval augmented generation.”**
-2. Choose a **Search field**, analysis mode, and research lens, then search for papers. For RAG or RAGAS, choose **Computer science & AI**. Use **Other field…** to enter a subject such as quantum physics.
-3. Select the papers you want to explore.
-4. Generate a summary or guidance for an individual paper.
-5. Create a research plan from your selected papers and download the Markdown output.
+2. Pick a **Field**, **Lens** and **Model** under the question box, then press **Search**. For RAG or RAGAS, choose **Computer science & AI**. Use **Other field…** to type a subject such as quantum physics.
+3. Tick **Use in plan** on the papers you want. The top three are ticked for you.
+4. Press **Summary** or **Guidance** on any paper to read about it on its own.
+5. Press **Write plan**, then **Download Markdown** to keep it.
 
 ### Search in a specific field
 
-Use **Search field** to distinguish terms that mean different things in different subjects:
+Use **Field** to separate terms that mean different things in different subjects:
 
 - **Computer science & AI:** expands RAG to retrieval augmented generation and recognizes RAGAS, including “rag as” and “rag and as.”
 - **Music & arts:** keeps the music meaning of ragas.
@@ -193,7 +190,7 @@ See [the architecture guide](docs/architecture.md) for more detail.
 
 ## Search and generation modes
 
-Search mode controls the order of papers. Analysis mode controls the model used to write summaries and guidance. Configure them separately.
+The search mode (`ACADEMICFORGE_SEARCH_MODE`) sets the order of papers. The **Model** choice in the app (Fast or Deep) sets which model writes summaries, guidance and plans. The two are configured separately.
 
 | Search mode | What it does | When to use it |
 | :--- | :--- | :--- |

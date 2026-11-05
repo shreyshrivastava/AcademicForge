@@ -1,6 +1,7 @@
 import logging
 import re
 
+from backend.llm_text import PLAIN_STYLE
 from backend.llm import generate_text, generate_text_stream, model_name
 
 
@@ -44,7 +45,7 @@ def selected_evidence_references(papers):
         url = paper.get("url") or paper.get("link") or ""
         title = paper.get("title", "Untitled paper")
         linked_title = f"[{title}]({url})" if url else title
-        lines.append(f"[{index}] {linked_title} — {authors}")
+        lines.append(f"[{index}] {linked_title}. {authors}")
     return "\n\n".join(lines)
 
 
@@ -186,8 +187,8 @@ def build_research_plan_prompt(paper_context, query=""):
         "research gaps, and engineering recommendations, and never invent "
         "evidence not present in the selected papers. Do not include "
         "conversational prefaces. You must include every required output heading "
-        "exactly once and in the requested order.\n"
-        "CRITICAL: You must respond exclusively in English, regardless of the input language."
+        "exactly once and in the requested order. Answer in English whatever the input language. "
+        + PLAIN_STYLE
     )
     user_prompt = f"""
 USER GOAL:

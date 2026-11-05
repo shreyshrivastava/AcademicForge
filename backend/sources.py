@@ -23,11 +23,15 @@ def diagnostics():
     return deepcopy(search_diagnostics.get() or {"sources": {}, "warnings": []})
 
 
+SOURCE_LABELS = {"arxiv": "arXiv", "semantic_scholar": "Semantic Scholar"}
+
+
 def source_status(name, status):
     state = diagnostics()
     state["sources"][name] = status
     if status == "unavailable":
-        warning = f"{name} is unavailable; results may be incomplete."
+        label = SOURCE_LABELS.get(name, name)
+        warning = f"{label} didn't respond, so some papers may be missing."
         if warning not in state["warnings"]:
             state["warnings"].append(warning)
     search_diagnostics.set(state)

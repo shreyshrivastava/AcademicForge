@@ -5,7 +5,8 @@ __pycache__/
 .venv-demo/
 venv/
 .DS_Store
-.streamlit/
+.streamlit/*
+!.streamlit/config.toml
 .academicforge_cache/
 benchmark-results.*
 docs/benchmarks/human_eval_key.csv

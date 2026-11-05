@@ -142,7 +142,7 @@ def test_shared_ui_demo_search_preview_and_export(monkeypatch):
     next(b for b in page.button if b.label == "Guidance").click().run(timeout=20)
     assert not page.exception
     for _ in range(2):
-        next(b for b in page.button if b.label == "Generate Research Plan").click().run(timeout=20)
+        next(b for b in page.button if b.label == "Write plan").click().run(timeout=20)
         assert not page.exception
         assert not page.error
         assert "No AI model" in page.session_state.research_plan
