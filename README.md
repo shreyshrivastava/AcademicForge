@@ -113,7 +113,9 @@ The app shows how it read your query and asks you to search again after you chan
 
 Streamlit draws the interface and FastAPI runs the backend. Search finds and ranks papers, and the generation model turns the papers you pick into summaries, guidance and a plan.
 
-![AcademicForge architecture](docs/assets/academicforge-architecture.svg)
+### 3D architecture
+
+![AcademicForge isometric architecture](docs/assets/academicforge-architecture.svg)
 
 ```text
 Your question

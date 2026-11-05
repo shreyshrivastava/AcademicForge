@@ -20,3 +20,4 @@ docs/benchmarks/assisted_summary_review.csv
 # Bundle and artifact archives
 *.tar.gz
 *.zip
+brag-output/work/
