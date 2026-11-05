@@ -504,3 +504,28 @@ def test_streamlit_paper_selection_toggles(monkeypatch):
     assert not page.exception
     assert [box.value for box in page.checkbox] == [False, True, True, True, False]
     assert len(page.session_state.selected_labels) == 3
+
+
+def test_semantic_scholar_rate_limit_explains_the_api_key(monkeypatch):
+    monkeypatch.delenv('SEMANTIC_SCHOLAR_API_KEY', raising=False)
+    sent = {}
+    def refused(url, **kwargs):
+        sent.update(kwargs)
+        raise requests.HTTPError(response=Mock(status_code=429))
+    monkeypatch.setattr(paper_search, 'get_source', refused)
+    assert paper_search.search_semantic_scholar_candidates('rag') == []
+    assert sent['headers'] == {}
+    assert diagnostics()['sources']['semantic_scholar'] == 'rate_limited'
+    assert any('SEMANTIC_SCHOLAR_API_KEY' in warning for warning in diagnostics()['warnings'])
+
+
+def test_semantic_scholar_sends_configured_api_key(monkeypatch):
+    monkeypatch.setenv('SEMANTIC_SCHOLAR_API_KEY', 'test-key')
+    sent = {}
+    def ok(url, **kwargs):
+        sent.update(kwargs)
+        return Mock(json=lambda: {'data': []}, close=lambda: None)
+    monkeypatch.setattr(paper_search, 'get_source', ok)
+    paper_search.search_semantic_scholar_candidates('rag')
+    assert sent['headers'] == {'x-api-key': 'test-key'}
+    assert diagnostics()['sources']['semantic_scholar'] == 'ok'

@@ -252,6 +252,7 @@ Copy [.env.example](.env.example) to `.env` and set only what you need. Restart 
 | `JEV_ENABLED` | `false` | Enable OpenJev in Quality search mode. |
 | `REMOTE_LLM_USE_FOR_DEEP` | `false` | Enable a configured cloud provider for Deep generation. |
 | `GROQ_API_KEY` | Unset | Authenticate with Groq for optional Deep generation. |
+| `SEMANTIC_SCHOLAR_API_KEY` | Unset | Include Semantic Scholar results. Without a key its shared public limit usually refuses requests and search uses arXiv only. Get a free key at semanticscholar.org/product/api. |
 | `FIREWORKS_API_KEY` | Unset | Authenticate with Fireworks. |
 | `LOCAL_LLM_USE_FIREWORKS` | `false` | Enable Fireworks generation explicitly. |
 | `ACADEMICFORGE_BIND_HOST` | `127.0.0.1` | Set the interface used by the launcher. |

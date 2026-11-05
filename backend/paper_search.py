@@ -1,6 +1,7 @@
 """Live candidate search across arXiv and Semantic Scholar."""
 from urllib.parse import quote_plus, urlparse
 import logging
+import os
 import re
 
 import xml.etree.ElementTree as ET
@@ -91,8 +92,11 @@ def search_semantic_scholar_candidates(query: str, max_results: int = INITIAL_CA
         max_results,
         params["fields"],
     )
+    # Anonymous requests share one public rate limit and are usually refused with 429.
+    api_key = os.getenv("SEMANTIC_SCHOLAR_API_KEY", "").strip()
+    headers = {"x-api-key": api_key} if api_key else {}
     try:
-        response = get_source(url, params=params)
+        response = get_source(url, params=params, headers=headers)
         try:
             payload = response.json()
         finally:
@@ -101,9 +105,10 @@ def search_semantic_scholar_candidates(query: str, max_results: int = INITIAL_CA
             raise ValueError("Invalid Semantic Scholar response")
         results = payload["data"]
         source_status("semantic_scholar", "ok")
-    except (requests.RequestException, ValueError, SourceUnavailable):
-        logger.warning("Semantic Scholar source unavailable", exc_info=True)
-        source_status("semantic_scholar", "unavailable")
+    except (requests.RequestException, ValueError, SourceUnavailable) as exc:
+        rate_limited = isinstance(exc, requests.HTTPError) and getattr(exc.response, "status_code", None) == 429
+        logger.warning("Semantic Scholar source unavailable rate_limited=%s keyed=%s", rate_limited, bool(api_key), exc_info=True)
+        source_status("semantic_scholar", "rate_limited" if rate_limited and not api_key else "unavailable")
         return []
 
     papers = []
@@ -157,7 +162,7 @@ def search_live_candidates(query: str, max_results: int = INITIAL_CANDIDATE_COUN
         return arxiv_papers, True
 
     semantic_papers = search_semantic_scholar_candidates(query, max_results=max_results)
-    if all(diagnostics()["sources"].get(name) == "unavailable" for name in ("arxiv", "semantic_scholar")):
+    if all(diagnostics()["sources"].get(name) in {"unavailable", "rate_limited"} for name in ("arxiv", "semantic_scholar")):
         raise SourceUnavailable()
     candidates = _dedupe_papers([*semantic_papers, *arxiv_papers])
     logger.info(
