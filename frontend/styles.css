@@ -104,6 +104,7 @@ div.st-key-plan_panel { padding: 0.25rem 0 1rem; }
 .syn-body, .syn-field-value { color: var(--af-text); font-size: 0.95rem; line-height: 1.65; max-width: 72ch; white-space: pre-wrap; }
 .syn-list { margin: 0.25rem 0 0; padding-left: 1.2rem; max-width: 72ch; }
 .syn-list li { color: var(--af-text); font-size: 0.95rem; line-height: 1.6; margin-bottom: 0.35rem; }
+.af-cite { color: var(--af-ember); font-size: 0.72em; font-weight: 600; margin-left: 0.15em; }
 .syn-badge { display: inline-block; margin: 0.6rem 0.4rem 0 0; padding: 0.15rem 0.55rem; border: 1px solid var(--af-line-strong); border-radius: 999px; color: var(--af-text-mid); font-size: 0.78rem; }
 
 @media (prefers-reduced-motion: reduce) {

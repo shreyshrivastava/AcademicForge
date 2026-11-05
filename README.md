@@ -11,9 +11,9 @@ It runs on your own machine (Apple Silicon, NVIDIA CUDA or AMD ROCm) with a loca
 
 ![AcademicForge demo: a question, ranked papers, a summary and a cited plan](docs/assets/academicforge-demo.gif)
 
-[Watch the 22-second demo with sound](docs/assets/academicforge-demo.mp4)
+[Watch the 22-second demo with sound](docs/assets/academicforge-demo.mp4?raw=true)
 
-[Getting started](#getting-started) · [Try it](#try-it) · [How it works](#how-it-works) · [Evidence](#evidence) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](CONTRIBUTING.md)
+[Getting started](#getting-started) · [Try it](#try-it) · [How it works](#how-it-works) · [Faithfulness check](#faithfulness-check) · [Benchmarks](#benchmarks) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](CONTRIBUTING.md)
 
 ## What it does
 
@@ -182,15 +182,46 @@ REMOTE_LLM_MODEL=openai/gpt-oss-120b
 
 For Fireworks DeepSeek, add `FIREWORKS_API_KEY` and `LOCAL_LLM_USE_FIREWORKS=true`. Use one cloud provider at a time. Fast mode always uses the local model.
 
-## Evidence
-
-### Summary faithfulness check
+## Faithfulness check
 
 This check looks for summaries that drift away from their papers. The local Gemma model (`mlx-community/gemma-2-2b-it-4bit`) wrote summaries for 20 fixed questions, 63 sentences in all. Each sentence was compared with the sentences of the paper's abstract using BGE embeddings, and counted as supported when the closest match scored at least 0.80.
 
 At that threshold about two thirds of the real summary sentences counted as supported. The rest weren't necessarily wrong, often just reworded too far for the similarity score. To see whether the check catches real problems, it was also run on deliberately broken summaries: sentences swapped in from the wrong paper, invented claims, and conclusions flipped to their opposite. It caught the swapped and invented sentences, and most of the flipped conclusions, but not all of them.
 
-So treat this as a screen that points at summaries worth a second look. It does not show that a summary is correct. It ran with the earlier prompts, before the plain-writing rule, and needs a re-run to describe the current version. The data and method are in [faithfulness.json](docs/benchmarks/faithfulness.json), [faithfulness_controls.json](docs/benchmarks/faithfulness_controls.json) and [benchmarks/faithfulness.py](benchmarks/faithfulness.py). Retrieval experiments are kept in the [benchmark guide](docs/benchmarks/README.md).
+So treat this as a screen that points at summaries worth a second look. It does not show that a summary is correct. It ran with the earlier prompts, before the plain-writing rule, and needs a re-run to describe the current version. The data and method are in [faithfulness.json](docs/benchmarks/faithfulness.json), [faithfulness_controls.json](docs/benchmarks/faithfulness_controls.json) and [benchmarks/faithfulness.py](benchmarks/faithfulness.py). Retrieval numbers are in [Benchmarks](#benchmarks) below.
+
+## Benchmarks
+
+These are offline measurements on public datasets. They describe how the ranking step orders abstracts, not how good a finished plan is, and they don't cover live search, full papers or human judgment.
+
+### Retrieval on BEIR SciFact
+
+| System | nDCG@10 | 95% bootstrap CI | Difference vs dense-only (95% CI) |
+| :--- | ---: | :--- | :--- |
+| BGE dense-only | 0.7200 | 0.6776–0.7635 | |
+| Stemmed BM25 | 0.6514 | 0.6058–0.6951 | −0.0686 (−0.1063 to −0.0309) |
+| Equal-weight RRF | 0.7076 | 0.6656–0.7513 | −0.0124 (−0.0392 to 0.0169) |
+| Best weighted RRF | 0.7233 | 0.6800–0.7628 | +0.0033 (−0.0109 to 0.0189) |
+| Best score fusion (default) | 0.7306 | 0.6877–0.7728 | +0.0106 (−0.0037 to 0.0268) |
+| Best score fusion + reranker@20 | 0.7278 | 0.6836–0.7697 | +0.0078 (−0.0198 to 0.0351) |
+
+One run on the full SciFact test set (300 queries, 5,183 abstracts) on Apple Silicon, with 1,000 paired bootstrap resamples. Settings were chosen on the training judgments. Score fusion scored highest, but its gain over dense-only is inside the noise here, and the reranker didn't add anything.
+
+### Retrieval on BEIR NFCorpus
+
+| System | nDCG@10 (95% CI) | Difference vs dense-only (95% CI) |
+| :--- | :--- | :--- |
+| Dense-only | 0.3374 (0.3014–0.3752) | |
+| Stemmed BM25 | 0.3053 (0.2737–0.3390) | −0.0322 (−0.0530 to −0.0100) |
+| Equal RRF | 0.3422 (0.3082–0.3790) | +0.0048 (−0.0100 to 0.0212) |
+| Weighted RRF | 0.3505 (0.3152–0.3866) | +0.0130 (0.0047 to 0.0205) |
+| Score fusion | 0.3551 (0.3192–0.3930) | +0.0177 (0.0108 to 0.0253) |
+
+Run once with the settings frozen from SciFact. Here the small gain from score fusion was outside the noise, which is why it is the default. The reasoning and a dated note on the decision rule are in the [benchmark guide](docs/benchmarks/README.md).
+
+### Plan citations
+
+In a run of 10 fixed questions with three papers each, the plans cited only the papers that were selected, and most Key Findings bullets carried a citation. That run used the earlier prompts. A spot check with the current prompts cited fewer findings, so this needs a re-run before quoting a number. The check only confirms that a citation points at a selected paper, not that the paper supports the claim. Data: [plan_faithfulness.json](docs/benchmarks/plan_faithfulness.json).
 
 ### Example plan
 

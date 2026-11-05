@@ -124,7 +124,8 @@ def render_list_or_body(text, ordered=False):
 
 
 def render_citation_spans(text):
-    return html.escape(strip_evidence_citations(text))
+    # Keep each [n] visible as a small marker that points at the Sources list.
+    return re.sub(r"\s*\[(?:Evidence\s*)?(\d+)\]", r'<sup class="af-cite">[\1]</sup>', html.escape(text or ""), flags=re.IGNORECASE)
 
 
 def strip_evidence_citations(text):

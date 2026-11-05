@@ -18,7 +18,6 @@ from frontend.components import (
     render_research_plan_empty_state,
     render_research_plan_loading_state,
     render_research_plan_panel,
-    strip_evidence_citations,
 )
 
 api_client = create_api_client()
@@ -376,7 +375,7 @@ def render_results(research_question):
                 plan_placeholder.markdown("".join(chunks))
             if api_client.last_generation.get("fallback"):
                 st.warning(api_client.last_generation.get("fallback_message") or "The cloud model didn't respond, so this plan comes from the local model.")
-            st.session_state.research_plan = strip_evidence_citations("".join(chunks)).strip()
+            st.session_state.research_plan = "".join(chunks).strip()
             st.session_state.research_plan_elapsed = time.perf_counter() - started
             plan_placeholder.empty()
             st.session_state.generated_labels = selected_labels

@@ -145,3 +145,10 @@ def test_stripping_inline_citations_keeps_selected_evidence_entries():
     from frontend.components import strip_evidence_citations
     plan = "Use RAG. [1]\n\n## Selected evidence\n\n[1] [Paper](https://x) — Ada"
     assert strip_evidence_citations(plan) == "Use RAG.\n\n## Selected evidence\n\n[1] [Paper](https://x) — Ada"
+
+
+def test_plan_citations_render_as_markers():
+    from frontend.components import render_citation_spans
+    html_out = render_citation_spans("Retrieval cuts errors [1] [Evidence 2] <b>")
+    assert '<sup class="af-cite">[1]</sup>' in html_out and '<sup class="af-cite">[2]</sup>' in html_out
+    assert "&lt;b&gt;" in html_out
