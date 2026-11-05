@@ -125,7 +125,13 @@ def render_list_or_body(text, ordered=False):
 
 def render_citation_spans(text):
     # Keep each [n] visible as a small marker that points at the Sources list.
-    return re.sub(r"\s*\[(?:Evidence\s*)?(\d+)\]", r'<sup class="af-cite">[\1]</sup>', html.escape(text or ""), flags=re.IGNORECASE)
+    text = text or ""
+    lead = re.match(r"\s*\[(?:Evidence\s*)?(\d+)\]\s*", text, flags=re.IGNORECASE)
+    if lead:  # the model sometimes opens a bullet with its citation; move it to the end, once
+        text = text[lead.end():]
+        if f"[{lead.group(1)}]" not in text:
+            text = f"{text} [{lead.group(1)}]"
+    return re.sub(r"\s*\[(?:Evidence\s*)?(\d+)\]", r'<sup class="af-cite">[\1]</sup>', html.escape(text), flags=re.IGNORECASE)
 
 
 def strip_evidence_citations(text):

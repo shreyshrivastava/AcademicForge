@@ -152,3 +152,9 @@ def test_plan_citations_render_as_markers():
     html_out = render_citation_spans("Retrieval cuts errors [1] [Evidence 2] <b>")
     assert '<sup class="af-cite">[1]</sup>' in html_out and '<sup class="af-cite">[2]</sup>' in html_out
     assert "&lt;b&gt;" in html_out
+
+
+def test_leading_plan_citation_moves_to_the_end_once():
+    from frontend.components import render_citation_spans
+    assert render_citation_spans("[1] The authors in [1] propose X.").count("af-cite") == 1
+    assert render_citation_spans("[2] RAG helps.").endswith('<sup class="af-cite">[2]</sup>')
