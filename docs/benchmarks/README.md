@@ -166,7 +166,7 @@ When `FIREWORKS_API_KEY` is set, the script also evaluates the explicitly enable
 
 ### Research Plan citation screen
 
-`benchmarks/plan_faithfulness.py` freezes the first 10 fixed questions and three selected papers per question in ignored local storage on its first run. It then runs the application’s Research Plan generator and records only paper IDs/titles, generated plans, and citation checks in [plan_faithfulness.json](plan_faithfulness.json). The 30 October 2026 local MLX run used `mlx-community/gemma-2-2b-it-4bit`: all 10 plans cited only selected papers, 43 of 50 Key Findings bullets carried citations (86%), and 7 of 10 plans cited every Key Findings bullet.
+`benchmarks/plan_faithfulness.py` freezes the first 10 fixed questions and three selected papers per question in ignored local storage on its first run. It then runs the application’s Research Plan generator and records only paper IDs/titles, generated plans, and citation checks in [plan_faithfulness.json](plan_faithfulness.json). The 30 October 2026 deterministic local MLX run used `mlx-community/gemma-2-2b-it-4bit` with greedy decoding (`temperature=0`): all 10 plans cited only selected papers, 48 of 50 Key Findings bullets carried citations (96%), and 9 of 10 plans cited every Key Findings bullet.
 
 These are structural citation-discipline checks. They do not show that a citation entails its claim, that a plan is factually correct, that the selected papers fully cover live sources, or that users find it useful. Run it locally with:
 
@@ -175,6 +175,22 @@ python -m benchmarks.plan_faithfulness
 ```
 
 The ignored per-plan cache makes interrupted reruns reuse completed local generations when the query, selected-paper IDs, and model are unchanged.
+
+Build a deterministic, model-blind 20-claim human entailment sheet from that artifact with:
+
+```bash
+python -m scripts.build_plan_entailment_review
+```
+
+For each sampled Key Finding, the sheet shows the claim and the abstracts of the papers it cites. A reviewer first records one of `entailed`, `partially_supported`, `insufficient`, `contradicted`, or `unclear` for that cited evidence. `partially_supported` means the evidence supports the core idea but the wording overgeneralizes or omits a material limitation. A separate external fact-check column and source-URL field are available for independently researched evidence; never use that external evidence to alter the citation-entailment label. The generated CSV is ignored because it contains source abstracts.
+
+The local 30 October 2026 pilot reviewed 10 claims with the project owner, who is not a domain expert and received source-reading assistance. It is useful for identifying claim-shape problems, but is not an independent or expert factuality evaluation. Its auditable aggregate is [plan_entailment_pilot.json](plan_entailment_pilot.json); run the scorer only after a local reviewer has saved ratings:
+
+```bash
+python -m scripts.score_plan_entailment_review
+```
+
+The generated-summary A/B sheet also has a separate 10-item local [AI-assisted human-adjudication pilot](assisted_summary_review_pilot.json). The AI supplied cited and external-source analysis before the project owner selected the preferred output, and the owner reported parallel web research without logging source URLs. It is therefore not a blinded or independent human evaluation and must not be combined with `human_eval_scores.json`.
 
 ## Sources and attribution
 

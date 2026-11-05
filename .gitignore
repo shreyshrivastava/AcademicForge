@@ -9,6 +9,9 @@ venv/
 .academicforge_cache/
 benchmark-results.*
 docs/benchmarks/human_eval_key.csv
+docs/benchmarks/plan_entailment_blind.csv
+docs/benchmarks/plan_entailment_ratings.csv
+docs/benchmarks/assisted_summary_review.csv
 
 .pytest_cache/
 .ruff_cache/

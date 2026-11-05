@@ -8,6 +8,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import tempfile
 
@@ -38,8 +39,7 @@ def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def key_findings_citation_coverage(plan: str) -> dict:
-    """Count Key Findings bullets that end with a selected-paper citation."""
+def _key_finding_bullets(plan: str) -> list[str]:
     in_key_findings = False
     bullets = []
     for line in (plan or "").splitlines():
@@ -51,6 +51,21 @@ def key_findings_citation_coverage(plan: str) -> dict:
             break
         if in_key_findings and stripped.startswith(("- ", "* ")):
             bullets.append(stripped)
+    return bullets
+
+
+def key_finding_claims(plan: str) -> list[dict]:
+    """Extract reviewable Key Findings claims and their cited paper indices."""
+    claims = []
+    for bullet in _key_finding_bullets(plan):
+        indices = [int(index) for index in CITATION_PATTERN.findall(bullet)]
+        claims.append({"claim": CITATION_PATTERN.sub("", bullet[2:]).strip(), "citation_indices": indices})
+    return claims
+
+
+def key_findings_citation_coverage(plan: str) -> dict:
+    """Count Key Findings bullets that end with a selected-paper citation."""
+    bullets = _key_finding_bullets(plan)
     cited_bullets = sum(bool(CITATION_PATTERN.search(bullet)) for bullet in bullets)
     return {
         "bullets": len(bullets),
@@ -72,23 +87,25 @@ def plan_record(query_id: str, query: str, papers: list[dict], plan: str) -> dic
         "research_plan": plan,
         "citation_membership": validate_evidence_citations(plan, papers),
         "key_findings_citation_coverage": key_findings_citation_coverage(plan),
+        "key_findings": key_finding_claims(plan),
     }
 
 
-def cached_plan_matches(payload: dict, query: str, papers: list[dict], model: str) -> bool:
+def cached_plan_matches(payload: dict, query: str, papers: list[dict], model: str, temperature: float) -> bool:
     return (
         payload.get("query") == query
         and payload.get("paper_ids") == [paper.get("paper_id") for paper in papers]
         and payload.get("model") == model
+        and payload.get("temperature") == temperature
         and isinstance(payload.get("research_plan"), str)
     )
 
 
-def load_or_generate_plan(cache_dir: Path, item: dict, model: str) -> str:
+def load_or_generate_plan(cache_dir: Path, item: dict, model: str, temperature: float) -> str:
     path = cache_dir / f"{item['id']}.json"
     if path.exists():
         payload = json.loads(path.read_text(encoding="utf-8"))
-        if cached_plan_matches(payload, item["query"], item["papers"], model):
+        if cached_plan_matches(payload, item["query"], item["papers"], model, temperature):
             print(f"[plan-faithfulness] Reusing {item['id']}", flush=True)
             return payload["research_plan"]
     plan = generate_research_plan(item["papers"], query=item["query"], model=model)
@@ -98,6 +115,7 @@ def load_or_generate_plan(cache_dir: Path, item: dict, model: str) -> str:
             "query": item["query"],
             "paper_ids": [paper.get("paper_id") for paper in item["papers"]],
             "model": model,
+            "temperature": temperature,
             "research_plan": plan,
         },
     )
@@ -150,6 +168,7 @@ def parse_args():
     parser.add_argument("--plan-cache-dir", type=Path, default=DEFAULT_PLAN_CACHE_DIR)
     parser.add_argument("--limit", type=int, default=DEFAULT_QUERY_LIMIT)
     parser.add_argument("--paper-limit", type=int, default=DEFAULT_PAPER_LIMIT)
+    parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--prepare-only", action="store_true")
     return parser.parse_args()
 
@@ -160,6 +179,9 @@ def main():
         raise ValueError("--limit must be between 1 and 20")
     if args.paper_limit < 1:
         raise ValueError("--paper-limit must be at least 1")
+    if not 0.0 <= args.temperature <= 2.0:
+        raise ValueError("--temperature must be between 0 and 2")
+    os.environ["LOCAL_LLM_TEMPERATURE"] = str(args.temperature)
     queries = load_queries(args.queries)[:args.limit]
     inputs = load_or_prepare_inputs(args.input_cache, queries, args.paper_limit)
     if args.prepare_only:
@@ -170,7 +192,7 @@ def main():
     records = []
     for index, item in enumerate(inputs["queries"], 1):
         print(f"[plan-faithfulness] Generating {index}/{len(inputs['queries'])}: {item['id']}", flush=True)
-        plan = load_or_generate_plan(args.plan_cache_dir, item, model)
+        plan = load_or_generate_plan(args.plan_cache_dir, item, model, args.temperature)
         records.append(plan_record(item["id"], item["query"], item["papers"], plan))
     payload = {
         "benchmark": "AcademicForge Research Plan citation-faithfulness screen",
@@ -183,6 +205,7 @@ def main():
             "papers_per_query": args.paper_limit,
         },
         "model": model,
+        "generation": {"temperature": args.temperature},
         "method": {
             "citation_membership": "Every plan citation index must refer to a selected paper.",
             "key_findings_coverage": "Every Key Findings bullet should contain a selected-paper citation.",
