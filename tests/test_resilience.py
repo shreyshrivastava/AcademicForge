@@ -22,6 +22,7 @@ from backend.errors import CapacityError, SourceUnavailable, StreamInterrupted
 from backend.execution import Capacity, execute
 import backend.health as health
 import backend.llm as llm
+import backend.llm_local as llm_local
 import backend.jev as jev
 import backend.data_pipeline as pipeline
 import backend.paper_search as paper_search
@@ -166,7 +167,7 @@ def test_capacity_recovers_after_exception():
 
 
 def test_readiness_reports_degraded_retrieval(monkeypatch):
-    monkeypatch.setattr(llm, "_load_transformers_model", lambda *args: True)
+    monkeypatch.setattr(llm_local, "_load_transformers_model", lambda *args: True)
     health.warmup()
     state = health.readiness()
     assert state["models_ready"] is True
@@ -175,7 +176,7 @@ def test_readiness_reports_degraded_retrieval(monkeypatch):
 
 
 def test_readiness_fails_when_generation_unavailable(monkeypatch):
-    monkeypatch.setattr(llm, "_load_transformers_model", Mock(side_effect=RuntimeError("no model")))
+    monkeypatch.setattr(llm_local, "_load_transformers_model", Mock(side_effect=RuntimeError("no model")))
     health.warmup()
     assert health.readiness()["models_ready"] is False
     assert TestClient(api.app).get("/health").status_code == 503

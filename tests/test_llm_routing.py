@@ -63,7 +63,7 @@ def test_research_plan_uses_research_plan_task():
 
 
 def test_clean_response_preamble_removal():
-    from backend.llm import _clean_response
+    from backend.llm_text import _clean_response
     dirty_output = (
         "Summary\n"
         "We are asked: \"Write a concise summary in 2-4 sentences.\" The summary should answer: what does this paper say? Be specific, avoid hype.\n"
