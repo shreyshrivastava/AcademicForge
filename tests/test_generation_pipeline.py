@@ -139,3 +139,9 @@ if __name__ == "__main__":
     test_generate_research_plan_uses_compact_context()
     test_generate_paper_guidance_uses_paper_specific_prompt()
     print("generation pipeline tests passed")
+
+
+def test_stripping_inline_citations_keeps_selected_evidence_entries():
+    from frontend.components import strip_evidence_citations
+    plan = "Use RAG. [1]\n\n## Selected evidence\n\n[1] [Paper](https://x) — Ada"
+    assert strip_evidence_citations(plan) == "Use RAG.\n\n## Selected evidence\n\n[1] [Paper](https://x) — Ada"
